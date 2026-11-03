@@ -2,8 +2,8 @@
 
 Production-oriented, single-vendor e-commerce platform. Monorepo with a Next.js (App Router) storefront/admin and a NestJS REST API backed by MongoDB.
 
-> **Status: Phase 2 (bootstrap) complete.** Both apps build, lint, type-check and test cleanly; the backend boots and serves health/readiness endpoints. No e-commerce features yet.
-> Reports: [`Phase 1 — inspection`](docs/PHASE-1-INSPECTION.md) · [`Phase 2 — bootstrap`](docs/PHASE-2-BOOTSTRAP.md).
+> **Status: Phase 3 (common layer) complete.** The API has its request pipeline, response/error contracts, validation, rate limiting and security headers. E-commerce modules start in Phase 4 (auth).
+> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md).
 
 ## Stack
 
@@ -28,8 +28,10 @@ Ecommerce/
 │   ├── src/app/
 │   └── package.json
 ├── docs/
+│   ├── ARCHITECTURE.md
 │   ├── PHASE-1-INSPECTION.md
-│   └── PHASE-2-BOOTSTRAP.md
+│   ├── PHASE-2-BOOTSTRAP.md
+│   └── PHASE-3-COMMON-LAYER.md
 ├── .gitignore
 └── README.md
 ```
@@ -80,6 +82,7 @@ Copy-Item .env.example .env.local
 | `FRONTEND_URL` | **yes** | `http://localhost:3000` | CORS allow-list, comma separated |
 | `SWAGGER_ENABLED` | no | `true` | Defaults to enabled outside production |
 | `JWT_ACCESS_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | no | `15m` / `7d` | Consumed from Phase 4 |
+| `THROTTLE_TTL` / `THROTTLE_LIMIT` | no | `60` / `100` | Requests per IP per route per window |
 
 Environment variables are validated with Zod at startup (`src/config/env.validation.ts`); an invalid or missing value aborts boot with a readable message.
 
@@ -115,6 +118,28 @@ Windows PowerShell 5.1 also aliases `curl` to `Invoke-WebRequest`; if you prefer
 | `GET` | `/api/health/ready` | Readiness — `200` when MongoDB is connected, `503` otherwise |
 | `GET` | `/api/docs` | Swagger UI (disabled in production unless `SWAGGER_ENABLED=true`) |
 
+## API conventions
+
+Success:
+
+```json
+{ "success": true, "data": { "…": "…" } }
+```
+
+Lists add pagination metadata:
+
+```json
+{ "success": true, "data": [], "meta": { "page": 1, "limit": 20, "total": 0, "totalPages": 0, "hasNextPage": false, "hasPreviousPage": false } }
+```
+
+Errors:
+
+```json
+{ "success": false, "statusCode": 400, "error": "Bad Request", "message": "Validation failed", "details": ["limit must not be greater than 100"], "path": "/api/products", "method": "GET", "timestamp": "…", "requestId": "…" }
+```
+
+Health probes are intentionally flat, unthrottled and outside the envelope. Every response carries `X-Request-Id`, and helmet security headers (CSP, `nosniff`, `SAMEORIGIN`, `no-referrer`) are applied to all non-Swagger routes. Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 ## Scripts
 
 Backend: `verify` (typecheck + lint + unit + e2e + build), `smoke` (HTTP probes against a running API), `build`, `start:dev`, `start:prod`, `typecheck`, `lint` (oxlint), `format` (prettier), `test` (Vitest), `test:e2e`, `test:cov`.
@@ -133,4 +158,4 @@ MongoDB (local or Atlas). The API fails fast when the database is unreachable �
 
 ## Roadmap
 
-Phases 1–14 (inspection → architecture → auth → users → catalog → cart/wishlist → inventory → orders → payments → admin → coupons/reviews/notifications → performance → testing & deployment) are tracked in [`docs/PHASE-1-INSPECTION.md`](docs/PHASE-1-INSPECTION.md#11-phase-map-after-this-inspection).
+Phases 1–14: inspection → bootstrap → common layer → **auth/RBAC** → users → catalog → cart/wishlist → inventory → orders → payments → admin → coupons/reviews/notifications → performance → testing & deployment. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#10-phases) for the current state.

@@ -1,15 +1,20 @@
-import {
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
+import { SkipResponseEnvelope } from '../common/decorators/skip-response-envelope.decorator.js';
+import { PassthroughHttpException } from '../common/exceptions/passthrough-http.exception.js';
 import { HealthService } from './health.service.js';
 import type { LivenessResult, ReadinessResult } from './health.service.js';
 
+/**
+ * Infrastructure endpoints.
+ *
+ * Exempt from rate limiting (probes poll every few seconds) and from the
+ * response envelope (monitoring expects a flat body).
+ */
 @ApiTags('health')
+@SkipThrottle()
+@SkipResponseEnvelope()
 @Controller('health')
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}
@@ -37,7 +42,11 @@ export class HealthController {
     const result = this.healthService.getReadiness();
 
     if (!result.success) {
-      throw new ServiceUnavailableException(result);
+      // Flat payload on purpose: monitoring tools read the body directly.
+      throw new PassthroughHttpException(
+        { ...result },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
     }
 
     return result;

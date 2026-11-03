@@ -1,9 +1,13 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { vi } from 'vitest';
+import { AppModule } from './../src/app.module.js';
+import { configureApp } from './../src/app.setup.js';
+import type { ValidatedEnv } from './../src/config/env.validation.js';
 
 // ConfigModule.forRoot() validates the environment while the module decorator
 // is evaluated, i.e. during the import of AppModule. vi.hoisted() runs before
@@ -13,12 +17,10 @@ vi.hoisted(() => {
   process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/ecommerce-test';
 });
 
-const { AppModule } = await import('./../src/app.module.js');
-
 /**
- * Boots the real AppModule — config validation, Mongoose wiring, controllers —
- * with the database connection substituted, so the module graph and the global
- * `/api` prefix are verified without a live MongoDB instance.
+ * Boots the real AppModule — config validation, Mongoose wiring, controllers,
+ * global pipe/filter/interceptors — with the database connection substituted, so
+ * the module graph and the `/api` prefix are verified without a live MongoDB.
  */
 describe('AppModule (e2e)', () => {
   let app: INestApplication<App>;
@@ -38,10 +40,10 @@ describe('AppModule (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication<INestApplication<App>>();
-    app.setGlobalPrefix('api');
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
-    );
+    configureApp(app, app.get<ConfigService<ValidatedEnv, true>>(ConfigService), {
+      swagger: false,
+      cors: false,
+    });
     await app.init();
   });
 
@@ -49,18 +51,22 @@ describe('AppModule (e2e)', () => {
     await app.close();
   });
 
-  it('GET /api responds from the root controller', async () => {
+  it('GET /api responds from the root controller inside the envelope', async () => {
     const response = await request(app.getHttpServer()).get('/api').expect(200);
 
-    expect(response.text).toBe('Hello World!');
+    expect(response.body).toEqual({ success: true, data: 'Hello World!' });
   });
 
-  it('GET /api/health returns 200', async () => {
+  it('GET /api/health returns a flat liveness payload', async () => {
     const response = await request(app.getHttpServer())
       .get('/api/health')
       .expect(200);
 
-    expect(response.body.success).toBe(true);
+    expect(response.body).toMatchObject({
+      success: true,
+      message: 'E-commerce API is running',
+    });
+    expect(response.body).not.toHaveProperty('data');
   });
 
   it('GET /api/health/ready returns 200 when the database is connected', async () => {
@@ -72,7 +78,15 @@ describe('AppModule (e2e)', () => {
     expect(response.body.checks.database.status).toBe('up');
   });
 
-  it('returns 404 for an unknown route', async () => {
-    await request(app.getHttpServer()).get('/api/does-not-exist').expect(404);
+  it('returns the error envelope for an unknown route', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/does-not-exist')
+      .expect(404);
+
+    expect(response.body).toMatchObject({
+      success: false,
+      statusCode: 404,
+      path: '/api/does-not-exist',
+    });
   });
 });

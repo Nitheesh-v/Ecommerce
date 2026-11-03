@@ -44,6 +44,12 @@ export const envSchema = z.object({
 
   /** Refresh token lifetime (used from Phase 4 onwards). */
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+
+  /** Rate limit window in seconds. */
+  THROTTLE_TTL: z.coerce.number().int().positive().default(60),
+
+  /** Maximum requests per IP per window on throttled routes. */
+  THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -60,6 +66,8 @@ export interface ValidatedEnv {
   SWAGGER_ENABLED?: boolean;
   JWT_ACCESS_EXPIRES_IN: string;
   JWT_REFRESH_EXPIRES_IN: string;
+  THROTTLE_TTL: number;
+  THROTTLE_LIMIT: number;
 }
 
 /**
@@ -89,5 +97,7 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     SWAGGER_ENABLED: env.SWAGGER_ENABLED,
     JWT_ACCESS_EXPIRES_IN: env.JWT_ACCESS_EXPIRES_IN,
     JWT_REFRESH_EXPIRES_IN: env.JWT_REFRESH_EXPIRES_IN,
+    THROTTLE_TTL: env.THROTTLE_TTL,
+    THROTTLE_LIMIT: env.THROTTLE_LIMIT,
   };
 }
