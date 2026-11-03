@@ -14,6 +14,8 @@ const checks = [
   { path: '/health', expected: 200, label: 'liveness' },
   { path: '/health/ready', expected: 200, label: 'readiness' },
   { path: '/docs', expected: 200, label: 'swagger ui', raw: true },
+  // Proves the global auth guard is active: no token means 401, not 200.
+  { path: '/auth/me', expected: 401, label: 'auth guard' },
 ];
 
 let failures = 0;

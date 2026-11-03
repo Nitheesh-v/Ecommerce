@@ -9,6 +9,17 @@ import { z } from 'zod';
  *
  * Add new variables here first, then to `.env.example`.
  */
+/** Values that look like a secret but are not one. */
+const DEFAULT_SECRET_PLACEHOLDERS = new Set([
+  'changeme',
+  'change-me',
+  'secret',
+  'your-secret',
+  'your_jwt_secret',
+  'replace-me',
+  'development',
+]);
+
 export const envSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
@@ -39,11 +50,26 @@ export const envSchema = z.object({
     .optional()
     .transform((value) => value === undefined ? undefined : value === 'true'),
 
-  /** Access token lifetime (used from Phase 4 onwards). */
+  /**
+   * Secret used to sign access tokens. Required: a missing or short secret must
+   * stop the process, never fall back to a default.
+   */
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, 'JWT_ACCESS_SECRET must be at least 32 characters')
+    .refine(
+      (value) => !DEFAULT_SECRET_PLACEHOLDERS.has(value.toLowerCase()),
+      'JWT_ACCESS_SECRET must not be a placeholder value',
+    ),
+
+  /** Access token lifetime. */
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
 
-  /** Refresh token lifetime (used from Phase 4 onwards). */
+  /** Refresh-session lifetime (the refresh token itself is opaque, not a JWT). */
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+
+  /** bcrypt cost factor. 12 is a sensible production default. */
+  BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
 
   /** Rate limit window in seconds. */
   THROTTLE_TTL: z.coerce.number().int().positive().default(60),
@@ -64,8 +90,10 @@ export interface ValidatedEnv {
   MONGODB_URI: string;
   FRONTEND_URL: string;
   SWAGGER_ENABLED?: boolean;
+  JWT_ACCESS_SECRET: string;
   JWT_ACCESS_EXPIRES_IN: string;
   JWT_REFRESH_EXPIRES_IN: string;
+  BCRYPT_ROUNDS: number;
   THROTTLE_TTL: number;
   THROTTLE_LIMIT: number;
 }
@@ -95,8 +123,10 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     MONGODB_URI: env.MONGODB_URI,
     FRONTEND_URL: env.FRONTEND_URL,
     SWAGGER_ENABLED: env.SWAGGER_ENABLED,
+    JWT_ACCESS_SECRET: env.JWT_ACCESS_SECRET,
     JWT_ACCESS_EXPIRES_IN: env.JWT_ACCESS_EXPIRES_IN,
     JWT_REFRESH_EXPIRES_IN: env.JWT_REFRESH_EXPIRES_IN,
+    BCRYPT_ROUNDS: env.BCRYPT_ROUNDS,
     THROTTLE_TTL: env.THROTTLE_TTL,
     THROTTLE_LIMIT: env.THROTTLE_LIMIT,
   };

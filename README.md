@@ -2,8 +2,8 @@
 
 Production-oriented, single-vendor e-commerce platform. Monorepo with a Next.js (App Router) storefront/admin and a NestJS REST API backed by MongoDB.
 
-> **Status: Phase 3 (common layer) complete.** The API has its request pipeline, response/error contracts, validation, rate limiting and security headers. E-commerce modules start in Phase 4 (auth).
-> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md).
+> **Status: Phase 4 (auth & RBAC) complete.** Register/login/refresh/logout, bcrypt hashing, rotating refresh tokens in HttpOnly cookies, and deny-by-default authorization are in place. Next: customer profiles and addresses.
+> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md) · [`Phase 4`](docs/PHASE-4-AUTH.md).
 
 ## Stack
 
@@ -31,7 +31,8 @@ Ecommerce/
 │   ├── ARCHITECTURE.md
 │   ├── PHASE-1-INSPECTION.md
 │   ├── PHASE-2-BOOTSTRAP.md
-│   └── PHASE-3-COMMON-LAYER.md
+│   ├── PHASE-3-COMMON-LAYER.md
+│   └── PHASE-4-AUTH.md
 ├── .gitignore
 └── README.md
 ```
@@ -79,6 +80,8 @@ Copy-Item .env.example .env.local
 | `NODE_ENV` | no | `development` | `development` \| `production` \| `test` |
 | `PORT` | no | `5000` | Defaults to `5000` |
 | `MONGODB_URI` | **yes** | `mongodb://127.0.0.1:27017/ecommerce` | Startup fails fast if missing |
+| `JWT_ACCESS_SECRET` | **yes** | 48 random bytes | ≥ 32 chars, placeholders rejected. Generate: `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
+| `BCRYPT_ROUNDS` | no | `12` | Password hashing cost (4–15) |
 | `FRONTEND_URL` | **yes** | `http://localhost:3000` | CORS allow-list, comma separated |
 | `SWAGGER_ENABLED` | no | `true` | Defaults to enabled outside production |
 | `JWT_ACCESS_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | no | `15m` / `7d` | Consumed from Phase 4 |
@@ -113,6 +116,12 @@ Windows PowerShell 5.1 also aliases `curl` to `Invoke-WebRequest`; if you prefer
 
 | Method | Path | Purpose |
 | --- | --- | --- |
+| `POST` | `/api/auth/register` | Create account (public, 5/min) |
+| `POST` | `/api/auth/login` | Sign in (public, 10/min) |
+| `POST` | `/api/auth/refresh` | Rotate refresh cookie, new access token (public, 30/min) |
+| `POST` | `/api/auth/logout` | Revoke session, clear cookie |
+| `POST` | `/api/auth/logout-all` | Revoke every session (auth) |
+| `GET` | `/api/auth/me` | Current user (auth) |
 | `GET` | `/api` | Scaffold smoke test (`"Hello World!"`), removed when real modules land |
 | `GET` | `/api/health` | Liveness — always `200`, touches no dependency |
 | `GET` | `/api/health/ready` | Readiness — `200` when MongoDB is connected, `503` otherwise |
@@ -138,6 +147,8 @@ Errors:
 { "success": false, "statusCode": 400, "error": "Bad Request", "message": "Validation failed", "details": ["limit must not be greater than 100"], "path": "/api/products", "method": "GET", "timestamp": "…", "requestId": "…" }
 ```
 
+Auth: the access token is returned in the body and must be kept **in memory**; the refresh token is only ever an `HttpOnly` cookie (`Path=/api/auth`, `SameSite=Lax`). See [`docs/PHASE-4-AUTH.md`](docs/PHASE-4-AUTH.md).
+
 Health probes are intentionally flat, unthrottled and outside the envelope. Every response carries `X-Request-Id`, and helmet security headers (CSP, `nosniff`, `SAMEORIGIN`, `no-referrer`) are applied to all non-Swagger routes. Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Scripts
@@ -146,6 +157,14 @@ Backend: `verify` (typecheck + lint + unit + e2e + build), `smoke` (HTTP probes 
 Frontend: `dev`, `build`, `start`, `typecheck` (`next typegen && tsc`), `lint`.
 
 E2E tests do not require a database: the Mongoose connection is substituted, so `npm run test:e2e` is CI-safe.
+
+## Seeding the store owner
+
+```powershell
+# add SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD to backend/.env first
+cd backend
+npm run seed:admin     # idempotent: creates or updates the admin account
+```
 
 ## Database
 

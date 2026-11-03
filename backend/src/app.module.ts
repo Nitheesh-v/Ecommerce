@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule, ValidationPipe } from '@nestjs/common';
+import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -8,10 +8,12 @@ import { AppService } from './app.service.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
-import { RequestIdMiddleware } from './common/middleware/request-id.middleware.js';
 import { validateEnv } from './config/env.validation.js';
 import type { ValidatedEnv } from './config/env.validation.js';
 import { HealthModule } from './health/health.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from './modules/auth/guards/roles.guard.js';
 
 @Module({
   imports: [
@@ -51,6 +53,7 @@ import { HealthModule } from './health/health.module.js';
       ],
     }),
 
+    AuthModule,
     HealthModule,
   ],
   controllers: [AppController],
@@ -72,7 +75,11 @@ import { HealthModule } from './health/health.module.js';
       }),
     },
 
+    // Guard order matters: throttle first (cheap), then authenticate, then
+    // authorise. Every route is authenticated unless marked @Public().
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
 
     // Order matters: logging is outermost so it measures the full request.
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
@@ -81,8 +88,4 @@ import { HealthModule } from './health/health.module.js';
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RequestIdMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

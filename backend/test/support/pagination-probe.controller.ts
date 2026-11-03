@@ -1,4 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
+import { Public } from '../../src/common/decorators/public.decorator.js';
 import { PaginationQueryDto } from '../../src/common/dto/pagination-query.dto.js';
 
 /**
@@ -8,6 +9,7 @@ import { PaginationQueryDto } from '../../src/common/dto/pagination-query.dto.js
  * envelope through a real HTTP route, so the cross-cutting layer can be tested
  * before any business module exists.
  */
+@Public()
 @Controller('probe')
 export class PaginationProbeController {
   @Get()

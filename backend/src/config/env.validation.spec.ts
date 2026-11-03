@@ -2,6 +2,7 @@ import { validateEnv } from './env.validation.js';
 
 const baseEnv = {
   MONGODB_URI: 'mongodb://127.0.0.1:27017/ecommerce',
+  JWT_ACCESS_SECRET: 'a-development-secret-that-is-long-enough',
 };
 
 describe('validateEnv', () => {
@@ -46,6 +47,26 @@ describe('validateEnv', () => {
 
   it('rejects an unsupported NODE_ENV', () => {
     expect(() => validateEnv({ ...baseEnv, NODE_ENV: 'staging' })).toThrow(/NODE_ENV/);
+  });
+
+  it('requires JWT_ACCESS_SECRET and rejects weak values', () => {
+    expect(() => validateEnv({ MONGODB_URI: baseEnv.MONGODB_URI })).toThrow(
+      /JWT_ACCESS_SECRET/,
+    );
+    expect(() =>
+      validateEnv({ ...baseEnv, JWT_ACCESS_SECRET: 'too-short' }),
+    ).toThrow(/at least 32 characters/);
+    expect(() =>
+      validateEnv({ ...baseEnv, JWT_ACCESS_SECRET: 'changeme' }),
+    ).toThrow(/JWT_ACCESS_SECRET/);
+  });
+
+  it('bounds the bcrypt cost factor', () => {
+    expect(validateEnv({ ...baseEnv }).BCRYPT_ROUNDS).toBe(12);
+    expect(validateEnv({ ...baseEnv, BCRYPT_ROUNDS: '10' }).BCRYPT_ROUNDS).toBe(10);
+    expect(() => validateEnv({ ...baseEnv, BCRYPT_ROUNDS: '3' })).toThrow(
+      /BCRYPT_ROUNDS/,
+    );
   });
 
   it('parses SWAGGER_ENABLED into a boolean', () => {

@@ -39,7 +39,9 @@ Ecommerce/
 │   │   │   └── utils/              # pagination helpers
 │   │   ├── database/               # base schema options shared by every collection
 │   │   ├── health/                 # liveness + readiness
-│   │   └── modules/                # feature modules (auth, products, cart, …)
+│   │   └── modules/                # feature modules
+│   │       ├── users/              # user schema, repository, hashing, public mapping
+│   │       └── auth/               # tokens, sessions, guards, auth flows
 │   └── test/                       # e2e specs + test support modules
 ├── frontend/
 │   └── src/
@@ -67,7 +69,8 @@ HTTP request
   ├─ CORS                       FRONTEND_URL allow-list, credentials
   │
   ├─ ThrottlerGuard             rate limit per IP per route (health exempt)
-  ├─ JwtAuthGuard / RolesGuard  (Phase 4; deny by default)
+  ├─ JwtAuthGuard               deny by default; @Public() opts out
+  ├─ RolesGuard                 @Roles(Role.Admin) etc.
   │
   ├─ ValidationPipe             DTO validation + whitelist + transform
   ├─ Controller → Service       business logic
@@ -134,6 +137,19 @@ Produce it with `createPaginatedResult(items, page, limit, total)`; the intercep
 
 `GET /api/health` and `GET /api/health/ready` return flat bodies and skip both the envelope and rate limiting.
 
+### Authentication endpoints
+
+| Method | Path | Access | Result |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/register` | public, 5/min | 201 + access token + refresh cookie |
+| `POST` | `/api/auth/login` | public, 10/min | 200 + access token + refresh cookie |
+| `POST` | `/api/auth/refresh` | public (cookie), 30/min | 200 + rotated cookie |
+| `POST` | `/api/auth/logout` | public (cookie) | 204, session revoked, cookie cleared |
+| `POST` | `/api/auth/logout-all` | authenticated | 200, every session revoked |
+| `GET` | `/api/auth/me` | authenticated | 200, current user |
+
+The refresh token never appears in a response body — only in the `refresh_token` HttpOnly cookie (`Path=/api/auth`, `SameSite=Lax`, `Secure` in production). Access tokens are returned in the body and must be kept in memory by the client.
+
 ---
 
 ## 5. Security posture
@@ -148,7 +164,16 @@ Produce it with `createPaginatedResult(items, page, limit, total)`; the intercep
 | Config | Zod-validated environment, fail-fast at boot; `.env` gitignored, `.env.example` committed |
 | Secrets | never in the frontend bundle, never in the database; only `NEXT_PUBLIC_*` reaches the browser |
 
-Phase 4 adds: JWT access tokens, rotating refresh tokens in `HttpOnly; Secure; SameSite` cookies, password hashing (**bcrypt**), and RBAC guards.
+Authentication (Phase 4, see `docs/PHASE-4-AUTH.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Passwords | bcrypt, cost `BCRYPT_ROUNDS` (12), 8–72 chars, timing-safe unknown-email path |
+| Access token | HS256 JWT, 15 m, issuer/audience checked, kept in memory by the client |
+| Refresh token | opaque 48-byte token in `HttpOnly` cookie, **only its SHA-256 hash stored**, rotated on every use |
+| Theft response | replaying a rotated token revokes every session of that user |
+| Revocation | `logout` (one session), `logout-all` (all), TTL index cleans expired sessions |
+| Authorization | deny-by-default `JwtAuthGuard` + `RolesGuard`, `@Public()` / `@Roles()` / `@CurrentUser()` |
 
 ---
 
@@ -156,6 +181,7 @@ Phase 4 adds: JWT access tokens, rotating refresh tokens in `HttpOnly; Secure; S
 
 - Every schema spreads `baseSchemaOptions` from `src/database/base.schema.ts`: `timestamps`, no `__v`, `toJSON` mapping `_id → id`.
 - Types are declared with `import type { … } from 'mongoose'`. **Never** a value import of a type: mongoose is CommonJS, and with `emitDecoratorMetadata` a type import becomes a runtime import that crashes ESM boot.
+- The mirror-image rule: an abstract class used as a DI token (e.g. `UsersRepository`) must be a **value** import, otherwise Nest cannot resolve the constructor parameter (`design:paramtypes` is undefined).
 - Indexes are declared on the schema (`unique`, compound), not created ad hoc. `autoIndex` is **off in production**.
 - References store `ObjectId` with an explicit `ref`; populate is a deliberate choice per query, never a default.
 - Money is stored as integer minor units (paise/cents) to avoid float drift.
@@ -210,4 +236,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 1. Inspection — `docs/PHASE-1-INSPECTION.md`
 2. Bootstrap — `docs/PHASE-2-BOOTSTRAP.md`
 3. Common layer — `docs/PHASE-3-COMMON-LAYER.md`
-4. Authentication & RBAC · 5 Users/profiles · 6 Products & categories · 7 Cart & wishlist · 8 Inventory · 9 Orders & checkout · 10 Payments (Razorpay) · 11 Admin · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment
+4. Authentication & RBAC — `docs/PHASE-4-AUTH.md`
+5. Users & profiles · 6 Products & categories · 7 Cart & wishlist · 8 Inventory · 9 Orders & checkout · 10 Payments (Razorpay) · 11 Admin · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment

@@ -1,6 +1,7 @@
 import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
+import { Public } from '../common/decorators/public.decorator.js';
 import { SkipResponseEnvelope } from '../common/decorators/skip-response-envelope.decorator.js';
 import { PassthroughHttpException } from '../common/exceptions/passthrough-http.exception.js';
 import { HealthService } from './health.service.js';
@@ -13,6 +14,7 @@ import type { LivenessResult, ReadinessResult } from './health.service.js';
  * response envelope (monitoring expects a flat body).
  */
 @ApiTags('health')
+@Public()
 @SkipThrottle()
 @SkipResponseEnvelope()
 @Controller('health')

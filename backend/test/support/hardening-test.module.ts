@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AppModule } from '../../src/app.module.js';
+import { AdminProbeController } from './admin-probe.controller.js';
 import { PaginationProbeController } from './pagination-probe.controller.js';
 
 /**
@@ -9,6 +10,6 @@ import { PaginationProbeController } from './pagination-probe.controller.js';
  */
 @Module({
   imports: [AppModule],
-  controllers: [PaginationProbeController],
+  controllers: [PaginationProbeController, AdminProbeController],
 })
 export class HardeningTestModule {}

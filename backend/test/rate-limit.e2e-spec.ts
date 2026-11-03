@@ -1,18 +1,15 @@
-import { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { getConnectionToken } from '@nestjs/mongoose';
-import { Test } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { vi } from 'vitest';
-import { configureApp } from '../src/app.setup.js';
-import type { ValidatedEnv } from '../src/config/env.validation.js';
+import { createTestApp } from './support/create-test-app.js';
 import { HardeningTestModule } from './support/hardening-test.module.js';
 
 // A deliberately tiny window/limit keeps the test fast and deterministic.
 vi.hoisted(() => {
   process.env.NODE_ENV = 'test';
   process.env.MONGODB_URI = 'mongodb://127.0.0.1:27017/ecommerce-test';
+  process.env.JWT_ACCESS_SECRET = 'integration-test-secret-value-32-chars-min';
   process.env.THROTTLE_LIMIT = '2';
   process.env.THROTTLE_TTL = '60';
 });
@@ -21,24 +18,7 @@ describe('Rate limiting (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeAll(async () => {
-    const moduleFixture = await Test.createTestingModule({
-      imports: [HardeningTestModule],
-    })
-      .overrideProvider(getConnectionToken())
-      .useValue({
-        readyState: 1,
-        name: 'ecommerce-test',
-        host: '127.0.0.1',
-        close: async () => undefined,
-      })
-      .compile();
-
-    app = moduleFixture.createNestApplication<INestApplication<App>>();
-    configureApp(app, app.get<ConfigService<ValidatedEnv, true>>(ConfigService), {
-      swagger: false,
-      cors: false,
-    });
-    await app.init();
+    app = await createTestApp({ imports: [HardeningTestModule] });
   });
 
   afterAll(async () => {

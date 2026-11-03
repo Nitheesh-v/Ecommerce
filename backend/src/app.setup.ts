@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { requestIdMiddleware } from './common/middleware/request-id.middleware.js';
 import type { ValidatedEnv } from './config/env.validation.js';
 
 export interface ConfigureAppOptions {
@@ -33,6 +34,8 @@ export function configureApp(
 
   app.setGlobalPrefix('api');
 
+  // Correlation first: every subsequent log line and error body can reference it.
+  app.use(requestIdMiddleware);
   app.use(cookieParser());
 
   if (security) {
