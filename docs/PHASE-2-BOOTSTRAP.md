@@ -151,7 +151,7 @@ Not verifiable in this environment: a **successful** Mongo connection and Swagge
 cd backend
 cp .env.example .env          # set MONGODB_URI to your Atlas string
 npm install
-npm run typecheck && npm run test && npm run test:e2e
+npm run verify                # typecheck + lint + unit + e2e + build
 npm run start:dev
 # → API  http://localhost:5000/api
 # → Docs http://localhost:5000/api/docs
@@ -164,13 +164,20 @@ npm run dev
 # → App  http://localhost:3000
 ```
 
-Smoke tests:
+Smoke tests (cross-platform, works in PowerShell too):
 
 ```bash
-curl -i http://localhost:5000/api/health
-curl -i http://localhost:5000/api/health/ready
-curl -i http://localhost:5000/api/docs   # HTML
+npm run smoke     # from backend/, while start:dev is running
 ```
+
+Raw HTTP, any platform:
+
+```bash
+curl.exe -i http://localhost:5000/api/health        # Windows PowerShell 5.1
+curl -i http://localhost:5000/api/health/ready      # bash / PowerShell 7+
+```
+
+> **Windows note:** PowerShell 5.1 does not support `&&` as a command separator, and `curl` there is an alias for `Invoke-WebRequest` (so `curl -i` fails). Use `;`, separate lines, `curl.exe`, or the `verify`/`smoke` npm scripts.
 
 ### Atlas checklist
 

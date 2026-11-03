@@ -56,6 +56,20 @@ npm install
 cp .env.example .env.local
 ```
 
+Windows PowerShell equivalents:
+
+```powershell
+cd backend
+npm install
+Copy-Item .env.example .env
+# edit .env, then:
+cd ..\frontend
+npm install
+Copy-Item .env.example .env.local
+```
+
+> Use `;` or separate lines instead of `&&` in Windows PowerShell 5.1 — `&&` is a parse error there. The `npm run verify` / `npm run smoke` scripts below exist so you never need to chain commands.
+
 ### Backend environment variables
 
 | Variable | Required | Example | Notes |
@@ -75,11 +89,22 @@ Frontend: `NEXT_PUBLIC_API_URL=http://localhost:5000/api`.
 
 ```bash
 # API  → http://localhost:5000/api   (Swagger: /api/docs)
-cd backend && npm run start:dev
+cd backend
+npm run start:dev
 
-# Web  → http://localhost:3000
-cd frontend && npm run dev
+# Web  → http://localhost:3000   (second terminal)
+cd frontend
+npm run dev
 ```
+
+Health probes, cross-platform (no `curl` quirks):
+
+```bash
+cd backend
+npm run smoke            # checks /health, /health/ready and /api/docs
+```
+
+Windows PowerShell 5.1 also aliases `curl` to `Invoke-WebRequest`; if you prefer curl there, call `curl.exe -i http://localhost:5000/api/health`.
 
 ## Endpoints (current)
 
@@ -92,7 +117,7 @@ cd frontend && npm run dev
 
 ## Scripts
 
-Backend: `build`, `start:dev`, `start:prod`, `typecheck`, `lint` (oxlint), `format` (prettier), `test` (Vitest), `test:e2e`, `test:cov`.
+Backend: `verify` (typecheck + lint + unit + e2e + build), `smoke` (HTTP probes against a running API), `build`, `start:dev`, `start:prod`, `typecheck`, `lint` (oxlint), `format` (prettier), `test` (Vitest), `test:e2e`, `test:cov`.
 Frontend: `dev`, `build`, `start`, `typecheck` (`next typegen && tsc`), `lint`.
 
 E2E tests do not require a database: the Mongoose connection is substituted, so `npm run test:e2e` is CI-safe.
