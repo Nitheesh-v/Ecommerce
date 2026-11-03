@@ -2,7 +2,8 @@
 
 Production-oriented, single-vendor e-commerce platform. Monorepo with a Next.js (App Router) storefront/admin and a NestJS REST API backed by MongoDB.
 
-> **Status: Phase 1 (inspection) complete.** The repository is a fresh scaffold; the backend currently has three blocking compile errors. See [`docs/PHASE-1-INSPECTION.md`](docs/PHASE-1-INSPECTION.md) for the full technical report, defect list, and the next task.
+> **Status: Phase 2 (bootstrap) complete.** Both apps build, lint, type-check and test cleanly; the backend boots and serves health/readiness endpoints. No e-commerce features yet.
+> Reports: [`Phase 1 — inspection`](docs/PHASE-1-INSPECTION.md) · [`Phase 2 — bootstrap`](docs/PHASE-2-BOOTSTRAP.md).
 
 ## Stack
 
@@ -27,7 +28,8 @@ Ecommerce/
 │   ├── src/app/
 │   └── package.json
 ├── docs/
-│   └── PHASE-1-INSPECTION.md
+│   ├── PHASE-1-INSPECTION.md
+│   └── PHASE-2-BOOTSTRAP.md
 ├── .gitignore
 └── README.md
 ```
@@ -61,7 +63,11 @@ cp .env.example .env.local
 | `NODE_ENV` | no | `development` | `development` \| `production` \| `test` |
 | `PORT` | no | `5000` | Defaults to `5000` |
 | `MONGODB_URI` | **yes** | `mongodb://127.0.0.1:27017/ecommerce` | Startup fails fast if missing |
-| `FRONTEND_URL` | **yes** | `http://localhost:3000` | Used for CORS |
+| `FRONTEND_URL` | **yes** | `http://localhost:3000` | CORS allow-list, comma separated |
+| `SWAGGER_ENABLED` | no | `true` | Defaults to enabled outside production |
+| `JWT_ACCESS_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | no | `15m` / `7d` | Consumed from Phase 4 |
+
+Environment variables are validated with Zod at startup (`src/config/env.validation.ts`); an invalid or missing value aborts boot with a readable message.
 
 Frontend: `NEXT_PUBLIC_API_URL=http://localhost:5000/api`.
 
@@ -75,10 +81,25 @@ cd backend && npm run start:dev
 cd frontend && npm run dev
 ```
 
+## Endpoints (current)
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api` | Scaffold smoke test (`"Hello World!"`), removed when real modules land |
+| `GET` | `/api/health` | Liveness — always `200`, touches no dependency |
+| `GET` | `/api/health/ready` | Readiness — `200` when MongoDB is connected, `503` otherwise |
+| `GET` | `/api/docs` | Swagger UI (disabled in production unless `SWAGGER_ENABLED=true`) |
+
 ## Scripts
 
-Backend: `build`, `start:dev`, `start:prod`, `lint` (oxlint), `format` (prettier), `test` (Vitest), `test:e2e`, `test:cov`.
-Frontend: `dev`, `build`, `start`, `lint`.
+Backend: `build`, `start:dev`, `start:prod`, `typecheck`, `lint` (oxlint), `format` (prettier), `test` (Vitest), `test:e2e`, `test:cov`.
+Frontend: `dev`, `build`, `start`, `typecheck` (`next typegen && tsc`), `lint`.
+
+E2E tests do not require a database: the Mongoose connection is substituted, so `npm run test:e2e` is CI-safe.
+
+## Database
+
+MongoDB (local or Atlas). The API fails fast when the database is unreachable — 3 bounded retries, then exit code `1` — and `autoIndex` is disabled in production. Atlas setup details (IP allow-list, least-privilege user, URI encoding) are in the Phase 2 report.
 
 ## Security notes
 

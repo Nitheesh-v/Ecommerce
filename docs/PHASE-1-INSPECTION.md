@@ -4,6 +4,7 @@
 **Branch inspected:** `arena/b61c155d-ecommerce` (base commit `a395cd6` — "Initial e-commerce project setup")
 **Date:** 2026-11-03
 **Scope:** Inspection only. No feature work, no architectural changes applied.
+**Follow-up:** the P0/P1 items below were fixed in [Phase 2](PHASE-2-BOOTSTRAP.md).
 **Toolchain used for verification:** Node.js 22.22.3, npm 10.9.8.
 
 ---

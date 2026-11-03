@@ -1,20 +1,35 @@
-
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
+import type { ValidatedEnv } from './config/env.validation.js';
 
-async function bootstrap() {
+const logger = new Logger('Bootstrap');
+
+async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get<ConfigService<ValidatedEnv, true>>(ConfigService);
 
-  const configService = app.get(ConfigService);
+  const nodeEnv = configService.get('NODE_ENV', { infer: true });
+  const port = configService.get('PORT', { infer: true });
+  const swaggerEnabled =
+    configService.get('SWAGGER_ENABLED', { infer: true }) ?? nodeEnv !== 'production';
 
+  // Every route is served under /api unless it opts out with @Public()-style
+  // exclusions (added in later phases).
   app.setGlobalPrefix('api');
 
+  const allowedOrigins = configService
+    .get('FRONTEND_URL', { infer: true })
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: configService.get<string>('FRONTEND_URL'),
+    origin: allowedOrigins,
     credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
   app.useGlobalPipes(
@@ -22,29 +37,40 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: { enableImplicitConversion: false },
     }),
   );
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('E-commerce API')
-    .setDescription('E-commerce backend API documentation')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
+  if (swaggerEnabled) {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder()
+        .setTitle('E-commerce API')
+        .setDescription('Single-vendor e-commerce backend API')
+        .setVersion('1.0')
+        .addBearerAuth()
+        .build(),
+    );
 
-  const document = SwaggerModule.createDocument(
-    app,
-    swaggerConfig,
-  );
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
-  SwaggerModule.setup('api/docs', app, document);
+  // Let Nest run onModuleDestroy/onApplicationShutdown for graceful shutdown.
+  app.enableShutdownHooks();
 
-  const port = configService.get<number>('PORT') ?? 5000;
+  await app.listen(port, '0.0.0.0');
 
-  await app.listen(port);
-
-  console.log(`Backend running on http://localhost:${port}`);
-  console.log(`Swagger: http://localhost:${port}/api/docs`);
+  logger.log(`API listening on http://localhost:${port}/api (${nodeEnv})`);
+  if (swaggerEnabled) {
+    logger.log(`Swagger UI at http://localhost:${port}/api/docs`);
+  }
 }
 
-bootstrap();
+try {
+  await bootstrap();
+} catch (error) {
+  logger.error(
+    `Application failed to start: ${error instanceof Error ? error.message : String(error)}`,
+  );
+  process.exit(1);
+}
