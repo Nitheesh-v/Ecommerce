@@ -196,6 +196,17 @@ Products (Phase 6, see `docs/PHASE-6-PRODUCTS.md`):
 | Deletion | `countOrderReferences()` reads `orders.items.productId`; referenced products are archived instead of deleted so order history survives |
 | Images | bytes never enter MongoDB — only `{ url, publicId, alt, isPrimary }`; local disk by default, Cloudinary when all three `CLOUDINARY_*` vars are set |
 
+Categories (Phase 7, see `docs/PHASE-7-CATEGORIES.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Hierarchy | `parentId` (`null` = top level), max three levels, enforced in the service; ancestors are walked with a visited set so a cycle is rejected and a corrupt tree still terminates |
+| Uniqueness | slug unique per catalogue; names unique **per parent** (case-insensitive), so two departments may both have a "Tops" category |
+| Deletion | refused with `409` while the category has children or products — nothing is cascaded, so product references can never dangle |
+| Public surface | `GET /api/categories` returns only active categories, nested; inactive categories (and children of inactive parents) are 404s |
+| Product counts | aggregated from the `products` collection per page, not per row; the in-memory fake uses a provider so tests stay consistent |
+| Storefront | server-rendered `fetch` reads marked `'use cache'` with `cacheLife('minutes')`; unpublished products and inactive categories are filtered by the API, never by the UI |
+
 Frontend auth & API layer (Phase 5):
 
 | Concern | Implementation |
@@ -269,4 +280,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 4. Authentication & RBAC — `docs/PHASE-4-AUTH.md`
 5. Admin console foundation (layout, navigation, dashboard) — `docs/PHASE-5-ADMIN-DASHBOARD.md` (pulled forward by request; remaining admin modules ship in approved slices)
 6. Product management (schema, admin CRUD, image uploads, admin UI) — `docs/PHASE-6-PRODUCTS.md`
-7. Category management · 8 Cart & wishlist · 9 Inventory · 10 Orders & checkout · 11 Payments (Razorpay) · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment
+7. Category management (hierarchy, images, SEO, storefront browsing) — `docs/PHASE-7-CATEGORIES.md`
+8. Cart & wishlist · 9 Inventory · 10 Orders & checkout · 11 Payments (Razorpay) · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment
