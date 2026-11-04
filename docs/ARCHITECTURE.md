@@ -175,6 +175,25 @@ Authentication (Phase 4, see `docs/PHASE-4-AUTH.md`):
 | Revocation | `logout` (one session), `logout-all` (all), TTL index cleans expired sessions |
 | Authorization | deny-by-default `JwtAuthGuard` + `RolesGuard`, `@Public()` / `@Roles()` / `@CurrentUser()` |
 
+Admin API (Phase 5, see `docs/PHASE-5-ADMIN-DASHBOARD.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Guarding | class-level `@Roles(Role.Admin)` on the admin controller; every admin endpoint re-checks the role server-side |
+| Analytics | `GET /api/admin/dashboard/overview` — one request, eight parallel aggregation reads, gap-filled daily series |
+| Money | integer minor units everywhere; only the UI divides by 100 |
+| Read models | `DashboardRepository` is an abstract class (DI token) with an in-memory fake for tests; the Mongoose implementation documents the collection contract that product/order modules must satisfy |
+| Empty store | missing collections aggregate to zeros; the UI renders explicit empty states rather than implying zero demand |
+
+Frontend auth & API layer (Phase 5):
+
+| Concern | Implementation |
+| --- | --- |
+| Access token | module-scoped memory only (`lib/api/session.ts`); no storage APIs, no readable cookies |
+| Refresh | single-flight `POST /auth/refresh` from an Axios response interceptor, replay-once on 401, hard sign-out when it fails |
+| Layering | `store → service → client → session` (never back into the store) to keep imports acyclic |
+| Route guard | `AdminShell` renders/redirects but never authorizes: the API stays the single authority |
+
 ---
 
 ## 6. Database conventions
@@ -237,4 +256,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 2. Bootstrap — `docs/PHASE-2-BOOTSTRAP.md`
 3. Common layer — `docs/PHASE-3-COMMON-LAYER.md`
 4. Authentication & RBAC — `docs/PHASE-4-AUTH.md`
-5. Users & profiles · 6 Products & categories · 7 Cart & wishlist · 8 Inventory · 9 Orders & checkout · 10 Payments (Razorpay) · 11 Admin · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment
+5. Admin console foundation (layout, navigation, dashboard) — `docs/PHASE-5-ADMIN-DASHBOARD.md` (pulled forward by request; remaining admin modules ship in approved slices)
+6. Users & profiles · 7 Products & categories · 8 Cart & wishlist · 9 Inventory · 10 Orders & checkout · 11 Payments (Razorpay) · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment

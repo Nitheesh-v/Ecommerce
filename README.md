@@ -2,14 +2,14 @@
 
 Production-oriented, single-vendor e-commerce platform. Monorepo with a Next.js (App Router) storefront/admin and a NestJS REST API backed by MongoDB.
 
-> **Status: Phase 4 (auth & RBAC) complete.** Register/login/refresh/logout, bcrypt hashing, rotating refresh tokens in HttpOnly cookies, and deny-by-default authorization are in place. Next: customer profiles and addresses.
-> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md) · [`Phase 4`](docs/PHASE-4-AUTH.md).
+> **Status: Phase 5 (admin console foundation) complete.** Register/login/refresh/logout, bcrypt hashing, rotating refresh tokens in HttpOnly cookies and deny-by-default authorization are in place, and the guarded `/admin` console now ships with a fully API-driven dashboard. Next: product & category management (awaiting approval).
+> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md) · [`Phase 4`](docs/PHASE-4-AUTH.md) · [`Phase 5`](docs/PHASE-5-ADMIN-DASHBOARD.md).
 
 ## Stack
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Zustand, Axios |
+| Frontend | Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Zustand, Axios, React Hook Form + Zod, Lucide, Recharts |
 | Backend | NestJS 12 (ESM), TypeScript, REST, class-validator, Swagger |
 | Database | MongoDB + Mongoose 9 |
 | Auth (planned) | JWT access tokens + rotating refresh tokens in HttpOnly cookies, RBAC |
@@ -25,19 +25,26 @@ Ecommerce/
 │   │   └── health/
 │   └── package.json
 ├── frontend/           # Next.js App Router
-│   ├── src/app/
-│   └── package.json
+│   └── src/
+│       ├── app/        # route groups: (store) | (auth) | account | admin
+│       ├── components/admin/{ui,layout,dashboard,auth}
+│       ├── hooks/      # data-fetching hooks
+│       ├── lib/api/    # Axios client, in-memory session, error mapping
+│       ├── services/   # one module per API area
+│       ├── store/      # Zustand stores (auth, ui)
+│       └── types/      # API DTO mirrors
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── PHASE-1-INSPECTION.md
 │   ├── PHASE-2-BOOTSTRAP.md
 │   ├── PHASE-3-COMMON-LAYER.md
-│   └── PHASE-4-AUTH.md
+│   ├── PHASE-4-AUTH.md
+│   └── PHASE-5-ADMIN-DASHBOARD.md
 ├── .gitignore
 └── README.md
 ```
 
-Planned module layout (`backend/src/modules/*`, `common/*`, `config/*`) and page layout (`(store)`, `(auth)`, `account`, `admin`) are documented in the inspection report and will be created phase by phase.
+Backend module layout (`backend/src/modules/*`, `common/*`, `config/*`) and the storefront page groups (`(store)`, `(auth)`, `account`) are documented in the inspection report and are created phase by phase. The admin console (`/admin`) exists now; its sidebar lists every planned module and marks the ones that are not built yet.
 
 ## Prerequisites
 
@@ -122,6 +129,7 @@ Windows PowerShell 5.1 also aliases `curl` to `Invoke-WebRequest`; if you prefer
 | `POST` | `/api/auth/logout` | Revoke session, clear cookie |
 | `POST` | `/api/auth/logout-all` | Revoke every session (auth) |
 | `GET` | `/api/auth/me` | Current user (auth) |
+| `GET` | `/api/admin/dashboard/overview` | Admin dashboard analytics, `?range=today\|7d\|30d\|90d\|custom[&from&to]` (admin) |
 | `GET` | `/api` | Scaffold smoke test (`"Hello World!"`), removed when real modules land |
 | `GET` | `/api/health` | Liveness — always `200`, touches no dependency |
 | `GET` | `/api/health/ready` | Readiness — `200` when MongoDB is connected, `503` otherwise |
@@ -147,16 +155,26 @@ Errors:
 { "success": false, "statusCode": 400, "error": "Bad Request", "message": "Validation failed", "details": ["limit must not be greater than 100"], "path": "/api/products", "method": "GET", "timestamp": "…", "requestId": "…" }
 ```
 
-Auth: the access token is returned in the body and must be kept **in memory**; the refresh token is only ever an `HttpOnly` cookie (`Path=/api/auth`, `SameSite=Lax`). See [`docs/PHASE-4-AUTH.md`](docs/PHASE-4-AUTH.md).
+Auth: the access token is returned in the body and must be kept **in memory**; the refresh token is only ever an `HttpOnly` cookie (`Path=/api/auth`, `SameSite=Lax`). The frontend does exactly that — see [`docs/PHASE-4-AUTH.md`](docs/PHASE-4-AUTH.md) and [`docs/PHASE-5-ADMIN-DASHBOARD.md`](docs/PHASE-5-ADMIN-DASHBOARD.md).
+
+Money is transported as integer minor units (paise) everywhere; the UI is the only place that divides by 100.
 
 Health probes are intentionally flat, unthrottled and outside the envelope. Every response carries `X-Request-Id`, and helmet security headers (CSP, `nosniff`, `SAMEORIGIN`, `no-referrer`) are applied to all non-Swagger routes. Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Scripts
 
 Backend: `verify` (typecheck + lint + unit + e2e + build), `smoke` (HTTP probes against a running API), `build`, `start:dev`, `start:prod`, `typecheck`, `lint` (oxlint), `format` (prettier), `test` (Vitest), `test:e2e`, `test:cov`.
-Frontend: `dev`, `build`, `start`, `typecheck` (`next typegen && tsc`), `lint`.
+Frontend: `dev`, `build`, `start`, `typecheck` (`next typegen && tsc`), `lint` (`eslint`, includes the React Compiler hooks rules).
 
 E2E tests do not require a database: the Mongoose connection is substituted, so `npm run test:e2e` is CI-safe.
+
+## Admin console
+
+`http://localhost:3000/admin` → guarded console. Sign in with an administrator account; a customer account is rejected and its session is revoked. The access token is held in memory only, and a page reload restores the session through the HttpOnly refresh cookie.
+
+The dashboard (`/admin/dashboard`) is entirely API-driven — six metric cards, revenue/orders trends, status distribution, category sales, recent orders, top products, low-stock alerts, new customers and an activity feed composed from those records — with today / 7 / 30 / 90 day and custom date filters.
+
+Sidebar entries for modules that do not exist yet (products, categories, inventory, orders, payments, coupons, customers, reviews, reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
 
 ## Seeding the store owner
 
@@ -174,7 +192,9 @@ MongoDB (local or Atlas). The API fails fast when the database is unreachable �
 
 - `.env` files are gitignored at both root and package level; only `.env.example` is committed.
 - Never commit credentials, API keys, or tokens. Payment and upload integrations (Razorpay, Cloudinary) will read secrets from the environment only.
+- The browser never persists an access token: it lives in a module variable, and refresh tokens stay in `HttpOnly` cookies. No `localStorage`/`sessionStorage` is used anywhere in the frontend.
+- Admin authorization is enforced by NestJS guards on every endpoint; the client-side route guard only decides what to render, never what may be read.
 
 ## Roadmap
 
-Phases 1–14: inspection → bootstrap → common layer → **auth/RBAC** → users → catalog → cart/wishlist → inventory → orders → payments → admin → coupons/reviews/notifications → performance → testing & deployment. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#10-phases) for the current state.
+Phases 1–14: inspection → bootstrap → common layer → **auth/RBAC** → **admin console (dashboard)** → users → catalog → cart/wishlist → inventory → orders → payments → coupons/reviews/notifications → performance → testing & deployment. Admin work is delivered in approved slices; catalog, orders and payments keep their original scope. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#10-phases) for the current state.
