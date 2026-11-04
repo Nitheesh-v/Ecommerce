@@ -56,7 +56,11 @@ export const envSchema = z.object({
    */
   JWT_ACCESS_SECRET: z
     .string()
-    .min(32, 'JWT_ACCESS_SECRET must be at least 32 characters')
+    .min(
+      32,
+      'JWT_ACCESS_SECRET must be at least 32 characters. Generate one with: ' +
+        'node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'base64url\'))"',
+    )
     .refine(
       (value) => !DEFAULT_SECRET_PLACEHOLDERS.has(value.toLowerCase()),
       'JWT_ACCESS_SECRET must not be a placeholder value',
