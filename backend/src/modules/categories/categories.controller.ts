@@ -1,46 +1,47 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import {
-  ApiBearerAuth,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { IsIn, IsOptional } from 'class-validator';
 import { Public } from '../../common/decorators/public.decorator.js';
-import { Roles } from '../../common/decorators/roles.decorator.js';
-import { Role } from '../../common/enums/role.enum.js';
+import { ApiErrorResponseDto } from '../../common/dto/api-response.dto.js';
 import { CategoriesService } from './categories.service.js';
-
-class CategoryListQueryDto {
-  @IsIn(['active', 'inactive'])
-  @IsOptional()
-  status?: 'active' | 'inactive';
-}
+import { PublicCategoriesQueryDto } from './dto/categories-query.dto.js';
 
 /**
- * Read-only category surface.
+ * Customer-facing category reads.
  *
- * Full category management (create/rename/reorder) is the next module; products
- * only need the list to render a category selector and to validate assignments.
+ * Only `active` categories are ever returned; inactive ones (and children of
+ * inactive parents) are 404s. Nothing here exposes SEO internals or admin fields
+ * beyond what the storefront renders.
  */
 @ApiTags('categories')
-@Controller()
+@Public()
+@Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
-  @Public()
-  @Get('categories')
-  @ApiOperation({ summary: 'Active categories (storefront)' })
-  @ApiOkResponse({ description: 'Category list, alphabetical' })
-  listPublic() {
-    return this.categoriesService.listActive();
+  @Get()
+  @ApiOperation({
+    summary: 'Active categories (nested tree by default, flat with `?tree=false`)',
+  })
+  @ApiOkResponse({ description: 'Active categories in display order' })
+  list(@Query() query: PublicCategoriesQueryDto) {
+    const wantsFlat = query.tree === 'false' || query.parent !== undefined;
+
+    return wantsFlat
+      ? this.categoriesService.getPublicList(query.parent)
+      : this.categoriesService.getPublicTree();
   }
 
-  @Get('admin/categories')
-  @Roles(Role.Admin)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'All categories, optionally filtered by status (admin)' })
-  listForAdmin(@Query() query: CategoryListQueryDto) {
-    return this.categoriesService.list(query.status);
+  @Get(':slug')
+  @ApiOperation({
+    summary: 'An active category with breadcrumb, children and siblings',
+  })
+  @ApiNotFoundResponse({ type: ApiErrorResponseDto })
+  get(@Param('slug') slug: string) {
+    return this.categoriesService.getPublicBySlug(slug);
   }
 }

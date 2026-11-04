@@ -2,10 +2,13 @@
  * Turns arbitrary text into a URL slug: lowercase, accents stripped, everything
  * that is not a letter/digit collapsed into a single hyphen.
  *
- * Kept in one place so the API, the tests and (later) the storefront agree on how
- * a product's default slug is derived.
+ * Shared by products and categories (and mirrored in the frontend for the live
+ * preview) so every module derives slugs the same way.
+ *
+ * `fallback` is returned when the input has no usable characters at all — for
+ * example a name made only of symbols — so a slug is never empty.
  */
-export function slugify(value: string, maxLength = 100): string {
+export function slugify(value: string, maxLength = 100, fallback = 'product'): string {
   const base = value
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -15,7 +18,7 @@ export function slugify(value: string, maxLength = 100): string {
     .slice(0, maxLength)
     .replace(/-+$/g, '');
 
-  return base.length > 0 ? base : 'product';
+  return base.length > 0 ? base : fallback;
 }
 
 /**

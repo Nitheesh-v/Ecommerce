@@ -21,7 +21,7 @@ import type {
   StockStatusFilter,
 } from './repositories/products.repository.js';
 import type { ProductStatus } from './schemas/product.schema.js';
-import { slugify, uniqueSlug } from './utils/slug.util.js';
+import { slugify, uniqueSlug } from '../../common/utils/slug.util.js';
 
 export interface CategorySummary {
   id: string;

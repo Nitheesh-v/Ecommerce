@@ -55,6 +55,13 @@ export class InMemoryProductsRepository implements ProductsRepository {
     return record;
   }
 
+  /** How many products reference this category (used for category product counts). */
+  countInCategory(categoryId: string): number {
+    return [...this.products.values()].filter(
+      (product) => product.categoryId === categoryId,
+    ).length;
+  }
+
   /** Simulates an order that contains this product in its items. */
   addOrderReference(productId: string, orders = 1): void {
     this.orderReferences.set(productId, orders);

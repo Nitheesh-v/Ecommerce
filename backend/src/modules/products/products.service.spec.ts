@@ -16,6 +16,9 @@ const CATEGORY: CategoryRecord = {
   id: '64b7f1c2a1b2c3d4e5f60001',
   name: 'Audio',
   slug: 'audio',
+  image: null,
+  parentId: null,
+  displayOrder: 0,
   status: 'active',
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -124,6 +127,36 @@ class FakeCategoriesRepository implements CategoriesRepository {
 
   async countAll() {
     return this.categories.length;
+  }
+
+  // Admin-only members: the products service never calls them, they exist to
+  // satisfy the abstract contract.
+  async listPage() {
+    return { items: this.categories, total: this.categories.length };
+  }
+
+  async update() {
+    return null;
+  }
+
+  async delete() {
+    return false;
+  }
+
+  async existsByNameUnderParent() {
+    return false;
+  }
+
+  async existsBySlug() {
+    return false;
+  }
+
+  async countChildren() {
+    return 0;
+  }
+
+  async countProducts() {
+    return new Map<string, number>();
   }
 }
 
