@@ -271,6 +271,7 @@ Empty states, not zeros with fake motion: "No revenue in this period", "No order
 4. **No dark mode** in the console yet (the brief specified a light canvas with a dark sidebar). Easy to add later via CSS variables.
 5. **No pagination/lists yet** — every dashboard list is a fixed top-N (5–6) from the API, which is what the endpoint returns.
 6. **Recharts adds ~100 KB gzipped** to admin routes only; it is not imported by the storefront.
+7. **`export const instant = false` on every `admin/(console)` page.** `next.config.ts` enables `cacheComponents` + `partialPrefetching`, so Next 16 validates each route's instant-navigation shell in dev. `AdminShell` renders only a skeleton on the server (the token lives in the browser), so the page segment never renders and Next reports it as "dropped from rendering". The flag is page-level only — the same export on a layout is ignored — and it affects validation, not rendering.
 
 ---
 
