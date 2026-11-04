@@ -207,6 +207,18 @@ Categories (Phase 7, see `docs/PHASE-7-CATEGORIES.md`):
 | Product counts | aggregated from the `products` collection per page, not per row; the in-memory fake uses a provider so tests stay consistent |
 | Storefront | server-rendered `fetch` reads marked `'use cache'` with `cacheLife('minutes')`; unpublished products and inactive categories are filtered by the API, never by the UI |
 
+Inventory (Phase 8, see `docs/PHASE-8-INVENTORY.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Source of truth | `products.stock` — no second quantity. `inventory_movements` records *history*, not a parallel balance |
+| Writes | only `InventoryService`: atomic `findOneAndUpdate` (`$inc` / `$set`), with `stock: { $gte: n }` in the filter so a decrement can never oversell |
+| Audit | append-only movement per change (snapshot name/SKU, previous/new, reason, actor, reference); no update/delete route exists |
+| Idempotency | partial unique index on `(referenceId, type)` + a compensation write when a lost race is detected — replays never double-move stock |
+| Product edits | `stock` removed from the update DTO (400 if sent); opening stock on create is logged as `initial` |
+| Alerts | `inventory_alerts`, one open row per product+level; escalation and dedupe handled in the service, notifications behind `InventoryNotifier` |
+| Order integration | `reserveForOrder` / `restockForOrder` hooks are shipped and tested; Phase 9 wires them into checkout, cancellation and refunds |
+
 Frontend auth & API layer (Phase 5):
 
 | Concern | Implementation |
@@ -281,4 +293,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 5. Admin console foundation (layout, navigation, dashboard) — `docs/PHASE-5-ADMIN-DASHBOARD.md` (pulled forward by request; remaining admin modules ship in approved slices)
 6. Product management (schema, admin CRUD, image uploads, admin UI) — `docs/PHASE-6-PRODUCTS.md`
 7. Category management (hierarchy, images, SEO, storefront browsing) — `docs/PHASE-7-CATEGORIES.md`
-8. Cart & wishlist · 9 Inventory · 10 Orders & checkout · 11 Payments (Razorpay) · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment
+8. Inventory management (stock adjustments, audit trail, alerts, order hooks) — `docs/PHASE-8-INVENTORY.md`
+9. Cart & wishlist · 10 Orders & checkout · 11 Payments (Razorpay) · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment
