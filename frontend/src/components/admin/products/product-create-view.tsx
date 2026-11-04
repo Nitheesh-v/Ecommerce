@@ -18,7 +18,7 @@ export function ProductCreateView() {
     let active = true;
 
     categoriesService
-      .list()
+      .listAll()
       .then((result) => {
         if (active) {
           setCategories(result);

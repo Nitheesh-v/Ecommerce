@@ -55,7 +55,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "Categories",
         href: "/admin/categories",
         icon: Tags,
-        available: false,
+        available: true,
       },
       {
         label: "Inventory",

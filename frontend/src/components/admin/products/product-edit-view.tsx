@@ -26,7 +26,7 @@ export function ProductEditView({ id }: { id: string }) {
   useEffect(() => {
     let active = true;
 
-    Promise.all([productsService.get(id), categoriesService.list()])
+    Promise.all([productsService.get(id), categoriesService.listAll()])
       .then(([product, categories]) => {
         if (active) {
           setLoaded({ product, categories });

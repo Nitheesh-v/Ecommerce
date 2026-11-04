@@ -37,7 +37,7 @@ export function ProductsView() {
 
   useEffect(() => {
     categoriesService
-      .list()
+      .listAll()
       .then(setCategories)
       .catch(() => {
         // The filter bar degrades to "All categories"; the list still works.
