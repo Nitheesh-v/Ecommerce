@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { CategoriesRepository, CategoryRecord } from '../categories/repositories/categories.repository.js';
 import { CategoriesService } from '../categories/categories.service.js';
+import type { InventoryService } from '../inventory/inventory.service.js';
 import { ProductsService } from './products.service.js';
 import type {
   CreateProductInput,
@@ -182,6 +183,11 @@ describe('ProductsService', () => {
     service = new ProductsService(
       repository,
       new CategoriesService(new FakeCategoriesRepository([CATEGORY, INACTIVE])),
+      // Inventory owns stock after creation; nothing in these tests adjusts it.
+      {
+        registerInitialStock: async () => undefined,
+        refreshAlerts: async () => undefined,
+      } as unknown as InventoryService,
     );
   });
 

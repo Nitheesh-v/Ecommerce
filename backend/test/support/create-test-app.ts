@@ -12,6 +12,9 @@ import { SessionsRepository } from '../../src/modules/auth/repositories/sessions
 import { Session } from '../../src/modules/auth/schemas/session.schema.js';
 import { CategoriesRepository } from '../../src/modules/categories/repositories/categories.repository.js';
 import { Category } from '../../src/modules/categories/schemas/category.schema.js';
+import { InventoryRepository } from '../../src/modules/inventory/repositories/inventory.repository.js';
+import { InventoryAlert } from '../../src/modules/inventory/schemas/inventory-alert.schema.js';
+import { InventoryMovement } from '../../src/modules/inventory/schemas/inventory-movement.schema.js';
 import { ProductsRepository } from '../../src/modules/products/repositories/products.repository.js';
 import { Product } from '../../src/modules/products/schemas/product.schema.js';
 import { ImageStorage } from '../../src/modules/uploads/image-storage.js';
@@ -31,6 +34,8 @@ export interface CreateTestAppOptions {
   categories?: CategoriesRepository;
   /** Substitute image storage (no disk, no CDN). */
   imageStorage?: ImageStorage;
+  /** Substitute inventory persistence (movements + alerts). */
+  inventory?: InventoryRepository;
 }
 
 /**
@@ -64,6 +69,10 @@ export async function createTestApp(
     .overrideProvider(getModelToken(Product.name))
     .useValue({})
     .overrideProvider(getModelToken(Category.name))
+    .useValue({})
+    .overrideProvider(getModelToken(InventoryMovement.name))
+    .useValue({})
+    .overrideProvider(getModelToken(InventoryAlert.name))
     .useValue({});
 
   if (options.users) {
@@ -98,6 +107,12 @@ export async function createTestApp(
 
   if (options.imageStorage) {
     builder = builder.overrideProvider(ImageStorage).useValue(options.imageStorage);
+  }
+
+  if (options.inventory) {
+    builder = builder
+      .overrideProvider(InventoryRepository)
+      .useValue(options.inventory);
   }
 
   const moduleFixture = await builder.compile();

@@ -55,6 +55,45 @@ export class InMemoryProductsRepository implements ProductsRepository {
     return record;
   }
 
+  /**
+   * Test hook for the in-memory inventory repository: applies a guarded stock
+   * change the way the Mongo `findOneAndUpdate` does — one synchronous
+   * read-modify-write, so a running total can never drift.
+   *
+   * `update` returns `null` to reject the change (e.g. not enough stock).
+   */
+  mutateStock(
+    id: string,
+    update: (stock: number) => number | null,
+  ): { before: number; product: ProductRecord } | null {
+    const product = this.products.get(id);
+    if (!product) {
+      return null;
+    }
+
+    const before = product.stock;
+    const next = update(before);
+    if (next === null || next < 0) {
+      return null;
+    }
+
+    product.stock = next;
+    product.updatedAt = new Date();
+
+    return { before, product: { ...product } };
+  }
+
+  /** Test hook: empties the store (inventory specs reseed per test). */
+  reset(): void {
+    this.products.clear();
+    this.orderReferences.clear();
+  }
+
+  /** Read-only snapshot for inventory aggregations. */
+  all(): ProductRecord[] {
+    return [...this.products.values()].map((product) => ({ ...product }));
+  }
+
   /** How many products reference this category (used for category product counts). */
   countInCategory(categoryId: string): number {
     return [...this.products.values()].filter(

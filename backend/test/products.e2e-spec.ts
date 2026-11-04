@@ -8,6 +8,7 @@ import { createTestApp } from './support/create-test-app.js';
 import { FakeImageStorage } from './support/fake-image-storage.js';
 import { HardeningTestModule } from './support/hardening-test.module.js';
 import { InMemoryCategoriesRepository } from './support/in-memory-categories.repository.js';
+import { InMemoryInventoryRepository } from './support/in-memory-inventory.repository.js';
 import { InMemoryProductsRepository } from './support/in-memory-products.repository.js';
 import { InMemorySessionsRepository } from './support/in-memory-sessions.repository.js';
 import { InMemoryUsersRepository } from './support/in-memory-users.repository.js';
@@ -108,6 +109,7 @@ describe('Products (e2e)', () => {
       sessions,
       products,
       categories,
+      inventory: new InMemoryInventoryRepository(products),
       imageStorage: storage,
     });
 
@@ -344,16 +346,24 @@ describe('Products (e2e)', () => {
       await asAdmin('get', '/api/admin/products/64b7f1c2a1b2c3d4e5f60718').expect(404);
     });
 
-    it('updates fields and re-validates pricing against the stored value', async () => {
+    it('updates fields but refuses to write stock outside the inventory module', async () => {
       const list = await asAdmin('get', '/api/admin/products?search=SKU-LMP-3001').expect(200);
       const id = list.body.data[0].id as string;
 
       const updated = await asAdmin('patch', `/api/admin/products/${id}`)
-        .send({ name: 'Desk Lamp Pro', stock: 25, salePrice: 39_900 })
+        .send({ name: 'Desk Lamp Pro', salePrice: 39_900 })
         .expect(200);
 
-      expect(updated.body.data).toMatchObject({ name: 'Desk Lamp Pro', stock: 25 });
-      expect(updated.body.data.stockStatus).toBe('in');
+      // Stock is untouched by a product edit — the inventory module owns it.
+      expect(updated.body.data).toMatchObject({ name: 'Desk Lamp Pro', stock: 2 });
+      expect(updated.body.data.stockStatus).toBe('low');
+
+      // A silent stock write would bypass the audit trail and the negative guard,
+      // so the field is not part of the update contract at all.
+      const rejected = await asAdmin('patch', `/api/admin/products/${id}`)
+        .send({ stock: 25 })
+        .expect(400);
+      expect(JSON.stringify(rejected.body)).toContain('stock');
 
       // salePrice must stay below the *existing* price (49900), not a payload value
       await asAdmin('patch', `/api/admin/products/${id}`)

@@ -21,9 +21,11 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { ApiErrorResponseDto } from '../../common/dto/api-response.dto.js';
 import { Role } from '../../common/enums/role.enum.js';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface.js';
 import {
   AdminProductsQueryDto,
   CreateProductDto,
@@ -60,8 +62,8 @@ export class AdminProductsController {
   @ApiOperation({ summary: 'Create a product' })
   @ApiCreatedResponse({ description: 'The created product, including cost price' })
   @ApiConflictResponse({ type: ApiErrorResponseDto, description: 'Duplicate SKU or slug' })
-  create(@Body() dto: CreateProductDto) {
-    return this.productsService.create(dto);
+  create(@Body() dto: CreateProductDto, @CurrentUser() actor: AuthenticatedUser) {
+    return this.productsService.create(dto, actor);
   }
 
   @Get(':id')

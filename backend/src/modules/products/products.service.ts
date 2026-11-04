@@ -2,11 +2,13 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { createPaginatedResult } from '../../common/utils/pagination.util.js';
 import type { PaginatedResult } from '../../common/utils/pagination.util.js';
 import { CategoriesService } from '../categories/categories.service.js';
+import { InventoryService } from '../inventory/inventory.service.js';
 import type { CategoryRecord } from '../categories/repositories/categories.repository.js';
 import type {
   AdminProductsQueryDto,
@@ -22,6 +24,7 @@ import type {
 } from './repositories/products.repository.js';
 import type { ProductStatus } from './schemas/product.schema.js';
 import { slugify, uniqueSlug } from '../../common/utils/slug.util.js';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface.js';
 
 export interface CategorySummary {
   id: string;
@@ -72,9 +75,17 @@ const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(
     private readonly productsRepository: ProductsRepository,
     private readonly categoriesService: CategoriesService,
+    /**
+     * Stock is owned by the inventory module. Products may *set* an initial
+     * quantity on creation, but every subsequent change must go through
+     * `InventoryService` so it is validated, atomic and audited.
+     */
+    private readonly inventoryService: InventoryService,
   ) {}
 
   // ---------------------------------------------------------------- admin reads
@@ -166,7 +177,10 @@ export class ProductsService {
 
   // ------------------------------------------------------------------ writes
 
-  async create(dto: CreateProductDto): Promise<AdminProductView> {
+  async create(
+    dto: CreateProductDto,
+    actor?: AuthenticatedUser,
+  ): Promise<AdminProductView> {
     const sku = normalizeSku(dto.sku);
     const slug = await this.resolveSlug(dto.slug, dto.name);
 
@@ -203,6 +217,26 @@ export class ProductsService {
       // Lost a race against a concurrent insert: the unique index is the source
       // of truth, so report the conflict rather than a generic 500.
       throw new ConflictException('A product with this SKU or slug already exists');
+    }
+
+    // Opening stock is legitimately allowed on creation (draft imports, seed
+    // data) — but it is logged as an `initial` movement so the audit trail
+    // explains where the number came from.
+    try {
+      await this.inventoryService.registerInitialStock({
+        productId: created.id,
+        productName: created.name,
+        sku: created.sku,
+        quantity: created.stock,
+        lowStockThreshold: created.lowStockThreshold,
+        actor,
+      });
+    } catch (error) {
+      // The product and its quantity are already persisted; losing the audit row
+      // must not fail the request. Logged loudly so it can be reconciled.
+      this.logger.error(
+        `Could not record initial stock movement for ${created.sku}: ${String(error)}`,
+      );
     }
 
     return this.toAdminView(created, category);
@@ -259,7 +293,6 @@ export class ProductsService {
       ...(dto.price !== undefined ? { price: dto.price } : {}),
       ...(dto.salePrice !== undefined ? { salePrice: dto.salePrice } : {}),
       ...(dto.costPrice !== undefined ? { costPrice: dto.costPrice } : {}),
-      ...(dto.stock !== undefined ? { stock: dto.stock } : {}),
       ...(dto.lowStockThreshold !== undefined
         ? { lowStockThreshold: dto.lowStockThreshold }
         : {}),
@@ -274,6 +307,18 @@ export class ProductsService {
 
     if (!updated) {
       throw new ConflictException('A product with this SKU or slug already exists');
+    }
+
+    // A new threshold can turn a healthy product into a low-stock one (or the
+    // reverse); re-evaluate its alerts so the console never shows a stale state.
+    if (dto.lowStockThreshold !== undefined) {
+      try {
+        await this.inventoryService.refreshAlerts(id);
+      } catch (error) {
+        this.logger.error(
+          `Could not refresh stock alerts for ${updated.sku}: ${String(error)}`,
+        );
+      }
     }
 
     return this.toAdminView(updated, category);

@@ -8,6 +8,7 @@ import { createTestApp } from './support/create-test-app.js';
 import { FakeImageStorage } from './support/fake-image-storage.js';
 import { HardeningTestModule } from './support/hardening-test.module.js';
 import { InMemoryCategoriesRepository } from './support/in-memory-categories.repository.js';
+import { InMemoryInventoryRepository } from './support/in-memory-inventory.repository.js';
 import { InMemoryProductsRepository } from './support/in-memory-products.repository.js';
 import { InMemorySessionsRepository } from './support/in-memory-sessions.repository.js';
 import { InMemoryUsersRepository } from './support/in-memory-users.repository.js';
@@ -95,6 +96,7 @@ describe('Categories (e2e)', () => {
       sessions,
       products,
       categories,
+      inventory: new InMemoryInventoryRepository(products),
       imageStorage: new FakeImageStorage(),
     });
 
