@@ -7,6 +7,7 @@ import type { TestingModuleBuilder } from '@nestjs/testing';
 import type { App } from 'supertest/types.js';
 import { configureApp } from '../../src/app.setup.js';
 import type { ValidatedEnv } from '../../src/config/env.validation.js';
+import { DashboardRepository } from '../../src/modules/admin/repositories/dashboard.repository.js';
 import { SessionsRepository } from '../../src/modules/auth/repositories/sessions.repository.js';
 import { Session } from '../../src/modules/auth/schemas/session.schema.js';
 import { UsersRepository } from '../../src/modules/users/repositories/users.repository.js';
@@ -17,6 +18,8 @@ export interface CreateTestAppOptions {
   /** Substitute the persistence layer (required for auth flows). */
   users?: UsersRepository;
   sessions?: SessionsRepository;
+  /** Substitute dashboard analytics (admin module). */
+  dashboard?: DashboardRepository;
 }
 
 /**
@@ -58,6 +61,12 @@ export async function createTestApp(
     builder = builder
       .overrideProvider(SessionsRepository)
       .useValue(options.sessions);
+  }
+
+  if (options.dashboard) {
+    builder = builder
+      .overrideProvider(DashboardRepository)
+      .useValue(options.dashboard);
   }
 
   const moduleFixture = await builder.compile();
