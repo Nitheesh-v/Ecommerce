@@ -74,9 +74,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       session.set(payload);
       set({ user: payload.user, status: "authenticated" });
     } catch {
-      // No valid refresh cookie: this is the normal first-visit path.
+      // No valid refresh cookie: this is the normal first-visit path. Any
+      // existing message (e.g. "session expired") is kept for the login screen.
       session.clear();
-      set({ user: null, status: "unauthenticated" });
+      set((previous) => ({
+        user: null,
+        status: "unauthenticated",
+        error: previous.error,
+      }));
     }
   },
 
