@@ -3,7 +3,7 @@
 Production-oriented, single-vendor e-commerce platform. Monorepo with a Next.js (App Router) storefront/admin and a NestJS REST API backed by MongoDB.
 
 > **Status: Phase 5 (admin console foundation) complete.** Register/login/refresh/logout, bcrypt hashing, rotating refresh tokens in HttpOnly cookies and deny-by-default authorization are in place, and the guarded `/admin` console now ships with a fully API-driven dashboard. Next: product & category management (awaiting approval).
-> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md) · [`Phase 4`](docs/PHASE-4-AUTH.md) · [`Phase 5`](docs/PHASE-5-ADMIN-DASHBOARD.md).
+> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md) · [`Phase 4`](docs/PHASE-4-AUTH.md) · [`Phase 5`](docs/PHASE-5-ADMIN-DASHBOARD.md) · [`Phase 6`](docs/PHASE-6-PRODUCTS.md).
 
 ## Stack
 
@@ -39,7 +39,8 @@ Ecommerce/
 │   ├── PHASE-2-BOOTSTRAP.md
 │   ├── PHASE-3-COMMON-LAYER.md
 │   ├── PHASE-4-AUTH.md
-│   └── PHASE-5-ADMIN-DASHBOARD.md
+│   ├── PHASE-5-ADMIN-DASHBOARD.md
+│   └── PHASE-6-PRODUCTS.md
 ├── .gitignore
 └── README.md
 ```
@@ -174,14 +175,17 @@ E2E tests do not require a database: the Mongoose connection is substituted, so 
 
 The dashboard (`/admin/dashboard`) is entirely API-driven — six metric cards, revenue/orders trends, status distribution, category sales, recent orders, top products, low-stock alerts, new customers and an activity feed composed from those records — with today / 7 / 30 / 90 day and custom date filters.
 
-Sidebar entries for modules that do not exist yet (products, categories, inventory, orders, payments, coupons, customers, reviews, reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
+**Products** (`/admin/products`) is a real, API-driven catalogue: server-side paginated listing with search (name/SKU/slug), category/status/stock filters and sortable columns, a create/edit form (basic info, pricing, images, inventory, status, SEO), multi-image upload with primary/reorder, publish & unpublish, a details view, and delete-with-confirmation that archives instead of deleting when orders reference the product. See the [Phase 6 report](docs/PHASE-6-PRODUCTS.md).
+
+Sidebar entries for modules that do not exist yet (categories, inventory, orders, payments, coupons, customers, reviews, reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
 
 ## Seeding the store owner
 
 ```powershell
 # add SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD to backend/.env first
 cd backend
-npm run seed:admin     # idempotent: creates or updates the admin account
+npm run seed:admin        # idempotent: creates or updates the admin account
+npm run seed:categories   # starter categories so products can be created (Phase 6)
 ```
 
 ## Database

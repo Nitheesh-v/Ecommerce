@@ -185,6 +185,17 @@ Admin API (Phase 5, see `docs/PHASE-5-ADMIN-DASHBOARD.md`):
 | Read models | `DashboardRepository` is an abstract class (DI token) with an in-memory fake for tests; the Mongoose implementation documents the collection contract that product/order modules must satisfy |
 | Empty store | missing collections aggregate to zeros; the UI renders explicit empty states rather than implying zero demand |
 
+Products (Phase 6, see `docs/PHASE-6-PRODUCTS.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Namespace | storefront reads are public and read-only (`/api/products`); every write lives under `/api/admin/products` behind `@Roles(Role.Admin)` |
+| Money | integer minor units (paise) in DTOs, schema and UI state; `salePrice < price` is re-checked against the *stored* price on partial updates |
+| Uniqueness | unique `sku` (case-insensitive) and `slug` indexes; generated slugs get numeric suffixes, explicit duplicates return `409` |
+| Visibility | only `status: 'published'` is readable by customers; `costPrice` is stripped from every public projection |
+| Deletion | `countOrderReferences()` reads `orders.items.productId`; referenced products are archived instead of deleted so order history survives |
+| Images | bytes never enter MongoDB — only `{ url, publicId, alt, isPrimary }`; local disk by default, Cloudinary when all three `CLOUDINARY_*` vars are set |
+
 Frontend auth & API layer (Phase 5):
 
 | Concern | Implementation |
@@ -257,4 +268,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 3. Common layer — `docs/PHASE-3-COMMON-LAYER.md`
 4. Authentication & RBAC — `docs/PHASE-4-AUTH.md`
 5. Admin console foundation (layout, navigation, dashboard) — `docs/PHASE-5-ADMIN-DASHBOARD.md` (pulled forward by request; remaining admin modules ship in approved slices)
-6. Users & profiles · 7 Products & categories · 8 Cart & wishlist · 9 Inventory · 10 Orders & checkout · 11 Payments (Razorpay) · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment
+6. Product management (schema, admin CRUD, image uploads, admin UI) — `docs/PHASE-6-PRODUCTS.md`
+7. Category management · 8 Cart & wishlist · 9 Inventory · 10 Orders & checkout · 11 Payments (Razorpay) · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment
