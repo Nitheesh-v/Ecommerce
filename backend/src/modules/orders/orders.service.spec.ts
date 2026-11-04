@@ -13,6 +13,7 @@ import { InventoryService } from '../inventory/inventory.service.js';
 import type { CreateProductInput, ProductRecord } from '../products/repositories/products.repository.js';
 import type { AdminProductView, ProductsService } from '../products/products.service.js';
 import type { UsersService } from '../users/users.service.js';
+import { OrderEvents } from './order-events.js';
 import { OrdersService } from './orders.service.js';
 import { computeTotals, DEFAULT_PRICING } from './pricing.js';
 
@@ -100,7 +101,13 @@ describe('OrdersService', () => {
       rememberPhone: async () => undefined,
     } as unknown as UsersService;
 
-    service = new OrdersService(orders, productsService, inventory, usersService);
+    service = new OrdersService(
+      orders,
+      productsService,
+      inventory,
+      usersService,
+      new OrderEvents(),
+    );
     headphones = products.seed(productInput());
   });
 
@@ -369,7 +376,7 @@ describe('OrdersService', () => {
       expect(paid.payment.paidAmount).toBe(paid.total);
 
       await expect(
-        service.updatePayment(order.id, { status: 'paid' }, ADMIN),
+        service.updatePayment(order.id, { status: 'paid', transactionId: 'UTR-0001' }, ADMIN),
       ).rejects.toBeInstanceOf(ConflictException);
     });
   });
@@ -377,7 +384,7 @@ describe('OrdersService', () => {
   describe('refunds', () => {
     it('caps refunds at the paid amount and refuses double processing', async () => {
       const { order } = await checkout();
-      await service.updatePayment(order.id, { status: 'paid' }, ADMIN);
+      await service.updatePayment(order.id, { status: 'paid', transactionId: 'UTR-1' }, ADMIN);
 
       const queued = await service.createRefund(
         order.id,
@@ -505,7 +512,7 @@ describe('OrdersService', () => {
 
     it('returns the order and queues the refund on completion', async () => {
       const { order } = await checkout();
-      await service.updatePayment(order.id, { status: 'paid' }, ADMIN);
+      await service.updatePayment(order.id, { status: 'paid', transactionId: 'UTR-2' }, ADMIN);
       await deliver(order.id);
 
       const requested = await service.requestReturn(

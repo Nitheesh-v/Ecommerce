@@ -2,8 +2,8 @@
 
 Production-oriented, single-vendor e-commerce platform. Monorepo with a Next.js (App Router) storefront/admin and a NestJS REST API backed by MongoDB.
 
-> **Status: Phase 10 (customer management) complete.** Authentication with rotating refresh tokens, a guarded `/admin` console, the catalogue, categories, inventory, the full order lifecycle and now customer management — listing, profiles, spending analytics, audited account states and CSV export — are implemented and verified. Next: payments (not started).
-> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md) · [`Phase 4`](docs/PHASE-4-AUTH.md) · [`Phase 5`](docs/PHASE-5-ADMIN-DASHBOARD.md) · [`Phase 6`](docs/PHASE-6-PRODUCTS.md) · [`Phase 7`](docs/PHASE-7-CATEGORIES.md) · [`Phase 8`](docs/PHASE-8-INVENTORY.md) · [`Phase 9`](docs/PHASE-9-ORDERS.md) · [`Phase 10`](docs/PHASE-10-CUSTOMERS.md).
+> **Status: Phase 11 (payment management) complete.** Authentication with rotating refresh tokens, a guarded `/admin` console, the catalogue, categories, inventory, the full order lifecycle, customer management and now payments — Razorpay checkout with server-side signature verification, idempotent webhooks, gateway refunds, a transactions console and a customer pay page — are implemented and verified. Next: storefront cart & checkout UI.
+> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md) · [`Phase 4`](docs/PHASE-4-AUTH.md) · [`Phase 5`](docs/PHASE-5-ADMIN-DASHBOARD.md) · [`Phase 6`](docs/PHASE-6-PRODUCTS.md) · [`Phase 7`](docs/PHASE-7-CATEGORIES.md) · [`Phase 8`](docs/PHASE-8-INVENTORY.md) · [`Phase 9`](docs/PHASE-9-ORDERS.md) · [`Phase 10`](docs/PHASE-10-CUSTOMERS.md) · [`Phase 11`](docs/PHASE-11-PAYMENTS.md).
 
 ## Stack
 
@@ -44,7 +44,8 @@ Ecommerce/
 │   ├── PHASE-7-CATEGORIES.md
 │   ├── PHASE-8-INVENTORY.md
 │   ├── PHASE-9-ORDERS.md
-│   └── PHASE-10-CUSTOMERS.md
+│   ├── PHASE-10-CUSTOMERS.md
+│   └── PHASE-11-PAYMENTS.md
 ├── .gitignore
 └── README.md
 ```
@@ -189,9 +190,11 @@ The dashboard (`/admin/dashboard`) is entirely API-driven — six metric cards, 
 
 **Customers** (`/admin/customers`) is built on the existing `users` collection — no second customer table. Six real analytics cards (total, new this month, active, repeat buyers, average spend, net revenue), server-paginated listing with name/email/phone search, status and registration-date filters, spending range, "has purchased", sorting by date/spending/name and CSV export; a profile page with spending summary, paginated order history, addresses captured from order snapshots, activity feed and audit history; and an audited account-state machine (active / suspended / deactivated) that revokes sessions, blocks ordering immediately and never touches order or payment history. Spending counts paid orders only and is net of processed refunds, using the same definition as the dashboard. See the [Phase 10 report](docs/PHASE-10-CUSTOMERS.md).
 
+**Payments** (`/admin/payments`) treats a gateway transaction as its own record — an order can be attempted many times, and an attempt needs gateway ids, an event log and a retry-safe state, none of which belong on the order. Five summary cards (total, successful, pending, failed, refunded amount), a server-paginated transaction table with transaction/order/customer search, status and method filters, date range, sorting and per-row refunds; a detail page with the order, customer, gateway references (`order_…`/`pay_…`/`rfnd_…`), refund history and an append-only timeline. Razorpay is integrated over its REST API with HMAC verification: the browser only receives the publishable key, a capture is applied to the order only after the signature and a fresh gateway read, webhooks are verified over the raw body and de-duplicated by event id, and refunds always go through the gateway. There is no endpoint that lets anyone mark an order paid — online methods are refused on the manual-payment route. See the [Phase 11 report](docs/PHASE-11-PAYMENTS.md).
+
 The storefront (`/`) now renders from the public API: a landing page with active categories and featured products, `/categories`, `/categories/[slug]` (breadcrumbs, subcategories, paginated product grid) and `/products/[slug]`. Inactive categories and unpublished products are never served by the public API.
 
-Sidebar entries for modules that do not exist yet (payments, coupons, reviews, reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
+Sidebar entries for modules that do not exist yet (coupons, reviews, reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
 
 ## Seeding the store owner
 

@@ -47,6 +47,7 @@ Ecommerce/
 │   │       ├── inventory/          # the only stock writer + audit trail + alerts
 │   │       ├── orders/             # order lifecycle, returns, refunds, invoices
 │   │       ├── customers/          # admin read model over users ⨝ orders
+│   │       ├── payments/           # gateway attempts, webhooks, refunds, admin console
 │   │       └── admin/              # dashboard aggregation
 │   └── test/                       # e2e specs + test support modules
 ├── frontend/
@@ -253,6 +254,21 @@ Customers (Phase 10, see `docs/PHASE-10-CUSTOMERS.md`):
 | Addresses | derived from order snapshots (newest first) — nothing is collected twice |
 | Export | `GET /api/admin/customers/export` → `text/csv` attachment, same filters as the table, 5 000-row ceiling, allow-listed columns only |
 
+Payments (Phase 11, see `docs/PHASE-11-PAYMENTS.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Records | `payments` = one row per gateway **attempt** (`order_…`, `pay_…`, status, timestamps, refund mirrors); `payment_events` = append-only audit + webhook idempotency (`eventId` unique). The order keeps owning money (`paidAmount`, `refunds[]`) |
+| Amounts | always re-read from the order; the checkout DTO rejects a client-sent amount (`forbidNonWhitelisted` → `400`) |
+| Capture | signature (`HMAC-SHA256("order\|payment", key_secret)`) **then** a fresh `GET /payments/:id`; only then the payment flips to `captured` and `OrdersService.confirmGatewayPayment()` writes the order under a `paymentStatus` guard |
+| Idempotency | guarded status transitions, unique gateway ids, replay detection on the order, and webhook claims keyed on `eventId` (a duplicate is `200 { duplicate: true }`, a failed apply releases the claim so the retry can work) |
+| Webhooks | `POST /api/payments/webhook` is public but HMAC-verified over the **raw** body (`rawBody: true`), `@SkipThrottle()` because retries must not be rate-limited; handles authorized / captured / failed / refund.processed / refund.failed |
+| Statuses | `pending → authorized → captured → partially_refunded → refunded`, plus terminal `failed`/`cancelled`; no transition moves *into* a paid state from a failure, and cancellation only queues a refund |
+| Refunds | obligation recorded on the order first (audited), executed on the gateway, finalised with the gateway's `rfnd_…`; one pending refund at a time; the sum can never exceed `paidAmount` |
+| Mirror | `OrdersService` publishes refund changes on `OrderEvents`; `PaymentsService` subscribes and updates `refundedAmount` / `status`. One-way, so no module cycle |
+| Secrets | `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` are read only by the payments module, never returned, never logged; the browser gets `RAZORPAY_KEY_ID` only |
+| No gateway | without credentials a `DisabledPaymentGateway` answers `503` while every admin view keeps working |
+
 Frontend auth & API layer (Phase 5):
 
 | Concern | Implementation |
@@ -330,4 +346,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 8. Inventory management (stock adjustments, audit trail, alerts, order hooks) — `docs/PHASE-8-INVENTORY.md`
 9. Order management (checkout, lifecycle, shipping, cancellations, returns, refunds, invoices) — `docs/PHASE-9-ORDERS.md`
 10. Customer management (listing, profiles, spending analytics, audited account states, CSV) — `docs/PHASE-10-CUSTOMERS.md`
-11. Payments (Razorpay) · 12 Storefront cart & checkout UI · 13 Coupons, reviews, notifications · 14 Caching, queues, performance · 15 Testing, security review, deployment
+11. Payment management (Razorpay, webhooks, refunds, console) — `docs/PHASE-11-PAYMENTS.md`
+12. Storefront cart & checkout UI · 13 Coupons, reviews, notifications · 14 Caching, queues, performance · 15 Testing, security review, deployment

@@ -46,6 +46,10 @@ export interface RefundRecord {
   status: RefundStatus;
   reason: string;
   reference?: string;
+  /** Gateway refund id (`rfnd_…`) when a payment gateway executed it. */
+  gatewayRefundId?: string;
+  /** `gateway` = executed by Razorpay, `manual` = bank transfer / cash. */
+  source?: 'gateway' | 'manual';
   requestedAt: Date;
   requestedBy?: OrderActor | null;
   processedAt?: Date;
@@ -231,7 +235,7 @@ export abstract class OrdersRepository {
    */
   abstract apply(
     id: string,
-    guard: { status?: OrderStatus[]; returnId?: string },
+    guard: { status?: OrderStatus[]; returnId?: string; paymentStatus?: PaymentStatus[] },
     update: OrderUpdate,
   ): Promise<OrderRecord | null>;
 }

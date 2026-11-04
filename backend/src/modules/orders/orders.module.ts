@@ -5,6 +5,7 @@ import { ProductsModule } from '../products/products.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { ActiveAccountGuard } from '../auth/guards/active-account.guard.js';
 import { AdminOrdersController } from './admin-orders.controller.js';
+import { OrderEvents } from './order-events.js';
 import { OrdersController } from './orders.controller.js';
 import { OrdersService } from './orders.service.js';
 import { MongooseOrdersRepository } from './repositories/mongoose-orders.repository.js';
@@ -32,9 +33,10 @@ import { Order, OrderSchema } from './schemas/order.schema.js';
   controllers: [OrdersController, AdminOrdersController],
   providers: [
     OrdersService,
+    OrderEvents,
     ActiveAccountGuard,
     { provide: OrdersRepository, useClass: MongooseOrdersRepository },
   ],
-  exports: [OrdersService, OrdersRepository],
+  exports: [OrdersService, OrdersRepository, OrderEvents],
 })
 export class OrdersModule {}

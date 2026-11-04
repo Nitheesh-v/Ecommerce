@@ -12,7 +12,7 @@ import {
   type RefundRecord,
   type ReturnRecord,
 } from './orders.repository.js';
-import type { OrderStatus } from '../schemas/order.schema.js';
+import type { OrderStatus, PaymentStatus } from '../schemas/order.schema.js';
 import { Order } from '../schemas/order.schema.js';
 
 /** Loose document shape for mapping (the model's types are far stricter). */
@@ -126,7 +126,7 @@ export class MongooseOrdersRepository implements OrdersRepository {
 
   async apply(
     id: string,
-    guard: { status?: OrderStatus[]; returnId?: string },
+    guard: { status?: OrderStatus[]; returnId?: string; paymentStatus?: PaymentStatus[] },
     update: OrderUpdate,
   ): Promise<OrderRecord | null> {
     if (!isObjectId(id)) {
@@ -140,6 +140,10 @@ export class MongooseOrdersRepository implements OrdersRepository {
     }
     if (guard.returnId) {
       filter['returns.returnId'] = guard.returnId;
+    }
+    if (guard.paymentStatus?.length) {
+      // Guards gateway/webhook writes: two concurrent captures cannot both land.
+      filter.paymentStatus = { $in: guard.paymentStatus };
     }
 
     const mongoUpdate: Record<string, unknown> = {};

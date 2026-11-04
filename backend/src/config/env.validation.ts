@@ -91,6 +91,23 @@ export const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().min(1).optional(),
   CLOUDINARY_API_KEY: z.string().min(1).optional(),
   CLOUDINARY_API_SECRET: z.string().min(1).optional(),
+
+  /**
+   * Optional Razorpay credentials. Set **all three** to enable online payments;
+   * leave them empty to run the store without a gateway (admin payment views keep
+   * working, checkout answers 503). A partially-filled set aborts boot.
+   *
+   * `RAZORPAY_KEY_ID` is public (it is handed to the checkout widget), the other
+   * two are server-only secrets and must never reach the browser or a log line.
+   * Test-mode keys start with `rzp_test_`.
+   */
+  RAZORPAY_KEY_ID: z
+    .string()
+    .min(1)
+    .regex(/^rzp_(test|live)_[A-Za-z0-9]+$/, 'RAZORPAY_KEY_ID must look like rzp_test_… or rzp_live_…')
+    .optional(),
+  RAZORPAY_KEY_SECRET: z.string().min(8).optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().min(8).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -115,6 +132,9 @@ export interface ValidatedEnv {
   CLOUDINARY_CLOUD_NAME?: string;
   CLOUDINARY_API_KEY?: string;
   CLOUDINARY_API_SECRET?: string;
+  RAZORPAY_KEY_ID?: string;
+  RAZORPAY_KEY_SECRET?: string;
+  RAZORPAY_WEBHOOK_SECRET?: string;
 }
 
 /**
@@ -151,6 +171,21 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     );
   }
 
+  // Same reasoning for the gateway: half a Razorpay configuration would produce a
+  // checkout that opens and then fails every verification.
+  const razorpayValues = [
+    env.RAZORPAY_KEY_ID,
+    env.RAZORPAY_KEY_SECRET,
+    env.RAZORPAY_WEBHOOK_SECRET,
+  ];
+  const configuredRazorpay = razorpayValues.filter(Boolean).length;
+
+  if (configuredRazorpay !== 0 && configuredRazorpay !== 3) {
+    throw new Error(
+      'Invalid environment configuration:\n  - RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET must be set together (or all left empty to disable online payments)',
+    );
+  }
+
   return {
     NODE_ENV: env.NODE_ENV,
     PORT: env.PORT,
@@ -167,5 +202,8 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     CLOUDINARY_CLOUD_NAME: env.CLOUDINARY_CLOUD_NAME,
     CLOUDINARY_API_KEY: env.CLOUDINARY_API_KEY,
     CLOUDINARY_API_SECRET: env.CLOUDINARY_API_SECRET,
+    RAZORPAY_KEY_ID: env.RAZORPAY_KEY_ID,
+    RAZORPAY_KEY_SECRET: env.RAZORPAY_KEY_SECRET,
+    RAZORPAY_WEBHOOK_SECRET: env.RAZORPAY_WEBHOOK_SECRET,
   };
 }

@@ -78,7 +78,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "Payments",
         href: "/admin/payments",
         icon: CreditCard,
-        available: false,
+        available: true,
       },
       {
         label: "Coupons",

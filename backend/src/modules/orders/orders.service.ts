@@ -38,6 +38,7 @@ import {
   canTransition,
   ORDER_STATUS_LABELS,
 } from './order-status.js';
+import { OrderEvents } from './order-events.js';
 import { computeTotals, resolvePricingConfig } from './pricing.js';
 import type { PricingConfig } from './pricing.js';
 import {
@@ -51,6 +52,7 @@ import {
 } from './repositories/orders.repository.js';
 import type {
   OrderStatus,
+  PaymentMethod,
   PaymentStatus,
 } from './schemas/order.schema.js';
 
@@ -67,6 +69,31 @@ export interface OrderView extends OrderRecord {
   canRequestReturn: boolean;
   /** Latest return that is still in flight (if any). */
   activeReturn: ReturnRecord | null;
+}
+
+/**
+ * Payment methods that are collected outside a gateway. Only these can be
+ * recorded by an operator; anything else must be confirmed by the gateway.
+ */
+export const OFFLINE_PAYMENT_METHODS: PaymentMethod[] = ['cod', 'manual'];
+
+/** A verified gateway capture, applied to the order it belongs to. */
+export interface GatewayPaymentConfirmation {
+  orderId: string;
+  /** Gateway payment id (`pay_…`) — becomes the order's transaction id. */
+  gatewayPaymentId: string;
+  /** Amount actually captured, in minor units. */
+  amount: number;
+  method: PaymentMethod;
+  /** Human label for the audit trail (`razorpay`). */
+  provider: string;
+  capturedAt: Date;
+}
+
+export interface GatewayPaymentResult {
+  order: OrderRecord;
+  /** `false` when this was an idempotent replay of an already-applied capture. */
+  applied: boolean;
 }
 
 export interface CreateOrderResult {
@@ -105,6 +132,7 @@ export class OrdersService {
     private readonly productsService: ProductsService,
     private readonly inventoryService: InventoryService,
     private readonly usersService: UsersService,
+    private readonly orderEvents: OrderEvents,
   ) {
     this.pricing = resolvePricingConfig();
     this.store = resolveStoreProfile();
@@ -606,7 +634,15 @@ export class OrdersService {
 
   // ---------------------------------------------------------------- payment
 
-  /** Manual payment recording (bank transfer confirmed, COD collected). */
+  /**
+   * Records an **offline** payment (COD collected, bank transfer confirmed).
+   *
+   * Online payments are deliberately not accepted here: a card/UPI/netbanking/wallet
+   * order is only ever marked paid by `confirmGatewayPayment()`, which is called
+   * with a signature-verified gateway event. This is the difference between "an
+   * operator says the money arrived" and "the gateway says the money arrived", and
+   * only the second one is proof.
+   */
   async updatePayment(
     id: string,
     dto: UpdatePaymentDto,
@@ -614,6 +650,16 @@ export class OrdersService {
   ): Promise<OrderView> {
     const order = await this.requireOrder(id);
 
+    if (!OFFLINE_PAYMENT_METHODS.includes(order.paymentMethod)) {
+      throw new BadRequestException(
+        `"${order.paymentMethod}" payments are confirmed by the payment gateway and cannot be recorded manually`,
+      );
+    }
+    if (dto.status === 'paid' && !dto.transactionId?.trim()) {
+      throw new BadRequestException(
+        'A reference (bank transfer id or receipt number) is required to record an offline payment',
+      );
+    }
     if (order.paymentStatus === 'refunded' || order.paymentStatus === 'partially_refunded') {
       throw new ConflictException('This payment is in a refund flow and cannot change');
     }
@@ -663,6 +709,92 @@ export class OrdersService {
     return this.toView(updated);
   }
 
+  /**
+   * Applies a **verified** gateway capture to its order.
+   *
+   * Called by the payments module after a signature-verified checkout response or
+   * webhook, never from a controller. Idempotent: replaying the same capture (the
+   * webhook and the browser callback routinely race) returns the order untouched
+   * instead of writing a second history entry, and the write is guarded on the
+   * payment status it was read at.
+   */
+  async confirmGatewayPayment(
+    input: GatewayPaymentConfirmation,
+  ): Promise<GatewayPaymentResult> {
+    const order = await this.requireOrder(input.orderId);
+
+    if (order.payment.transactionId === input.gatewayPaymentId && order.paymentStatus === 'paid') {
+      return { order, applied: false };
+    }
+    if (order.paymentStatus !== 'pending' && order.paymentStatus !== 'failed') {
+      throw new ConflictException(
+        `This order's payment is already ${order.paymentStatus.replace(/_/g, ' ')}`,
+      );
+    }
+    if (input.amount !== order.total) {
+      throw new BadRequestException(
+        'The captured amount does not match the order total — payment left unapplied for review',
+      );
+    }
+
+    const payment = {
+      ...order.payment,
+      method: input.method,
+      transactionId: input.gatewayPaymentId,
+      paidAmount: input.amount,
+      paidAt: input.capturedAt,
+    };
+
+    const updated = await this.ordersRepository.apply(
+      input.orderId,
+      { paymentStatus: ['pending', 'failed'] },
+      {
+        set: { payment, paymentStatus: 'paid' },
+        pushHistory: [
+          {
+            kind: 'payment',
+            from: order.paymentStatus,
+            to: 'paid',
+            note: `Payment captured by ${input.provider} (${input.gatewayPaymentId})`,
+            at: input.capturedAt,
+          },
+        ],
+      },
+    );
+
+    if (!updated) {
+      // Lost a race (typically webhook × checkout callback): a replay is fine, a
+      // different capture is a conflict worth surfacing.
+      const current = await this.requireOrder(input.orderId);
+
+      if (current.payment.transactionId === input.gatewayPaymentId) {
+        return { order: current, applied: false };
+      }
+
+      throw new ConflictException(
+        'This order changed while the payment was being confirmed — reload to see it',
+      );
+    }
+
+    this.logger.log(`order ${updated.orderNumber} paid via ${input.provider}`);
+    await this.orderEvents.emitRefundChanged(updated);
+
+    return { order: updated, applied: true };
+  }
+
+  /** The raw stored order (internal callers such as the payments module). */
+  async getOrderRecord(id: string): Promise<OrderRecord> {
+    return this.requireOrder(id);
+  }
+
+  /** An order the given caller may read (admin or owner), as a raw record. */
+  async getOrderRecordFor(id: string, user: AuthenticatedUser): Promise<OrderRecord> {
+    const order = await this.requireOrder(id);
+    this.assertCanAccess(order, user);
+
+    return order;
+  }
+
   // ---------------------------------------------------------------- refunds
 
   /**
@@ -675,10 +807,46 @@ export class OrdersService {
     dto: CreateRefundDto,
     actor: AuthenticatedUser,
   ): Promise<OrderView> {
+    const { order } = await this.recordRefund(id, dto, actor);
+
+    return order;
+  }
+
+  /**
+   * Gateway entry point: records the obligation **and** returns the refund it
+   * created, so the caller can execute exactly that refund on the gateway and
+   * later finalise the same record.
+   */
+  async createRefundForGateway(
+    id: string,
+    dto: CreateRefundDto,
+    actor: AuthenticatedUser,
+  ): Promise<{ order: OrderView; refund: RefundRecord }> {
+    return this.recordRefund(id, dto, actor);
+  }
+
+  /**
+   * Records a refund **obligation**. It stays `pending` until the money actually
+   * moved — by a verified gateway refund or by an admin confirming an offline
+   * transfer — and the sum of all refunds can never exceed what was paid.
+   *
+   * Only one refund may be in flight at a time: a double click, or a retried
+   * integration call, is a 409 instead of a second obligation.
+   */
+  private async recordRefund(
+    id: string,
+    dto: CreateRefundDto,
+    actor: AuthenticatedUser,
+  ): Promise<{ order: OrderView; refund: RefundRecord }> {
     const order = await this.requireOrder(id);
 
     if (order.payment.paidAmount <= 0) {
       throw new BadRequestException('Nothing has been paid on this order, so there is nothing to refund');
+    }
+    if (order.payment.refunds.some((entry) => entry.status === 'pending')) {
+      throw new ConflictException(
+        'A refund is already pending on this order — finish or fail it before starting another',
+      );
     }
 
     const remaining = this.refundableRemaining(order);
@@ -697,6 +865,8 @@ export class OrdersService {
       amount: dto.amount,
       status: 'pending',
       reason: dto.reason.trim(),
+      note: dto.note?.trim(),
+      source: 'manual',
       requestedAt: new Date(),
       requestedBy: { userId: actor.id, email: actor.email },
     };
@@ -722,6 +892,39 @@ export class OrdersService {
       },
     );
 
+    return { order: this.toView(updated), refund };
+  }
+
+  /**
+   * Attaches the gateway's refund id to a refund that is still settling.
+   *
+   * The `refund.processed` webhook only carries the gateway's id, so the link has
+   * to exist before the money actually lands — otherwise the webhook could not be
+   * matched to the obligation it completes.
+   */
+  async attachGatewayRefund(
+    id: string,
+    refundId: string,
+    gatewayRefundId: string,
+  ): Promise<OrderView> {
+    const order = await this.requireOrder(id);
+
+    if (!order.payment.refunds.some((entry) => entry.refundId === refundId)) {
+      throw new NotFoundException('Refund not found on this order');
+    }
+
+    const refunds = order.payment.refunds.map((entry) =>
+      entry.refundId === refundId
+        ? { ...entry, gatewayRefundId, source: 'gateway' as const }
+        : entry,
+    );
+
+    const updated = await this.applyOrConflict(
+      id,
+      {},
+      { set: { payment: { ...order.payment, refunds } } },
+    );
+
     return this.toView(updated);
   }
 
@@ -730,12 +933,16 @@ export class OrdersService {
    *
    * Re-processing an already-finalised refund is a 409, which is what prevents a
    * double click (or a retried integration call) from issuing money twice.
+   *
+   * `execution` is how a **gateway** refund records the reference the gateway
+   * returned; it is not accepted from request bodies.
    */
   async updateRefund(
     id: string,
     refundId: string,
     dto: UpdateRefundDto,
     actor: AuthenticatedUser,
+    execution?: { gatewayRefundId?: string; source?: 'gateway' | 'manual' },
   ): Promise<OrderView> {
     const order = await this.requireOrder(id);
     const refund = order.payment.refunds.find((entry) => entry.refundId === refundId);
@@ -754,6 +961,8 @@ export class OrdersService {
             ...entry,
             status: dto.status,
             reference: dto.reference?.trim() || entry.reference,
+            gatewayRefundId: execution?.gatewayRefundId ?? entry.gatewayRefundId,
+            source: execution?.source ?? entry.source ?? 'manual',
             note: dto.note?.trim() || entry.note,
             processedAt: now,
             processedBy: { userId: actor.id, email: actor.email },
@@ -1147,6 +1356,13 @@ export class OrdersService {
       throw new ConflictException(
         'This order changed while you were editing it — reload and try again',
       );
+    }
+
+    // Any write that touches the refund ledger notifies the payments module,
+    // which mirrors the totals onto the gateway transaction. A failed mirror is
+    // logged by the listener and never fails the refund itself.
+    if (update.set && 'payment' in update.set) {
+      await this.orderEvents.emitRefundChanged(updated);
     }
 
     return updated;

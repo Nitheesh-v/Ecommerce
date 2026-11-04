@@ -153,6 +153,15 @@ const refundSchema = new MongooseSchema(
     reason: { type: String, required: true, trim: true, maxlength: 500 },
     /** Gateway/bank reference once it actually happened. */
     reference: { type: String, required: false, trim: true, maxlength: 120 },
+    /** Gateway refund id (`rfnd_…`), set only when a gateway processed it. */
+    gatewayRefundId: { type: String, required: false, trim: true, maxlength: 120 },
+    /** How the refund was actually executed. `manual` = bank transfer / cash. */
+    source: {
+      type: String,
+      enum: ['gateway', 'manual'],
+      required: false,
+      default: 'manual',
+    },
     requestedAt: { type: Date, required: true },
     requestedBy: { type: actorSchema, default: null },
     processedAt: { type: Date, required: false },

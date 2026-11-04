@@ -128,6 +128,12 @@ export class CreateRefundDto {
   @IsString()
   @MaxLength(500)
   reason!: string;
+
+  @ApiPropertyOptional({ description: 'Internal note stored on the refund', maxLength: 500 })
+  @IsString()
+  @MaxLength(500)
+  @IsOptional()
+  note?: string;
 }
 
 export class UpdateRefundDto {

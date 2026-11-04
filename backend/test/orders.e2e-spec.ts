@@ -458,7 +458,7 @@ describe('Orders (e2e)', () => {
       expect(paid.body.data.payment.paidAmount).toBe(order.total);
 
       await asAdmin('patch', `/api/admin/orders/${order.id}/payment`)
-        .send({ status: 'paid' })
+        .send({ status: 'paid', transactionId: 'UTR-2' })
         .expect(409);
     });
   });
@@ -502,7 +502,7 @@ describe('Orders (e2e)', () => {
     it('queues a refund obligation for a paid order', async () => {
       const order = await placeOrder();
       await asAdmin('patch', `/api/admin/orders/${order.id}/payment`)
-        .send({ status: 'paid' })
+        .send({ status: 'paid', transactionId: 'UTR-3' })
         .expect(200);
 
       const cancelled = await asAdmin('post', `/api/admin/orders/${order.id}/cancel`)
@@ -567,7 +567,7 @@ describe('Orders (e2e)', () => {
     it('caps refunds and refuses to process the same refund twice', async () => {
       const order = await placeOrder();
       await asAdmin('patch', `/api/admin/orders/${order.id}/payment`)
-        .send({ status: 'paid' })
+        .send({ status: 'paid', transactionId: 'UTR-4' })
         .expect(200);
 
       const queued = await asAdmin('post', `/api/admin/orders/${order.id}/refunds`)

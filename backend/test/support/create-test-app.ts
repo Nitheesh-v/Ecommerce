@@ -18,6 +18,12 @@ import { InventoryAlert } from '../../src/modules/inventory/schemas/inventory-al
 import { InventoryMovement } from '../../src/modules/inventory/schemas/inventory-movement.schema.js';
 import { OrdersRepository } from '../../src/modules/orders/repositories/orders.repository.js';
 import { Order } from '../../src/modules/orders/schemas/order.schema.js';
+import { PaymentEventsRepository } from '../../src/modules/payments/repositories/payment-events.repository.js';
+import { PaymentsRepository } from '../../src/modules/payments/repositories/payments.repository.js';
+import { PAYMENT_GATEWAY } from '../../src/modules/payments/payment-gateway.js';
+import type { PaymentGateway } from '../../src/modules/payments/payment-gateway.js';
+import { PaymentEvent } from '../../src/modules/payments/schemas/payment-event.schema.js';
+import { Payment } from '../../src/modules/payments/schemas/payment.schema.js';
 import { ProductsRepository } from '../../src/modules/products/repositories/products.repository.js';
 import { Product } from '../../src/modules/products/schemas/product.schema.js';
 import { ImageStorage } from '../../src/modules/uploads/image-storage.js';
@@ -43,6 +49,12 @@ export interface CreateTestAppOptions {
   orders?: OrdersRepository;
   /** Substitute the customer read model (users joined with orders). */
   customers?: CustomersRepository;
+  /** Substitute gateway transactions. */
+  payments?: PaymentsRepository;
+  /** Substitute the payment event log (webhook idempotency). */
+  paymentEvents?: PaymentEventsRepository;
+  /** Substitute the payment gateway (no network, deterministic ids). */
+  paymentGateway?: PaymentGateway;
 }
 
 /**
@@ -82,6 +94,10 @@ export async function createTestApp(
     .overrideProvider(getModelToken(InventoryAlert.name))
     .useValue({})
     .overrideProvider(getModelToken(Order.name))
+    .useValue({})
+    .overrideProvider(getModelToken(Payment.name))
+    .useValue({})
+    .overrideProvider(getModelToken(PaymentEvent.name))
     .useValue({});
 
   if (options.users) {
@@ -134,8 +150,25 @@ export async function createTestApp(
       .useValue(options.customers);
   }
 
+  if (options.payments) {
+    builder = builder.overrideProvider(PaymentsRepository).useValue(options.payments);
+  }
+
+  if (options.paymentEvents) {
+    builder = builder
+      .overrideProvider(PaymentEventsRepository)
+      .useValue(options.paymentEvents);
+  }
+
+  if (options.paymentGateway) {
+    builder = builder.overrideProvider(PAYMENT_GATEWAY).useValue(options.paymentGateway);
+  }
+
   const moduleFixture = await builder.compile();
-  const app = moduleFixture.createNestApplication<INestApplication<App>>();
+  // Mirrors `main.ts`, so webhook signature tests exercise the production stack.
+  const app = moduleFixture.createNestApplication<INestApplication<App>>({
+    rawBody: true,
+  });
 
   configureApp(app, app.get<ConfigService<ValidatedEnv, true>>(ConfigService), {
     swagger: false,

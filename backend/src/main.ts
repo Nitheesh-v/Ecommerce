@@ -8,7 +8,11 @@ import type { ValidatedEnv } from './config/env.validation.js';
 const logger = new Logger('Bootstrap');
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  // `rawBody` keeps the exact request bytes available (`req.rawBody`) for the one
+  // route that needs them: gateway webhooks, whose HMAC is computed over the body
+  // as sent. Parsing the JSON first and re-serialising would change the bytes and
+  // break every signature.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   const configService = app.get<ConfigService<ValidatedEnv, true>>(ConfigService);
 
   configureApp(app, configService);
