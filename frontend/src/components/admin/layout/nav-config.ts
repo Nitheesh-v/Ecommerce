@@ -61,7 +61,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "Inventory",
         href: "/admin/inventory",
         icon: Boxes,
-        available: false,
+        available: true,
       },
     ],
   },

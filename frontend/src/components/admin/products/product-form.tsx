@@ -183,7 +183,19 @@ function defaultValuesFor(product?: AdminProduct): FormValues {
   };
 }
 
-function buildPayload(values: FormValues, images: ProductImage[]): ProductWritePayload {
+/**
+ * `includeStock` is true only when creating a product.
+ *
+ * Opening stock is allowed at creation (and is logged as an `initial` movement),
+ * but after that the product endpoints reject `stock` outright: changing a
+ * quantity must go through `POST /api/admin/inventory/adjust` so it is validated,
+ * atomic and audited.
+ */
+function buildPayload(
+  values: FormValues,
+  images: ProductImage[],
+  includeStock: boolean,
+): ProductWritePayload {
   return {
     name: values.name.trim(),
     slug: values.slug.trim() === "" ? undefined : values.slug.trim(),
@@ -195,7 +207,7 @@ function buildPayload(values: FormValues, images: ProductImage[]): ProductWriteP
     price: toMinorUnits(values.price),
     salePrice: optionalMinorUnits(values.salePrice),
     costPrice: optionalMinorUnits(values.costPrice),
-    stock: Number(values.stock),
+    ...(includeStock ? { stock: Number(values.stock) } : {}),
     lowStockThreshold: Number(values.lowStockThreshold),
     status: values.status,
     isFeatured: values.isFeatured,
@@ -256,13 +268,15 @@ export function ProductForm({
 
     try {
       if (mode === "create") {
-        const created = await productsService.create(buildPayload(values, images));
+        const created = await productsService.create(
+          buildPayload(values, images, true),
+        );
         toast.success(`“${created.name}” created`);
         router.push(`/admin/products/${created.id}`);
       } else if (product) {
         const updated = await productsService.update(
           product.id,
-          buildPayload(values, images),
+          buildPayload(values, images, false),
         );
         toast.success(`“${updated.name}” updated`);
         router.push(`/admin/products/${product.id}`);
@@ -485,17 +499,46 @@ export function ProductForm({
             description="Stock is decremented by orders; keep the threshold at the point where you want a warning."
           />
           <CardBody className="grid gap-4 sm:grid-cols-2">
-            <Field label="Stock quantity" htmlFor="stock" error={errors.stock?.message}>
-              <Input
-                id="stock"
-                type="number"
-                min="0"
-                step="1"
-                inputMode="numeric"
-                invalid={Boolean(errors.stock)}
-                {...register("stock")}
-              />
-            </Field>
+            {mode === "create" ? (
+              <Field
+                label="Opening stock"
+                htmlFor="stock"
+                error={errors.stock?.message}
+                hint="Logged as an opening-stock movement."
+              >
+                <Input
+                  id="stock"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputMode="numeric"
+                  invalid={Boolean(errors.stock)}
+                  {...register("stock")}
+                />
+              </Field>
+            ) : (
+              <Field
+                label="Stock quantity"
+                htmlFor="stock-readonly"
+                hint="Read-only here — quantities change only through audited stock adjustments."
+              >
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="stock-readonly"
+                    value={String(product?.stock ?? 0)}
+                    readOnly
+                    disabled
+                    className="tabular-nums"
+                  />
+                  <Link
+                    href={`/admin/inventory?search=${encodeURIComponent(product?.sku ?? "")}`}
+                    className="shrink-0 text-xs font-medium text-slate-600 underline-offset-2 hover:text-slate-900 hover:underline"
+                  >
+                    Adjust
+                  </Link>
+                </div>
+              </Field>
+            )}
 
             <Field
               label="Low stock threshold"

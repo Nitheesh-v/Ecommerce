@@ -71,7 +71,11 @@ export interface ProductWritePayload {
   price: number;
   salePrice?: number | null;
   costPrice?: number | null;
-  stock: number;
+  /**
+   * Opening stock — **create only**. The API rejects `stock` on update, so a
+   * quantity change always goes through the audited inventory adjustment endpoint.
+   */
+  stock?: number;
   lowStockThreshold: number;
   status: ProductStatus;
   isFeatured: boolean;
