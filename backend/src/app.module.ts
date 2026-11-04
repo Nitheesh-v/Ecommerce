@@ -18,6 +18,7 @@ import { CustomersModule } from './modules/customers/customers.module.js';
 import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { OrdersModule } from './modules/orders/orders.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
+import { ShipmentsModule } from './modules/shipments/shipments.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
 import { UploadsModule } from './modules/uploads/uploads.module.js';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
@@ -69,6 +70,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard.js';
     OrdersModule,
     CustomersModule,
     PaymentsModule,
+    ShipmentsModule,
     UploadsModule,
     HealthModule,
   ],

@@ -25,6 +25,8 @@ import type { PaymentGateway } from '../../src/modules/payments/payment-gateway.
 import { PaymentEvent } from '../../src/modules/payments/schemas/payment-event.schema.js';
 import { Payment } from '../../src/modules/payments/schemas/payment.schema.js';
 import { ProductsRepository } from '../../src/modules/products/repositories/products.repository.js';
+import { ShipmentsRepository } from '../../src/modules/shipments/repositories/shipments.repository.js';
+import { Shipment } from '../../src/modules/shipments/schemas/shipment.schema.js';
 import { Product } from '../../src/modules/products/schemas/product.schema.js';
 import { ImageStorage } from '../../src/modules/uploads/image-storage.js';
 import { UsersRepository } from '../../src/modules/users/repositories/users.repository.js';
@@ -55,6 +57,8 @@ export interface CreateTestAppOptions {
   paymentEvents?: PaymentEventsRepository;
   /** Substitute the payment gateway (no network, deterministic ids). */
   paymentGateway?: PaymentGateway;
+  /** Substitute shipment persistence. */
+  shipments?: ShipmentsRepository;
 }
 
 /**
@@ -98,6 +102,8 @@ export async function createTestApp(
     .overrideProvider(getModelToken(Payment.name))
     .useValue({})
     .overrideProvider(getModelToken(PaymentEvent.name))
+    .useValue({})
+    .overrideProvider(getModelToken(Shipment.name))
     .useValue({});
 
   if (options.users) {
@@ -162,6 +168,12 @@ export async function createTestApp(
 
   if (options.paymentGateway) {
     builder = builder.overrideProvider(PAYMENT_GATEWAY).useValue(options.paymentGateway);
+  }
+
+  if (options.shipments) {
+    builder = builder
+      .overrideProvider(ShipmentsRepository)
+      .useValue(options.shipments);
   }
 
   const moduleFixture = await builder.compile();

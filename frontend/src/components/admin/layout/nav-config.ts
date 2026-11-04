@@ -10,6 +10,7 @@ import {
   Star,
   Tags,
   TicketPercent,
+  Truck,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -78,6 +79,12 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "Payments",
         href: "/admin/payments",
         icon: CreditCard,
+        available: true,
+      },
+      {
+        label: "Shipping",
+        href: "/admin/shipping",
+        icon: Truck,
         available: true,
       },
       {

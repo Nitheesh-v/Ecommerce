@@ -36,6 +36,7 @@ import {
   canCancel,
   canRequestReturn,
   canTransition,
+  FULFILMENT_FLOW,
   ORDER_STATUS_LABELS,
 } from './order-status.js';
 import { OrderEvents } from './order-events.js';
@@ -630,6 +631,160 @@ export class OrdersService {
     );
 
     return this.toView(updated);
+  }
+
+  // ------------------------------------------------------- shipment coupling
+
+  /**
+   * Advances fulfilment along **legal order transitions only**.
+   *
+   * Called by the shipping module when a parcel moves; it deliberately does not
+   * accept arbitrary statuses. A target two steps away (e.g. `processing` →
+   * `delivered`) is walked one legal step at a time so the order's own history
+   * stays truthful, and an order that is cancelled or in a return flow refuses
+   * instead of being forced.
+   */
+  async promoteFulfilment(
+    id: string,
+    target: 'shipped' | 'out_for_delivery' | 'delivered',
+    actor: AuthenticatedUser,
+    reason?: string,
+  ): Promise<OrderRecord> {
+    let current = await this.requireOrder(id);
+
+    if (current.status === target) {
+      return current;
+    }
+    if (
+      current.status === 'cancelled' ||
+      current.status === 'returned' ||
+      current.status === 'return_requested'
+    ) {
+      throw new ConflictException(
+        `Cannot advance a ${ORDER_STATUS_LABELS[current.status].toLowerCase()} order to ${ORDER_STATUS_LABELS[target].toLowerCase()}`,
+      );
+    }
+
+    const path = findFulfilmentPath(current.status, target);
+
+    if (path.length === 0) {
+      throw new ConflictException(
+        `Order ${current.orderNumber} cannot move from ${ORDER_STATUS_LABELS[current.status]} to ${ORDER_STATUS_LABELS[target]}`,
+      );
+    }
+
+    for (const step of path) {
+      const now = new Date();
+      const set: Record<string, unknown> = { status: step };
+
+      if (step === 'shipped') {
+        set['shipping.shippedAt'] = current.shipping?.shippedAt ?? now;
+      }
+      if (step === 'delivered') {
+        set['shipping.deliveredAt'] = now;
+      }
+
+      const updated = await this.ordersRepository.apply(
+        current.id,
+        { status: [current.status] },
+        {
+          set,
+          pushHistory: [
+            {
+              kind: 'status',
+              from: current.status,
+              to: step,
+              reason,
+              note: 'Updated by the shipping module',
+              by: { userId: actor.id, email: actor.email },
+              at: now,
+            },
+          ],
+        },
+      );
+
+      if (!updated) {
+        throw new ConflictException(
+          'This order changed while the shipment was being updated — reload to see it',
+        );
+      }
+
+      current = updated;
+    }
+
+    return current;
+  }
+
+  /**
+   * Mirrors parcel facts onto the order's existing `shipping` block.
+   *
+   * The shipment is the source of truth; the order keeps this denormalised copy so
+   * invoices, the order console and older clients keep working unchanged. A mirror
+   * never changes the order's status — `promoteFulfilment` does that.
+   */
+  async applyShipmentMirror(
+    id: string,
+    mirror: {
+      provider?: string;
+      trackingNumber?: string;
+      trackingUrl?: string;
+      shippedAt?: Date;
+      estimatedDelivery?: Date;
+      deliveredAt?: Date;
+    },
+    actor: AuthenticatedUser,
+    note: string,
+  ): Promise<OrderRecord> {
+    const order = await this.requireOrder(id);
+
+    if (order.status === 'cancelled' || order.status === 'returned') {
+      return order;
+    }
+
+    const previous = order.shipping ?? { notes: [] };
+    const next = {
+      ...previous,
+      ...(mirror.provider !== undefined ? { provider: mirror.provider } : {}),
+      ...(mirror.trackingNumber !== undefined
+        ? { trackingNumber: mirror.trackingNumber }
+        : {}),
+      ...(mirror.trackingUrl !== undefined ? { trackingUrl: mirror.trackingUrl } : {}),
+      ...(mirror.shippedAt !== undefined ? { shippedAt: mirror.shippedAt } : {}),
+      ...(mirror.estimatedDelivery !== undefined
+        ? { estimatedDelivery: mirror.estimatedDelivery }
+        : {}),
+      ...(mirror.deliveredAt !== undefined ? { deliveredAt: mirror.deliveredAt } : {}),
+    };
+
+    const changed =
+      next.provider !== previous.provider ||
+      next.trackingNumber !== previous.trackingNumber ||
+      next.trackingUrl !== previous.trackingUrl ||
+      next.shippedAt?.getTime() !== previous.shippedAt?.getTime() ||
+      next.estimatedDelivery?.getTime() !== previous.estimatedDelivery?.getTime() ||
+      next.deliveredAt?.getTime() !== previous.deliveredAt?.getTime();
+
+    if (!changed) {
+      return order;
+    }
+
+    const updated = await this.applyOrConflict(
+      id,
+      {},
+      {
+        set: { shipping: next },
+        pushHistory: [
+          {
+            kind: 'shipping',
+            note,
+            by: { userId: actor.id, email: actor.email },
+            at: new Date(),
+          },
+        ],
+      },
+    );
+
+    return updated;
   }
 
   // ---------------------------------------------------------------- payment
@@ -1594,4 +1749,45 @@ function describeShippingChange(dto: UpdateShippingDto): string {
   }
 
   return parts.length > 0 ? `Shipping updated: ${parts.join(', ')}` : 'Shipping note added';
+}
+
+/**
+ * Shortest legal route between two fulfilment statuses.
+ *
+ * Restricted to the happy-path statuses: the shipping module must never be able to
+ * route an order through `cancelled`, `return_requested` or `returned`.
+ */
+function findFulfilmentPath(
+  from: OrderStatus,
+  to: OrderStatus,
+): OrderStatus[] {
+  if (from === to) {
+    return [];
+  }
+
+  const queue: Array<{ status: OrderStatus; path: OrderStatus[] }> = [
+    { status: from, path: [] },
+  ];
+  const visited = new Set<OrderStatus>([from]);
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+
+    for (const next of FULFILMENT_FLOW) {
+      if (visited.has(next) || !canTransition(current.status, next)) {
+        continue;
+      }
+
+      const path = [...current.path, next];
+
+      if (next === to) {
+        return path;
+      }
+
+      visited.add(next);
+      queue.push({ status: next, path });
+    }
+  }
+
+  return [];
 }

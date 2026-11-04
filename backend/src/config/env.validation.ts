@@ -108,6 +108,22 @@ export const envSchema = z.object({
     .optional(),
   RAZORPAY_KEY_SECRET: z.string().min(8).optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().min(8).optional(),
+
+  /**
+   * Optional courier integration credentials (Shipping, phase 8).
+   *
+   * None of these are required: the store ships through the **manual** courier
+   * workflow (assign a partner, type the AWB, update the parcel status). A provider
+   * becomes selectable only when its credentials exist; until then selecting it is
+   * a 503 that names the missing variables. Never fake tracking updates.
+   *
+   * Each provider's variables must be set together (or all left empty).
+   */
+  SHIPROCKET_EMAIL: z.string().email().optional(),
+  SHIPROCKET_PASSWORD: z.string().min(4).optional(),
+  DELHIVERY_API_TOKEN: z.string().min(8).optional(),
+  BLUEDART_API_KEY: z.string().min(4).optional(),
+  BLUEDART_LICENCE_KEY: z.string().min(4).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -135,6 +151,11 @@ export interface ValidatedEnv {
   RAZORPAY_KEY_ID?: string;
   RAZORPAY_KEY_SECRET?: string;
   RAZORPAY_WEBHOOK_SECRET?: string;
+  SHIPROCKET_EMAIL?: string;
+  SHIPROCKET_PASSWORD?: string;
+  DELHIVERY_API_TOKEN?: string;
+  BLUEDART_API_KEY?: string;
+  BLUEDART_LICENCE_KEY?: string;
 }
 
 /**
@@ -186,6 +207,21 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     );
   }
 
+  // A half-configured courier would advertise an integration that cannot book a
+  // parcel; fail at boot with the exact pair that is wrong.
+  for (const [label, pair] of [
+    ['SHIPROCKET_EMAIL / SHIPROCKET_PASSWORD', [env.SHIPROCKET_EMAIL, env.SHIPROCKET_PASSWORD]],
+    ['BLUEDART_API_KEY / BLUEDART_LICENCE_KEY', [env.BLUEDART_API_KEY, env.BLUEDART_LICENCE_KEY]],
+  ] as const) {
+    const configured = pair.filter(Boolean).length;
+
+    if (configured !== 0 && configured !== pair.length) {
+      throw new Error(
+        `Invalid environment configuration:\n  - ${label} must be set together (or both left empty to keep that courier disabled)`,
+      );
+    }
+  }
+
   return {
     NODE_ENV: env.NODE_ENV,
     PORT: env.PORT,
@@ -205,5 +241,10 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     RAZORPAY_KEY_ID: env.RAZORPAY_KEY_ID,
     RAZORPAY_KEY_SECRET: env.RAZORPAY_KEY_SECRET,
     RAZORPAY_WEBHOOK_SECRET: env.RAZORPAY_WEBHOOK_SECRET,
+    SHIPROCKET_EMAIL: env.SHIPROCKET_EMAIL,
+    SHIPROCKET_PASSWORD: env.SHIPROCKET_PASSWORD,
+    DELHIVERY_API_TOKEN: env.DELHIVERY_API_TOKEN,
+    BLUEDART_API_KEY: env.BLUEDART_API_KEY,
+    BLUEDART_LICENCE_KEY: env.BLUEDART_LICENCE_KEY,
   };
 }

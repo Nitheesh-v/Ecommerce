@@ -48,6 +48,7 @@ Ecommerce/
 │   │       ├── orders/             # order lifecycle, returns, refunds, invoices
 │   │       ├── customers/          # admin read model over users ⨝ orders
 │   │       ├── payments/           # gateway attempts, webhooks, refunds, admin console
+│   │       ├── shipments/          # parcels, delivery state machine, courier registry
 │   │       └── admin/              # dashboard aggregation
 │   └── test/                       # e2e specs + test support modules
 ├── frontend/
@@ -269,6 +270,22 @@ Payments (Phase 11, see `docs/PHASE-11-PAYMENTS.md`):
 | Secrets | `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` are read only by the payments module, never returned, never logged; the browser gets `RAZORPAY_KEY_ID` only |
 | No gateway | without credentials a `DisabledPaymentGateway` answers `503` while every admin view keeps working |
 
+Shipping (Phase 12, see `docs/PHASE-12-SHIPPING.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Records | `shipments` = one document per parcel (number, order refs, address snapshot, courier, cost, weight/dimensions, dates, append-only `events`). The order keeps a denormalised mirror in `order.shipping` |
+| One live parcel | partial unique index `{ orderId: 1 }` where `status != 'returned_to_sender'`; a duplicate insert returns `null` → `409`. A replacement is allowed only after a return to sender |
+| Eligibility | order `confirmed`/`processing` (plus `shipped`/`out_for_delivery` **only** for a replacement) and paid **or** COD/manual shipping; payment status is read, never written |
+| Address | copied server-side from `order.shippingAddress`; required fields + phone pattern re-validated; a client-sent address is rejected by the whitelist |
+| Statuses | `pending → ready_to_ship → shipped → in_transit → out_for_delivery → delivered` plus `delivery_failed` (re-attemptable, also → `returned_to_sender`); `delivered`/`returned_to_sender` terminal |
+| Guards | transitions validated in the service **and** applied with a `findOneAndUpdate` status guard → one transition per concurrent click; reason mandatory for failures/returns; `shipped` requires courier + AWB |
+| Order coupling | `OrdersService.promoteFulfilment()` walks `FULFILMENT_FLOW` one legal step at a time (`shipped`, `out_for_delivery`, `delivered`) and refuses cancelled/returned/return-requested orders. Mirrors never change a status |
+| History | every change writes an event (`created`/`status`/`courier`/`note`, `source`, `by`, `at`) in the same atomic update; read-only in the console |
+| Courier layer | `CourierRegistry` declares manual + Shiprocket + Delhivery + Blue Dart; a provider is enabled only when all its env vars exist, otherwise selecting it is a `503` naming the variables. No credentials → manual workflow, no invented tracking data, **no webhook endpoint** |
+| Customer view | `GET /api/orders/:id/tracking` is owner-scoped (`404` for a foreign order) and projects statuses/times only — no cost, notes, address or staff identity |
+| Delayed | derived (`estimatedDelivery < now` and still in flight), never stored |
+
 Frontend auth & API layer (Phase 5):
 
 | Concern | Implementation |
@@ -347,4 +364,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 9. Order management (checkout, lifecycle, shipping, cancellations, returns, refunds, invoices) — `docs/PHASE-9-ORDERS.md`
 10. Customer management (listing, profiles, spending analytics, audited account states, CSV) — `docs/PHASE-10-CUSTOMERS.md`
 11. Payment management (Razorpay, webhooks, refunds, console) — `docs/PHASE-11-PAYMENTS.md`
-12. Storefront cart & checkout UI · 13 Coupons, reviews, notifications · 14 Caching, queues, performance · 15 Testing, security review, deployment
+12. Shipping & delivery management (parcels, delivery state machine, courier registry, tracking) — `docs/PHASE-12-SHIPPING.md`
+13. Storefront cart & checkout UI · 14 Coupons, reviews, notifications · 15 Caching, queues, performance · 16 Testing, security review, deployment
