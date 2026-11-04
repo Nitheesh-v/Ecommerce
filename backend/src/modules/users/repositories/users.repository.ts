@@ -1,4 +1,5 @@
 import type { Role } from '../../../common/enums/role.enum.js';
+import type { CustomerStatus } from '../customer-status.js';
 
 /**
  * A user as the rest of the application sees it — a plain object, not a Mongoose
@@ -15,9 +16,24 @@ export interface UserRecord {
   firstName: string;
   lastName?: string;
   role: Role;
+  /** Derived mirror of `status === 'active'` — kept for existing auth checks. */
   isActive: boolean;
+  status: CustomerStatus;
+  phone?: string;
+  avatarUrl?: string;
+  statusHistory: StatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+/** One append-only account-status change. */
+export interface StatusHistoryEntry {
+  from: CustomerStatus;
+  to: CustomerStatus;
+  reason?: string;
+  note?: string;
+  by?: { userId: string; email: string } | null;
+  at: Date;
 }
 
 export interface CreateUserInput {
@@ -26,6 +42,13 @@ export interface CreateUserInput {
   firstName: string;
   lastName?: string;
   role: Role;
+  phone?: string;
+}
+
+/** Fields an admin may change on an account. Nothing else is writable. */
+export interface UpdateStatusInput {
+  status: CustomerStatus;
+  entry: StatusHistoryEntry;
 }
 
 /** Narrow representation safe to send to clients. */
@@ -55,4 +78,18 @@ export abstract class UsersRepository {
   abstract create(input: CreateUserInput): Promise<UserRecord | null>;
 
   abstract existsByEmail(email: string): Promise<boolean>;
+
+  /**
+   * Applies a status change **only** when the account is still in `expected`.
+   * Returns `null` when another admin changed it first, which the service turns
+   * into a 409 instead of silently overwriting the newer decision.
+   */
+  abstract updateStatus(
+    id: string,
+    expected: CustomerStatus,
+    input: UpdateStatusInput,
+  ): Promise<UserRecord | null>;
+
+  /** Records a phone number learned at checkout; never overwrites an existing one. */
+  abstract setPhoneIfMissing(id: string, phone: string): Promise<void>;
 }

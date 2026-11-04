@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -19,6 +20,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { ActiveAccountGuard } from '../auth/guards/active-account.guard.js';
 import { ApiErrorResponseDto } from '../../common/dto/api-response.dto.js';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface.js';
 import { CancelOrderDto, RequestReturnDto } from './dto/order-actions.dto.js';
@@ -36,11 +38,16 @@ import { OrdersService } from './orders.service.js';
  * This is the checkout foundation: there is no cart UI yet, so the storefront will
  * call `POST /api/orders` with product ids and quantities once Phase 10 lands.
  * Prices are never accepted from the request.
+ *
+ * `ActiveAccountGuard` re-reads the account on every call: a suspended customer's
+ * existing access token stops working here immediately, instead of lingering until
+ * it expires.
  */
 @ApiTags('orders')
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ type: ApiErrorResponseDto })
 @Controller('orders')
+@UseGuards(ActiveAccountGuard)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 

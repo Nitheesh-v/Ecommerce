@@ -12,6 +12,7 @@ import { InMemoryProductsRepository } from '../../../test/support/in-memory-prod
 import { InventoryService } from '../inventory/inventory.service.js';
 import type { CreateProductInput, ProductRecord } from '../products/repositories/products.repository.js';
 import type { AdminProductView, ProductsService } from '../products/products.service.js';
+import type { UsersService } from '../users/users.service.js';
 import { OrdersService } from './orders.service.js';
 import { computeTotals, DEFAULT_PRICING } from './pricing.js';
 
@@ -95,7 +96,11 @@ describe('OrdersService', () => {
       },
     } as unknown as ProductsService;
 
-    service = new OrdersService(orders, productsService, inventory);
+    const usersService = {
+      rememberPhone: async () => undefined,
+    } as unknown as UsersService;
+
+    service = new OrdersService(orders, productsService, inventory, usersService);
     headphones = products.seed(productInput());
   });
 

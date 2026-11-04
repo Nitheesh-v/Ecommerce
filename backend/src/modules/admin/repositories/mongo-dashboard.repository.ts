@@ -1,6 +1,7 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import type { Connection } from 'mongoose';
+import { NET_SPEND_EXPR, SPENDING_MATCH } from '../../orders/spending.js';
 import type {
   CategorySalesPoint,
   DashboardMetrics,
@@ -48,7 +49,8 @@ export class MongoDashboardRepository implements DashboardRepository {
             {
               $group: {
                 _id: null,
-                revenue: { $sum: '$total' },
+                // Net of processed refunds — the same definition customers use.
+                revenue: { $sum: NET_SPEND_EXPR },
                 paidOrders: { $sum: 1 },
               },
             },
@@ -76,7 +78,13 @@ export class MongoDashboardRepository implements DashboardRepository {
   }
 
   async getRevenueSeries(from: Date, to: Date): Promise<TimeSeriesPoint[]> {
-    return this.dailySeries('orders', from, to, { $sum: '$total' }, paidOrdersInRange(from, to));
+    return this.dailySeries(
+      'orders',
+      from,
+      to,
+      { $sum: NET_SPEND_EXPR },
+      paidOrdersInRange(from, to),
+    );
   }
 
   async getOrdersSeries(from: Date, to: Date): Promise<TimeSeriesPoint[]> {
@@ -295,13 +303,16 @@ export class MongoDashboardRepository implements DashboardRepository {
   }
 }
 
-/** Paid orders inside the window — the definition of "revenue" everywhere. */
+/**
+ * Orders that count as revenue inside the window.
+ *
+ * Shared with the customer module (`orders/spending.ts`): money actually
+ * collected, minus cancelled/returned sales. Revenue is then summed as
+ * `paidAmount − processedRefunds`, so a refund lowers revenue on the day it is
+ * processed rather than being ignored.
+ */
 function paidOrdersInRange(from: Date, to: Date): Record<string, unknown> {
-  return {
-    createdAt: { $gte: from, $lte: to },
-    paymentStatus: 'paid',
-    status: { $nin: ['cancelled', 'returned'] },
-  };
+  return { createdAt: { $gte: from, $lte: to }, ...SPENDING_MATCH };
 }
 
 /** At or below the per-product threshold (default 5 when unset). */

@@ -46,4 +46,16 @@ export class RegisterDto {
   @IsString()
   @MaxLength(80)
   lastName?: string;
+
+  /**
+   * Optional contact number. Kept loose (digits, spaces, `+`, `-`, parentheses)
+   * because customers type local formats; the API stores what they gave us.
+   */
+  @ApiPropertyOptional({ example: '+91 98765 43210' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsOptional()
+  @Matches(/^[+\d][\d\s-]{5,18}$/, {
+    message: 'phone must be a valid contact number',
+  })
+  phone?: string;
 }

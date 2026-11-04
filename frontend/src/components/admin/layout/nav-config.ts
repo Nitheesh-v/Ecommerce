@@ -95,7 +95,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "Customers",
         href: "/admin/customers",
         icon: Users,
-        available: false,
+        available: true,
       },
       {
         label: "Reviews",

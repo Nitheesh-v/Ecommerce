@@ -11,6 +11,7 @@ import { DashboardRepository } from '../../src/modules/admin/repositories/dashbo
 import { SessionsRepository } from '../../src/modules/auth/repositories/sessions.repository.js';
 import { Session } from '../../src/modules/auth/schemas/session.schema.js';
 import { CategoriesRepository } from '../../src/modules/categories/repositories/categories.repository.js';
+import { CustomersRepository } from '../../src/modules/customers/repositories/customers.repository.js';
 import { Category } from '../../src/modules/categories/schemas/category.schema.js';
 import { InventoryRepository } from '../../src/modules/inventory/repositories/inventory.repository.js';
 import { InventoryAlert } from '../../src/modules/inventory/schemas/inventory-alert.schema.js';
@@ -40,6 +41,8 @@ export interface CreateTestAppOptions {
   inventory?: InventoryRepository;
   /** Substitute order persistence. */
   orders?: OrdersRepository;
+  /** Substitute the customer read model (users joined with orders). */
+  customers?: CustomersRepository;
 }
 
 /**
@@ -123,6 +126,12 @@ export async function createTestApp(
 
   if (options.orders) {
     builder = builder.overrideProvider(OrdersRepository).useValue(options.orders);
+  }
+
+  if (options.customers) {
+    builder = builder
+      .overrideProvider(CustomersRepository)
+      .useValue(options.customers);
   }
 
   const moduleFixture = await builder.compile();

@@ -46,6 +46,7 @@ Ecommerce/
 │   │       ├── categories/         # hierarchy, SEO, storefront reads
 │   │       ├── inventory/          # the only stock writer + audit trail + alerts
 │   │       ├── orders/             # order lifecycle, returns, refunds, invoices
+│   │       ├── customers/          # admin read model over users ⨝ orders
 │   │       └── admin/              # dashboard aggregation
 │   └── test/                       # e2e specs + test support modules
 ├── frontend/
@@ -239,6 +240,19 @@ Orders (Phase 9, see `docs/PHASE-9-ORDERS.md`):
 | Audit | append-only `history[]` (`kind`, `from`, `to`, `reason`, `note`, `by`, `at`) written in the same atomic update as the change |
 | Isolation | customer routes derive `userId` from the token; another customer's order is a `404`, never a `403` existence leak |
 
+Customers (Phase 10, see `docs/PHASE-10-CUSTOMERS.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Identity | a customer **is** a `users` document (`role: 'customer'`) — no second collection, no duplicated credentials |
+| Account state | `status` (`active \| suspended \| deactivated`) with `isActive` kept as a derived mirror so existing auth checks keep working; append-only `statusHistory[]` records from/to, reason, admin and time |
+| Writes | only `UsersRepository.updateStatus`, guarded on the status that was read — two admins produce one change and one `409` |
+| Enforcement | login/refresh already reject inactive accounts; `ActiveAccountGuard` (opt-in) blocks suspended tokens on customer order routes, and suspend/deactivate revokes every refresh session |
+| Read model | one aggregation: `users` → `$lookup orders` → derived metrics → filter by spending → sort → `$facet` (page + count). Filtering/sorting by spending is therefore correct across pages |
+| Spending | shared with the dashboard via `orders/spending.ts`: counted = money collected and not cancelled/returned; net = `paidAmount − processedRefunds`; pending refunds reported, never subtracted |
+| Addresses | derived from order snapshots (newest first) — nothing is collected twice |
+| Export | `GET /api/admin/customers/export` → `text/csv` attachment, same filters as the table, 5 000-row ceiling, allow-listed columns only |
+
 Frontend auth & API layer (Phase 5):
 
 | Concern | Implementation |
@@ -315,4 +329,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 7. Category management (hierarchy, images, SEO, storefront browsing) — `docs/PHASE-7-CATEGORIES.md`
 8. Inventory management (stock adjustments, audit trail, alerts, order hooks) — `docs/PHASE-8-INVENTORY.md`
 9. Order management (checkout, lifecycle, shipping, cancellations, returns, refunds, invoices) — `docs/PHASE-9-ORDERS.md`
-10. Storefront cart & checkout UI · 11 Payments (Razorpay) · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment
+10. Customer management (listing, profiles, spending analytics, audited account states, CSV) — `docs/PHASE-10-CUSTOMERS.md`
+11. Payments (Razorpay) · 12 Storefront cart & checkout UI · 13 Coupons, reviews, notifications · 14 Caching, queues, performance · 15 Testing, security review, deployment

@@ -13,6 +13,7 @@ import { Role } from '../../common/enums/role.enum.js';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { ProductsService } from '../products/products.service.js';
+import { UsersService } from '../users/users.service.js';
 import type { AdminProductView } from '../products/products.service.js';
 import type {
   AdminCreateOrderDto,
@@ -103,6 +104,7 @@ export class OrdersService {
     private readonly ordersRepository: OrdersRepository,
     private readonly productsService: ProductsService,
     private readonly inventoryService: InventoryService,
+    private readonly usersService: UsersService,
   ) {
     this.pricing = resolvePricingConfig();
     this.store = resolveStoreProfile();
@@ -316,6 +318,18 @@ export class OrdersService {
       }
 
       this.logger.log(`order ${created.orderNumber} placed (${created.items.length} lines)`);
+
+      // Learn the contact number the customer used at checkout. Best-effort: a
+      // profile nicety must never fail a placed order.
+      if (customer.userId) {
+        try {
+          await this.usersService.rememberPhone(customer.userId, dto.shippingAddress.phone);
+        } catch (error) {
+          this.logger.warn(
+            `Could not store phone for user ${customer.userId}: ${String(error)}`,
+          );
+        }
+      }
 
       return { order: this.toView(created), created: true };
     } catch (error) {
@@ -1018,6 +1032,33 @@ export class OrdersService {
   }
 
   // --------------------------------------------------------- customer reads
+
+  /**
+   * Order history for **one** customer, used by the admin customer profile.
+   *
+   * Scoping is explicit (never derived from a query parameter the client could
+   * change) and the caller is responsible for having verified that the id is an
+   * existing customer.
+   */
+  async listForUser(
+    userId: string,
+    query: OrdersQueryDto,
+  ): Promise<PaginatedResult<OrderView>> {
+    const { items, total } = await this.ordersRepository.list({
+      page: query.page,
+      limit: query.limit,
+      userId,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    });
+
+    return createPaginatedResult(
+      items.map((order) => this.toView(order)),
+      query.page,
+      query.limit,
+      total,
+    );
+  }
 
   async listForCustomer(
     user: AuthenticatedUser,
