@@ -4,6 +4,11 @@ import type { OrderRecord } from './repositories/orders.repository.js';
 /** Notified after an order's refund ledger changes. */
 export type RefundChangedListener = (order: OrderRecord) => Promise<void> | void;
 
+/** Notified after an order's fulfilment status changes. */
+export type StatusChangedListener = (
+  order: OrderRecord,
+) => Promise<void> | void;
+
 /**
  * Minimal in-process event bus for order money events.
  *
@@ -21,6 +26,7 @@ export type RefundChangedListener = (order: OrderRecord) => Promise<void> | void
 export class OrderEvents {
   private readonly logger = new Logger(OrderEvents.name);
   private readonly refundListeners = new Set<RefundChangedListener>();
+  private readonly statusListeners = new Set<StatusChangedListener>();
 
   /** @returns an unsubscribe function (called on module destroy). */
   onRefundChanged(listener: RefundChangedListener): () => void {
@@ -29,6 +35,41 @@ export class OrderEvents {
     return () => {
       this.refundListeners.delete(listener);
     };
+  }
+
+  /** @returns an unsubscribe function (called on module destroy). */
+  onStatusChanged(listener: StatusChangedListener): () => void {
+    this.statusListeners.add(listener);
+
+    return () => {
+      this.statusListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Publishes a fulfilment-status change.
+   *
+   * Same contract as the refund bus: listeners are best-effort, and a failing
+   * listener is logged rather than allowed to fail the order write. Coupons use
+   * this to confirm or reverse a redemption without the orders module knowing
+   * anything about coupons.
+   */
+  async emitStatusChanged(order: OrderRecord): Promise<void> {
+    if (this.statusListeners.size === 0) {
+      return;
+    }
+
+    const results = await Promise.allSettled(
+      [...this.statusListeners].map(async (listener) => listener(order)),
+    );
+
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        this.logger.warn(
+          `A status listener failed for order ${order.orderNumber}: ${String(result.reason)}`,
+        );
+      }
+    }
   }
 
   async emitRefundChanged(order: OrderRecord): Promise<void> {

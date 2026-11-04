@@ -89,9 +89,9 @@ export const ADMIN_NAV: AdminNavSection[] = [
       },
       {
         label: "Coupons",
-        href: "/admin/coupons",
+        href: "/admin/offers",
         icon: TicketPercent,
-        available: false,
+        available: true,
       },
     ],
   },

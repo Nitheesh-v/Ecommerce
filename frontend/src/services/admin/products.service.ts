@@ -26,6 +26,32 @@ export const productsService = {
     );
   },
 
+  /**
+   * Every product, paged through `limit=100` requests.
+   *
+   * Used by pickers that need the whole catalogue (the offer eligibility lists).
+   * A single-vendor catalogue is small; if it ever stops being true this should
+   * move to a searchable endpoint instead.
+   */
+  async listAll(signal?: AbortSignal): Promise<AdminProduct[]> {
+    const collected: AdminProduct[] = [];
+    let page = 1;
+    let total = 0;
+
+    do {
+      const result = await this.list(
+        { page, limit: 100, sortBy: "name", sortOrder: "asc" },
+        signal,
+      );
+
+      collected.push(...result.data);
+      total = result.meta.total;
+      page += 1;
+    } while (collected.length < total);
+
+    return collected;
+  },
+
   get(id: string) {
     return requestData<AdminProduct>(apiClient.get(`/admin/products/${id}`));
   },

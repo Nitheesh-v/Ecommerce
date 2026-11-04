@@ -13,6 +13,7 @@ import { InventoryService } from '../inventory/inventory.service.js';
 import type { CreateProductInput, ProductRecord } from '../products/repositories/products.repository.js';
 import type { AdminProductView, ProductsService } from '../products/products.service.js';
 import type { UsersService } from '../users/users.service.js';
+import type { CouponPricingService } from '../coupons/coupon-pricing.js';
 import { OrderEvents } from './order-events.js';
 import { OrdersService } from './orders.service.js';
 import { computeTotals, DEFAULT_PRICING } from './pricing.js';
@@ -107,6 +108,15 @@ describe('OrdersService', () => {
       inventory,
       usersService,
       new OrderEvents(),
+      // Coupons are covered by their own suites; checkout only needs the port.
+      {
+        quote: async () => {
+          throw new Error('No coupon expected in this suite');
+        },
+        reserve: async () => 'reservation',
+        attach: async () => undefined,
+        release: async () => undefined,
+      } as unknown as CouponPricingService,
     );
     headphones = products.seed(productInput());
   });

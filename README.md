@@ -136,6 +136,14 @@ Windows PowerShell 5.1 also aliases `curl` to `Invoke-WebRequest`; if you prefer
 | `POST` | `/api/auth/logout-all` | Revoke every session (auth) |
 | `GET` | `/api/auth/me` | Current user (auth) |
 | `GET` | `/api/admin/dashboard/overview` | Admin dashboard analytics, `?range=today\|7d\|30d\|90d\|custom[&from&to]` (admin) |
+| `GET`/`POST` | `/api/admin/offers` | List / create offers (admin) |
+| `GET`/`PATCH`/`DELETE` | `/api/admin/offers/:id` | Detail / edit / archive an offer (admin) |
+| `PATCH` | `/api/admin/offers/:id/status` | Pause or resume an offer (admin) |
+| `GET` | `/api/admin/offers/:id/redemptions` | The redemption ledger for one offer (admin) |
+| `GET` | `/api/admin/redemptions` | Store-wide ledger, `?status&search&from&to` (admin) |
+| `GET` | `/api/admin/redemptions/export` | Ledger CSV (admin) |
+| `POST` | `/api/coupons/validate` | Server-priced coupon preview (public, 20/min) |
+| `GET` | `/api/offers/active` | Customer-visible live offers (public) |
 | `GET` | `/api` | Scaffold smoke test (`"Hello World!"`), removed when real modules land |
 | `GET` | `/api/health` | Liveness — always `200`, touches no dependency |
 | `GET` | `/api/health/ready` | Readiness — `200` when MongoDB is connected, `503` otherwise |
@@ -194,9 +202,11 @@ The dashboard (`/admin/dashboard`) is entirely API-driven — six metric cards, 
 
 **Shipping** (`/admin/shipping`) tracks the parcel as its own record, separate from the order's fulfilment and from the money. Seven cards (total, ready to ship, shipped, in transit, out for delivery, delivered, delayed/failed), a server-paginated table with shipment/order/customer/tracking search, status, courier, date-range and delayed filters, sortable columns and a create dialog restricted to confirmed/processing orders that are paid or cash-on-delivery. A shipment moves through `pending → ready_to_ship → shipped → in_transit → out_for_delivery → delivered`, with a `delivery_failed` branch that can be re-attempted or end in `returned_to_sender`; only legal transitions are accepted, a failure needs a reason, `delivered`/`returned_to_sender` are terminal, and every change appends an audited event. A parcel's movement advances the order through the order's own legal transitions — opening a page never delivers anything, and payment status is never touched. Creation copies the address from the checkout snapshot and the database enforces one live shipment per order. Courier partners (Shiprocket, Delhivery, Blue Dart) are declared in a registry that enables one only when its credentials exist; with none configured the store runs the manual workflow and invents no tracking data. Customers see a customer-safe timeline at `/account/orders/[id]/tracking`. See the [Phase 12 report](docs/PHASE-12-SHIPPING.md).
 
+**Offers & coupons** (`/admin/offers`) runs percentage, fixed-amount and free-shipping coupons. Six cards (total, active, scheduled, expired, redemptions, discount given), a server-paginated table with code/name search, status, discount-type and date filters, sortable columns, and pause/resume/archive actions. The editor carries the whole configuration — code, value, minimum spend, percentage cap, start/expiry, total and per-customer limits, applicable and excluded products/categories, visibility — and every change is written to an audit trail. Discounts are priced once, server-side: `POST /api/coupons/validate` re-prices the cart from the catalogue and returns the breakdown, and `POST /api/orders` re-quotes and reserves the use inside the same request, so a client can never supply an amount. A use is reserved at checkout, finalised when the order is confirmed, and reversed when it is cancelled or returned; the counters are claimed with guarded atomic increments and the ledger has a unique `(offer, order)` key, so retries and simultaneous checkouts cannot double-spend a code. Orders keep the discount they were created with, forever. Customers browse live codes at `/offers`, and the reusable `<CouponField>` renders the server-computed totals inside the storefront. See the [Phase 13 report](docs/PHASE-13-OFFERS.md).
+
 The storefront (`/`) now renders from the public API: a landing page with active categories and featured products, `/categories`, `/categories/[slug]` (breadcrumbs, subcategories, paginated product grid) and `/products/[slug]`. Inactive categories and unpublished products are never served by the public API.
 
-Sidebar entries for modules that do not exist yet (coupons, reviews, reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
+Sidebar entries for modules that do not exist yet (reviews, reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
 
 ## Seeding the store owner
 

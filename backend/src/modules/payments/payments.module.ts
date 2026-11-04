@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import type { ValidatedEnv } from '../../config/env.validation.js';
 import { ActiveAccountGuard } from '../auth/guards/active-account.guard.js';
 import { OrdersModule } from '../orders/orders.module.js';
+import { OrderEventsModule } from '../orders/order-events.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AdminPaymentsController } from './admin-payments.controller.js';
 import { DisabledPaymentGateway } from './disabled.gateway.js';
@@ -41,6 +42,8 @@ import {
       { name: PaymentEvent.name, schema: PaymentEventSchema },
     ]),
     OrdersModule,
+    // Order status/refund events — exported by their own module to avoid a cycle.
+    OrderEventsModule,
     // `ActiveAccountGuard` re-reads the account, so suspended customers cannot pay.
     UsersModule,
   ],

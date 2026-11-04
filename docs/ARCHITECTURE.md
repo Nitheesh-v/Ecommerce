@@ -286,6 +286,20 @@ Shipping (Phase 12, see `docs/PHASE-12-SHIPPING.md`):
 | Customer view | `GET /api/orders/:id/tracking` is owner-scoped (`404` for a foreign order) and projects statuses/times only — no cost, notes, address or staff identity |
 | Delayed | derived (`estimatedDelivery < now` and still in flight), never stored |
 
+Coupons & discounts (Phase 13, see `docs/PHASE-13-OFFERS.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Records | `offers` (definition + audit `history`), `coupon_redemptions` (one row per use, driven by the order), `coupon_customer_usage` (counters keyed `offerId:customerKey`) |
+| Status | derived from `isActive` + window + counters (`active`/`scheduled`/`expired`/`exhausted`/`inactive`); stored nowhere, mirrored in Mongo filters so badges and queries agree |
+| Pricing | `evaluateOffer()` decides the discount on the **eligible** lines (include/exclude rules, minimum spend); `computeTotals()` stays the only place totals are made, gaining a `freeShipping` option |
+| No client money | `POST /api/coupons/validate` takes `{ code, items:[{productId, quantity}] }`, re-prices from the catalogue and returns the breakdown; a client-posted amount is rejected by the DTO whitelist |
+| Limits | `reserveUsage()` is one guarded `findOneAndUpdate` (active + window + total + per-customer), so two checkouts cannot share the last use |
+| Idempotency | unique `(offerId, orderId)` on redemptions; `confirm` only moves `reserved → redeemed`; `reverse` only closes a live row and returns its previous status |
+| Lifecycle | reserve inside `POST /api/orders` → `attach(orderId)` → `confirmed` finalises, `cancelled`/`returned` reverse; every transition is published from `OrdersService.applyOrConflict()`, shipment promotions included |
+| History | the order stores `couponCode`/`couponDiscount` once; editing an offer never recalculates an existing order |
+| Modules | `CouponsModule` binds the two repositories and exposes `CouponPricingService`; orders inject that port and listen to `OrderEventsModule` — never import `OrdersModule` into coupons (cycle) |
+
 Frontend auth & API layer (Phase 5):
 
 | Concern | Implementation |
@@ -365,4 +379,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 10. Customer management (listing, profiles, spending analytics, audited account states, CSV) — `docs/PHASE-10-CUSTOMERS.md`
 11. Payment management (Razorpay, webhooks, refunds, console) — `docs/PHASE-11-PAYMENTS.md`
 12. Shipping & delivery management (parcels, delivery state machine, courier registry, tracking) — `docs/PHASE-12-SHIPPING.md`
-13. Storefront cart & checkout UI · 14 Coupons, reviews, notifications · 15 Caching, queues, performance · 16 Testing, security review, deployment
+13. Offers, coupons & discounts (percentage/fixed/free shipping, checkout validation, redemption ledger) — `docs/PHASE-13-OFFERS.md`
+14. Storefront cart & checkout UI · 15 Reviews, notifications · 16 Caching, queues, performance · 17 Testing, security review, deployment

@@ -39,6 +39,8 @@ import {
   FULFILMENT_FLOW,
   ORDER_STATUS_LABELS,
 } from './order-status.js';
+import { CouponPricingService } from '../coupons/coupon-pricing.js';
+import type { CouponQuote } from '../coupons/coupon-pricing.js';
 import { OrderEvents } from './order-events.js';
 import { computeTotals, resolvePricingConfig } from './pricing.js';
 import type { PricingConfig } from './pricing.js';
@@ -134,6 +136,9 @@ export class OrdersService {
     private readonly inventoryService: InventoryService,
     private readonly usersService: UsersService,
     private readonly orderEvents: OrderEvents,
+    // Coupons are reached through an abstract port: orders never sees an Offer and
+    // the coupon module never writes an order.
+    private readonly coupons: CouponPricingService,
   ) {
     this.pricing = resolvePricingConfig();
     this.store = resolveStoreProfile();
@@ -236,6 +241,24 @@ export class OrdersService {
     }
 
     const lines = await this.resolveLines(dto.items);
+
+    // The coupon is priced from the product records above — the client only ever
+    // sends a *code*. A coupon that cannot apply fails the checkout before stock is
+    // touched, so a bad code never leaves a half-placed order behind.
+    const coupon = dto.couponCode?.trim()
+      ? await this.coupons.quote({
+          code: dto.couponCode,
+          lines: lines.map((line) => ({
+            productId: line.productId,
+            categoryId: line.categoryId,
+            unitPrice: line.unitPrice,
+            quantity: line.quantity,
+          })),
+          userId: customer.userId,
+          customerEmail: customer.email,
+        })
+      : null;
+
     const totals = computeTotals(
       lines.map((line) => ({
         unitPrice: line.unitPrice,
@@ -243,10 +266,13 @@ export class OrdersService {
         quantity: line.quantity,
       })),
       this.pricing,
+      coupon?.discount ?? 0,
+      { freeShipping: coupon?.freeShipping ?? false },
     );
 
     const orderNumber = await this.ordersRepository.nextOrderNumber();
     const reserved: Array<{ productId: string; quantity: number }> = [];
+    let reservationId: string | null = null;
 
     try {
       for (const line of lines) {
@@ -269,6 +295,16 @@ export class OrdersService {
         reserved.push({ productId: line.productId, quantity: line.quantity });
       }
 
+      if (coupon) {
+        // Atomic claim of one use. Losing this race refuses the checkout rather
+        // than exceeding a usage limit.
+        reservationId = await this.coupons.reserve({
+          quote: coupon,
+          userId: customer.userId,
+          customerEmail: customer.email,
+        });
+      }
+
       const history: HistoryRecord[] = [
         {
           kind: 'status',
@@ -278,6 +314,15 @@ export class OrdersService {
           at: new Date(),
         },
       ];
+
+      if (coupon) {
+        history.push({
+          kind: 'note',
+          note: `Coupon ${coupon.code} applied — ${this.formatMoney(totals.couponDiscount)} off (${coupon.summary})`,
+          by: actor,
+          at: new Date(),
+        });
+      }
 
       if (dto.customerNote?.trim()) {
         history.push({
@@ -307,6 +352,7 @@ export class OrdersService {
         })),
         subtotal: totals.subtotal,
         discountTotal: totals.discountTotal,
+        ...(coupon ? { couponCode: coupon.code } : {}),
         couponDiscount: totals.couponDiscount,
         shippingCharge: totals.shippingCharge,
         taxAmount: totals.taxAmount,
@@ -346,6 +392,13 @@ export class OrdersService {
         throw new ConflictException('This order was already created — reload to see it');
       }
 
+      if (coupon && reservationId) {
+        await this.coupons.attach(reservationId, {
+          orderId: created.id,
+          orderNumber: created.orderNumber,
+        });
+      }
+
       this.logger.log(`order ${created.orderNumber} placed (${created.items.length} lines)`);
 
       // Learn the contact number the customer used at checkout. Best-effort: a
@@ -362,8 +415,20 @@ export class OrdersService {
 
       return { order: this.toView(created), created: true };
     } catch (error) {
-      // Anything above that failed after a reservation was made must not leak stock.
+      // Anything above that failed after a reservation was made must not leak stock
+      // or coupon usage.
       await this.releaseReservations(orderNumber, reserved);
+
+      if (reservationId) {
+        try {
+          await this.coupons.release(reservationId);
+        } catch (releaseError) {
+          this.logger.error(
+            `Could not release coupon reservation ${reservationId}: ${String(releaseError)}`,
+          );
+        }
+      }
+
       throw error;
     }
   }
@@ -708,6 +773,10 @@ export class OrdersService {
           'This order changed while the shipment was being updated — reload to see it',
         );
       }
+
+      // Shipment-driven promotions are status changes too: publish each legal step
+      // so listeners (coupons) see the same history a manual transition produces.
+      await this.orderEvents.emitStatusChanged(updated);
 
       current = updated;
     }
@@ -1520,6 +1589,13 @@ export class OrdersService {
       await this.orderEvents.emitRefundChanged(updated);
     }
 
+    // Status changes are published from this single choke point so every path
+    // (admin transition, cancellation, return) reaches the coupon ledger exactly
+    // once. Listeners are best-effort and can never fail the order write.
+    if (update.set && 'status' in update.set) {
+      await this.orderEvents.emitStatusChanged(updated);
+    }
+
     return updated;
   }
 
@@ -1550,6 +1626,8 @@ export class OrdersService {
 
     return products.map((product, index) => ({
       productId: String(product.id),
+      // Transient: used to decide coupon applicability, never stored on the order.
+      categoryId: product.categoryId ? String(product.categoryId) : null,
       name: product.name,
       sku: product.sku,
       imageUrl: product.images[0]?.url ?? null,

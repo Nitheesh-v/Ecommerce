@@ -25,6 +25,12 @@ import type { PaymentGateway } from '../../src/modules/payments/payment-gateway.
 import { PaymentEvent } from '../../src/modules/payments/schemas/payment-event.schema.js';
 import { Payment } from '../../src/modules/payments/schemas/payment.schema.js';
 import { ProductsRepository } from '../../src/modules/products/repositories/products.repository.js';
+import { OffersRepository, RedemptionsRepository } from '../../src/modules/coupons/repositories/offers.repository.js';
+import {
+  CouponCustomerUsage,
+  CouponRedemption,
+  Offer,
+} from '../../src/modules/coupons/schemas/offer.schema.js';
 import { ShipmentsRepository } from '../../src/modules/shipments/repositories/shipments.repository.js';
 import { Shipment } from '../../src/modules/shipments/schemas/shipment.schema.js';
 import { Product } from '../../src/modules/products/schemas/product.schema.js';
@@ -59,6 +65,10 @@ export interface CreateTestAppOptions {
   paymentGateway?: PaymentGateway;
   /** Substitute shipment persistence. */
   shipments?: ShipmentsRepository;
+  /** Substitute offer persistence (admin offers + coupon validation). */
+  offers?: OffersRepository;
+  /** Substitute the redemption ledger. */
+  redemptions?: RedemptionsRepository;
 }
 
 /**
@@ -104,6 +114,12 @@ export async function createTestApp(
     .overrideProvider(getModelToken(PaymentEvent.name))
     .useValue({})
     .overrideProvider(getModelToken(Shipment.name))
+    .useValue({})
+    .overrideProvider(getModelToken(Offer.name))
+    .useValue({})
+    .overrideProvider(getModelToken(CouponRedemption.name))
+    .useValue({})
+    .overrideProvider(getModelToken(CouponCustomerUsage.name))
     .useValue({});
 
   if (options.users) {
@@ -174,6 +190,16 @@ export async function createTestApp(
     builder = builder
       .overrideProvider(ShipmentsRepository)
       .useValue(options.shipments);
+  }
+
+  if (options.offers) {
+    builder = builder.overrideProvider(OffersRepository).useValue(options.offers);
+  }
+
+  if (options.redemptions) {
+    builder = builder
+      .overrideProvider(RedemptionsRepository)
+      .useValue(options.redemptions);
   }
 
   const moduleFixture = await builder.compile();

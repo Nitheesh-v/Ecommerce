@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, ImageOff } from "lucide-react";
+import { CouponField } from "@/components/store/coupon-field";
 import { resolveImageUrl } from "@/lib/images";
 import { formatCurrency } from "@/lib/utils";
 import { catalogService } from "@/services/store/catalog.service";
@@ -125,6 +126,17 @@ async function ProductContent({ params }: PageProps) {
           </p>
 
           <div className="border-t border-slate-200 pt-4">
+            {/* Preview only: the discount is priced by the API, and checkout re-quotes. */}
+            <CouponField
+              lines={[{ productId: product.id, quantity: 1 }]}
+              className="mb-4"
+            />
+            <Link
+              href="/offers"
+              className="mb-4 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-700"
+            >
+              See all current offers
+            </Link>
             <h2 className="text-sm font-semibold text-slate-900">Description</h2>
             <p className="mt-1 text-sm whitespace-pre-line text-slate-600">
               {product.description}

@@ -23,6 +23,12 @@ export function StoreHeader() {
             Categories
           </Link>
           <Link
+            href="/offers"
+            className="rounded-lg px-3 py-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+          >
+            Offers
+          </Link>
+          <Link
             href="/admin"
             className="rounded-lg px-3 py-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >

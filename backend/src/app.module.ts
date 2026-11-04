@@ -17,6 +17,7 @@ import { CategoriesModule } from './modules/categories/categories.module.js';
 import { CustomersModule } from './modules/customers/customers.module.js';
 import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { OrdersModule } from './modules/orders/orders.module.js';
+import { CouponsModule } from './modules/coupons/coupons.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
 import { ShipmentsModule } from './modules/shipments/shipments.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
@@ -69,6 +70,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard.js';
     InventoryModule,
     OrdersModule,
     CustomersModule,
+    CouponsModule,
     PaymentsModule,
     ShipmentsModule,
     UploadsModule,

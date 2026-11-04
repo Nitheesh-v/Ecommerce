@@ -118,6 +118,16 @@ export class CreateOrderDto {
 
   @ApiPropertyOptional({
     description:
+      'Coupon code. Only the code is sent — the discount is resolved and computed server-side.',
+    maxLength: 40,
+  })
+  @IsString()
+  @MaxLength(40)
+  @IsOptional()
+  couponCode?: string;
+
+  @ApiPropertyOptional({
+    description:
       'Client-generated key making checkout retries return the same order instead of creating a second one',
     maxLength: 120,
   })

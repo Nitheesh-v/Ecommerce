@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { CouponsModule } from '../coupons/coupons.module.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
 import { ProductsModule } from '../products/products.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { ActiveAccountGuard } from '../auth/guards/active-account.guard.js';
 import { AdminOrdersController } from './admin-orders.controller.js';
-import { OrderEvents } from './order-events.js';
+import { OrderEventsModule } from './order-events.module.js';
 import { OrdersController } from './orders.controller.js';
 import { OrdersService } from './orders.service.js';
 import { MongooseOrdersRepository } from './repositories/mongoose-orders.repository.js';
@@ -25,6 +26,8 @@ import { Order, OrderSchema } from './schemas/order.schema.js';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Order.name, schema: OrderSchema }]),
+    OrderEventsModule,
+    CouponsModule,
     ProductsModule,
     InventoryModule,
     // Needed to block suspended accounts and to learn the checkout phone number.
@@ -33,10 +36,10 @@ import { Order, OrderSchema } from './schemas/order.schema.js';
   controllers: [OrdersController, AdminOrdersController],
   providers: [
     OrdersService,
-    OrderEvents,
     ActiveAccountGuard,
     { provide: OrdersRepository, useClass: MongooseOrdersRepository },
   ],
-  exports: [OrdersService, OrdersRepository, OrderEvents],
+  // `OrderEvents` is exported by `OrderEventsModule`; listeners import that.
+  exports: [OrdersService, OrdersRepository],
 })
 export class OrdersModule {}

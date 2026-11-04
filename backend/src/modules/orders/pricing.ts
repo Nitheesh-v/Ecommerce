@@ -72,11 +72,15 @@ export interface Totals {
  * - `discount`  Σ (list − charged) × qty, i.e. sale-price savings
  * - shipping    free at/above the threshold, otherwise a flat charge
  * - tax         only when `taxRatePercent > 0`, applied to the discounted goods value
+ *
+ * `options.freeShipping` is the only coupon-specific input: it waives the shipping
+ * charge without changing how the charge is derived.
  */
 export function computeTotals(
   lines: PricedLine[],
   config: PricingConfig = DEFAULT_PRICING,
   couponDiscount = 0,
+  options: { freeShipping?: boolean } = {},
 ): Totals {
   const subtotal = lines.reduce((sum, line) => sum + line.listPrice * line.quantity, 0);
   const goodsValue = lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
@@ -84,8 +88,12 @@ export function computeTotals(
   const coupon = clamp(couponDiscount, 0, goodsValue);
 
   const discountedGoods = Math.max(0, goodsValue - coupon);
+  // A free-shipping coupon waives the charge the same computation would otherwise
+  // apply — it never invents a negative charge or a different formula.
   const shippingCharge =
-    discountedGoods === 0 || discountedGoods >= config.freeShippingThreshold
+    options.freeShipping ||
+    discountedGoods === 0 ||
+    discountedGoods >= config.freeShippingThreshold
       ? 0
       : config.flatShippingCharge;
 
