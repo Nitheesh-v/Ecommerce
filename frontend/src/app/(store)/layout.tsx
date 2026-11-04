@@ -1,0 +1,20 @@
+import type { ReactNode } from "react";
+import { StoreFooter, StoreHeader } from "@/components/store/store-header";
+
+/**
+ * Storefront shell.
+ *
+ * Categories and products are rendered on the server (SEO + no client fetch
+ * waterfall); the header links back to the admin console for the store owner.
+ */
+export default function StoreLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      <StoreHeader />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+        {children}
+      </main>
+      <StoreFooter />
+    </div>
+  );
+}
