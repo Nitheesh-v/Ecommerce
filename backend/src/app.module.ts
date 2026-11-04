@@ -13,6 +13,9 @@ import type { ValidatedEnv } from './config/env.validation.js';
 import { HealthModule } from './health/health.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { CategoriesModule } from './modules/categories/categories.module.js';
+import { ProductsModule } from './modules/products/products.module.js';
+import { UploadsModule } from './modules/uploads/uploads.module.js';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from './modules/auth/guards/roles.guard.js';
 
@@ -56,6 +59,9 @@ import { RolesGuard } from './modules/auth/guards/roles.guard.js';
 
     AuthModule,
     AdminModule,
+    CategoriesModule,
+    ProductsModule,
+    UploadsModule,
     HealthModule,
   ],
   controllers: [AppController],

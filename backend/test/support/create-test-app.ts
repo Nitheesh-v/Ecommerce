@@ -10,6 +10,11 @@ import type { ValidatedEnv } from '../../src/config/env.validation.js';
 import { DashboardRepository } from '../../src/modules/admin/repositories/dashboard.repository.js';
 import { SessionsRepository } from '../../src/modules/auth/repositories/sessions.repository.js';
 import { Session } from '../../src/modules/auth/schemas/session.schema.js';
+import { CategoriesRepository } from '../../src/modules/categories/repositories/categories.repository.js';
+import { Category } from '../../src/modules/categories/schemas/category.schema.js';
+import { ProductsRepository } from '../../src/modules/products/repositories/products.repository.js';
+import { Product } from '../../src/modules/products/schemas/product.schema.js';
+import { ImageStorage } from '../../src/modules/uploads/image-storage.js';
 import { UsersRepository } from '../../src/modules/users/repositories/users.repository.js';
 import { User } from '../../src/modules/users/schemas/user.schema.js';
 
@@ -20,6 +25,12 @@ export interface CreateTestAppOptions {
   sessions?: SessionsRepository;
   /** Substitute dashboard analytics (admin module). */
   dashboard?: DashboardRepository;
+  /** Substitute the product catalogue. */
+  products?: ProductsRepository;
+  /** Substitute categories (products reference them). */
+  categories?: CategoriesRepository;
+  /** Substitute image storage (no disk, no CDN). */
+  imageStorage?: ImageStorage;
 }
 
 /**
@@ -49,6 +60,10 @@ export async function createTestApp(
     .overrideProvider(getModelToken(User.name))
     .useValue({})
     .overrideProvider(getModelToken(Session.name))
+    .useValue({})
+    .overrideProvider(getModelToken(Product.name))
+    .useValue({})
+    .overrideProvider(getModelToken(Category.name))
     .useValue({});
 
   if (options.users) {
@@ -67,6 +82,22 @@ export async function createTestApp(
     builder = builder
       .overrideProvider(DashboardRepository)
       .useValue(options.dashboard);
+  }
+
+  if (options.products) {
+    builder = builder
+      .overrideProvider(ProductsRepository)
+      .useValue(options.products);
+  }
+
+  if (options.categories) {
+    builder = builder
+      .overrideProvider(CategoriesRepository)
+      .useValue(options.categories);
+  }
+
+  if (options.imageStorage) {
+    builder = builder.overrideProvider(ImageStorage).useValue(options.imageStorage);
   }
 
   const moduleFixture = await builder.compile();

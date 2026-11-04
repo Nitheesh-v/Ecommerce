@@ -1,7 +1,9 @@
 import type { INestApplication } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
+import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
+import { resolve } from 'node:path';
 import helmet from 'helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { requestIdMiddleware } from './common/middleware/request-id.middleware.js';
@@ -41,6 +43,20 @@ export function configureApp(
   if (security) {
     app.use(securityHeaders());
   }
+
+  // Locally-stored product images (`UPLOAD_DIR`, default `backend/uploads`).
+  // Read-only, no directory listing, and deliberately outside the `/api` prefix so
+  // the URLs stored on products stay short (`/uploads/<file>`).
+  // When Cloudinary is configured this mount simply stays empty.
+  app.use(
+    '/uploads',
+    express.static(resolve(process.cwd(), configService.get('UPLOAD_DIR', { infer: true })), {
+      index: false,
+      dotfiles: 'deny',
+      maxAge: '7d',
+      fallthrough: true,
+    }),
+  );
 
   if (cors) {
     const allowedOrigins = configService

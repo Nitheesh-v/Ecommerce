@@ -80,6 +80,17 @@ export const envSchema = z.object({
 
   /** Maximum requests per IP per window on throttled routes. */
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
+
+  /** Where locally-stored product images are written, relative to the process cwd. */
+  UPLOAD_DIR: z.string().min(1).default('uploads'),
+
+  /**
+   * Optional Cloudinary credentials. Set **all three** to upload images to the
+   * CDN; leave them empty to store images on local disk instead.
+   */
+  CLOUDINARY_CLOUD_NAME: z.string().min(1).optional(),
+  CLOUDINARY_API_KEY: z.string().min(1).optional(),
+  CLOUDINARY_API_SECRET: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -100,6 +111,10 @@ export interface ValidatedEnv {
   BCRYPT_ROUNDS: number;
   THROTTLE_TTL: number;
   THROTTLE_LIMIT: number;
+  UPLOAD_DIR: string;
+  CLOUDINARY_CLOUD_NAME?: string;
+  CLOUDINARY_API_KEY?: string;
+  CLOUDINARY_API_SECRET?: string;
 }
 
 /**
@@ -121,6 +136,21 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
 
   const env = result.data;
 
+  // A half-configured CDN is almost always a copy/paste mistake; failing loudly
+  // here beats discovering it when the first upload 503s.
+  const cloudinaryValues = [
+    env.CLOUDINARY_CLOUD_NAME,
+    env.CLOUDINARY_API_KEY,
+    env.CLOUDINARY_API_SECRET,
+  ];
+  const configuredCloudinary = cloudinaryValues.filter(Boolean).length;
+
+  if (configuredCloudinary !== 0 && configuredCloudinary !== 3) {
+    throw new Error(
+      'Invalid environment configuration:\n  - CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET must be set together (or all left empty to store images locally)',
+    );
+  }
+
   return {
     NODE_ENV: env.NODE_ENV,
     PORT: env.PORT,
@@ -133,5 +163,9 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     BCRYPT_ROUNDS: env.BCRYPT_ROUNDS,
     THROTTLE_TTL: env.THROTTLE_TTL,
     THROTTLE_LIMIT: env.THROTTLE_LIMIT,
+    UPLOAD_DIR: env.UPLOAD_DIR,
+    CLOUDINARY_CLOUD_NAME: env.CLOUDINARY_CLOUD_NAME,
+    CLOUDINARY_API_KEY: env.CLOUDINARY_API_KEY,
+    CLOUDINARY_API_SECRET: env.CLOUDINARY_API_SECRET,
   };
 }

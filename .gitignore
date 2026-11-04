@@ -12,6 +12,9 @@ frontend/.env*
 backend/.env*
 !backend/.env.example
 
+# Uploaded product images (runtime data; Cloudinary or object storage in production)
+backend/uploads/
+
 # Build files
 .next/
 dist/
