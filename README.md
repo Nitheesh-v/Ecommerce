@@ -2,8 +2,8 @@
 
 Production-oriented, single-vendor e-commerce platform. Monorepo with a Next.js (App Router) storefront/admin and a NestJS REST API backed by MongoDB.
 
-> **Status: Phase 5 (admin console foundation) complete.** Register/login/refresh/logout, bcrypt hashing, rotating refresh tokens in HttpOnly cookies and deny-by-default authorization are in place, and the guarded `/admin` console now ships with a fully API-driven dashboard. Next: product & category management (awaiting approval).
-> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md) · [`Phase 4`](docs/PHASE-4-AUTH.md) · [`Phase 5`](docs/PHASE-5-ADMIN-DASHBOARD.md) · [`Phase 6`](docs/PHASE-6-PRODUCTS.md) · [`Phase 7`](docs/PHASE-7-CATEGORIES.md) · [`Phase 8`](docs/PHASE-8-INVENTORY.md).
+> **Status: Phase 9 (order management) complete.** Authentication with rotating refresh tokens, a guarded `/admin` console, the catalogue, categories, inventory and now the full order lifecycle — checkout, status machine, shipping/tracking, cancellations with exactly-once stock restoration, returns, refunds and invoices — are implemented and verified. Next: customer management (not started).
+> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md) · [`Phase 4`](docs/PHASE-4-AUTH.md) · [`Phase 5`](docs/PHASE-5-ADMIN-DASHBOARD.md) · [`Phase 6`](docs/PHASE-6-PRODUCTS.md) · [`Phase 7`](docs/PHASE-7-CATEGORIES.md) · [`Phase 8`](docs/PHASE-8-INVENTORY.md) · [`Phase 9`](docs/PHASE-9-ORDERS.md).
 
 ## Stack
 
@@ -42,7 +42,8 @@ Ecommerce/
 │   ├── PHASE-5-ADMIN-DASHBOARD.md
 │   ├── PHASE-6-PRODUCTS.md
 │   ├── PHASE-7-CATEGORIES.md
-│   └── PHASE-8-INVENTORY.md
+│   ├── PHASE-8-INVENTORY.md
+│   └── PHASE-9-ORDERS.md
 ├── .gitignore
 └── README.md
 ```
@@ -183,9 +184,11 @@ The dashboard (`/admin/dashboard`) is entirely API-driven — six metric cards, 
 
 **Inventory** (`/admin/inventory`) owns every stock change. Summary cards (products, units, low/out counts, value at cost), a server-paginated table with name/SKU search, category and stock-status filters, sorting, and CSV export; a stock-adjustment modal that previews the resulting quantity and requires confirmation; and an append-only stock history (previous → new, reason, reference, admin). Stock is atomic and audited server-side, can never go negative, and `PATCH /api/admin/products/:id` refuses `stock` outright. See the [Phase 8 report](docs/PHASE-8-INVENTORY.md).
 
+**Orders** (`/admin/orders`) is the money-and-stock system of record. Server-paginated listing with search (order number, customer name or email), status/payment-method/date filters, sorting and CSV export; a detail page with items (purchase-time snapshots), customer, address, shipping and tracking, payment and refunds, pricing summary and an append-only timeline; a status machine that only offers legal transitions; cancellation with exactly-once stock restoration and a queued refund (never an assumed one); a return workflow that restocks only after an inspection approves it; and a printable invoice built purely from snapshots. Totals, discounts, shipping and tax are computed by the API — never trusted from the browser. See the [Phase 9 report](docs/PHASE-9-ORDERS.md).
+
 The storefront (`/`) now renders from the public API: a landing page with active categories and featured products, `/categories`, `/categories/[slug]` (breadcrumbs, subcategories, paginated product grid) and `/products/[slug]`. Inactive categories and unpublished products are never served by the public API.
 
-Sidebar entries for modules that do not exist yet (orders, payments, coupons, customers, reviews, reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
+Sidebar entries for modules that do not exist yet (payments, coupons, customers, reviews, reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
 
 ## Seeding the store owner
 
@@ -209,4 +212,4 @@ MongoDB (local or Atlas). The API fails fast when the database is unreachable �
 
 ## Roadmap
 
-Phases 1–14: inspection → bootstrap → common layer → **auth/RBAC** → **admin console (dashboard)** → users → catalog → cart/wishlist → inventory → orders → payments → coupons/reviews/notifications → performance → testing & deployment. Admin work is delivered in approved slices; catalog, orders and payments keep their original scope. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#10-phases) for the current state.
+Phases 1–14: inspection → bootstrap → common layer → **auth/RBAC** → **admin console (dashboard)** → users → catalog → cart/wishlist → **inventory** → **orders** → payments → coupons/reviews/notifications → performance → testing & deployment. Admin work is delivered in approved slices; catalog, orders and payments keep their original scope. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#10-phases) for the current state.

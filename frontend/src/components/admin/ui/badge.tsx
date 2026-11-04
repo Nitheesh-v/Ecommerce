@@ -20,13 +20,26 @@ const ORDER_TONES: Record<string, Tone> = {
   out_for_delivery: "accent",
   delivered: "success",
   cancelled: "danger",
-  returned: "danger",
+  return_requested: "warning",
+  returned: "neutral",
 };
 
 const PAYMENT_TONES: Record<string, Tone> = {
   pending: "warning",
   paid: "success",
   failed: "danger",
+  refund_pending: "warning",
+  partially_refunded: "accent",
+  refunded: "neutral",
+};
+
+const RETURN_TONES: Record<string, Tone> = {
+  requested: "warning",
+  approved: "info",
+  rejected: "danger",
+  received: "info",
+  inspected: "accent",
+  restocked: "success",
   refunded: "neutral",
 };
 
@@ -69,5 +82,11 @@ export function PaymentStatusBadge({ status }: { status: string }) {
     <Badge tone={PAYMENT_TONES[status] ?? "neutral"}>
       {humanizeStatus(status)}
     </Badge>
+  );
+}
+
+export function ReturnStatusBadge({ status }: { status: string }) {
+  return (
+    <Badge tone={RETURN_TONES[status] ?? "neutral"}>{humanizeStatus(status)}</Badge>
   );
 }

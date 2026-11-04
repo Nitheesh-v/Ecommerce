@@ -24,3 +24,28 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
+
+/*
+ * Print: the order invoice prints on its own sheet. Console chrome (sidebar,
+ * top bar) and explicit `no-print` blocks never reach paper.
+ */
+@media print {
+  [data-print-hidden],
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  [data-console-content] {
+    padding-left: 0 !important;
+    min-height: 0;
+  }
+
+  [data-console-main] {
+    max-width: none;
+    padding: 0 !important;
+  }
+}

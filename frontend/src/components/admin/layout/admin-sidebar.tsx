@@ -101,6 +101,7 @@ export function AdminSidebar() {
       ) : null}
 
       <aside
+        data-print-hidden
         aria-label="Admin navigation"
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-slate-900 transition-[transform,width] duration-200 ease-out",

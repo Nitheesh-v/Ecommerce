@@ -72,7 +72,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "Orders",
         href: "/admin/orders",
         icon: ShoppingCart,
-        available: false,
+        available: true,
       },
       {
         label: "Payments",
@@ -150,6 +150,7 @@ const FALLBACK_LABELS: Record<string, string> = {
   notifications: "Notifications",
   settings: "Settings",
   new: "New",
+  invoice: "Invoice",
   create: "New",
   edit: "Edit",
 };
@@ -158,8 +159,9 @@ const FALLBACK_LABELS: Record<string, string> = {
 const OBJECT_ID_SEGMENT = /^[0-9a-f]{24}$/i;
 
 function segmentLabel(segment: string) {
+  // A record id is never a page name; the page's own title identifies it.
   if (OBJECT_ID_SEGMENT.test(segment)) {
-    return "Product";
+    return "Details";
   }
 
   return (

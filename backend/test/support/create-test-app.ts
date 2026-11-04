@@ -15,6 +15,8 @@ import { Category } from '../../src/modules/categories/schemas/category.schema.j
 import { InventoryRepository } from '../../src/modules/inventory/repositories/inventory.repository.js';
 import { InventoryAlert } from '../../src/modules/inventory/schemas/inventory-alert.schema.js';
 import { InventoryMovement } from '../../src/modules/inventory/schemas/inventory-movement.schema.js';
+import { OrdersRepository } from '../../src/modules/orders/repositories/orders.repository.js';
+import { Order } from '../../src/modules/orders/schemas/order.schema.js';
 import { ProductsRepository } from '../../src/modules/products/repositories/products.repository.js';
 import { Product } from '../../src/modules/products/schemas/product.schema.js';
 import { ImageStorage } from '../../src/modules/uploads/image-storage.js';
@@ -36,6 +38,8 @@ export interface CreateTestAppOptions {
   imageStorage?: ImageStorage;
   /** Substitute inventory persistence (movements + alerts). */
   inventory?: InventoryRepository;
+  /** Substitute order persistence. */
+  orders?: OrdersRepository;
 }
 
 /**
@@ -73,6 +77,8 @@ export async function createTestApp(
     .overrideProvider(getModelToken(InventoryMovement.name))
     .useValue({})
     .overrideProvider(getModelToken(InventoryAlert.name))
+    .useValue({})
+    .overrideProvider(getModelToken(Order.name))
     .useValue({});
 
   if (options.users) {
@@ -113,6 +119,10 @@ export async function createTestApp(
     builder = builder
       .overrideProvider(InventoryRepository)
       .useValue(options.inventory);
+  }
+
+  if (options.orders) {
+    builder = builder.overrideProvider(OrdersRepository).useValue(options.orders);
   }
 
   const moduleFixture = await builder.compile();

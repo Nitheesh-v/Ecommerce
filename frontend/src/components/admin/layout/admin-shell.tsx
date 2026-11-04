@@ -78,13 +78,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-slate-50">
       <AdminSidebar />
       <div
+        data-console-content
         className={cn(
           "flex min-h-screen flex-col transition-[padding] duration-200 ease-out motion-reduce:transition-none",
           collapsed ? "lg:pl-[4.75rem]" : "lg:pl-64",
         )}
       >
         <AdminHeader />
-        <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main
+          data-console-main
+          className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6 lg:px-8"
+        >
           {children}
         </main>
       </div>

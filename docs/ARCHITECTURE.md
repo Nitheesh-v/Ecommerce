@@ -41,7 +41,12 @@ Ecommerce/
 │   │   ├── health/                 # liveness + readiness
 │   │   └── modules/                # feature modules
 │   │       ├── users/              # user schema, repository, hashing, public mapping
-│   │       └── auth/               # tokens, sessions, guards, auth flows
+│   │       ├── auth/               # tokens, sessions, guards, auth flows
+│   │       ├── products/           # catalogue + admin CRUD + image storage
+│   │       ├── categories/         # hierarchy, SEO, storefront reads
+│   │       ├── inventory/          # the only stock writer + audit trail + alerts
+│   │       ├── orders/             # order lifecycle, returns, refunds, invoices
+│   │       └── admin/              # dashboard aggregation
 │   └── test/                       # e2e specs + test support modules
 ├── frontend/
 │   └── src/
@@ -54,7 +59,8 @@ Ecommerce/
 └── docs/
 ```
 
-`modules/` does not exist yet; each feature adds its own directory there.
+Each feature owns one directory under `modules/`; modules never reach into each other's
+repositories — they call services (e.g. orders → `InventoryService`, never `inventory_movements`).
 
 ---
 
@@ -217,7 +223,21 @@ Inventory (Phase 8, see `docs/PHASE-8-INVENTORY.md`):
 | Idempotency | partial unique index on `(referenceId, type)` + a compensation write when a lost race is detected — replays never double-move stock |
 | Product edits | `stock` removed from the update DTO (400 if sent); opening stock on create is logged as `initial` |
 | Alerts | `inventory_alerts`, one open row per product+level; escalation and dedupe handled in the service, notifications behind `InventoryNotifier` |
-| Order integration | `reserveForOrder` / `restockForOrder` hooks are shipped and tested; Phase 9 wires them into checkout, cancellation and refunds |
+| Order integration | `reserveForOrder` at checkout, `restockForOrder` on cancellation and after an approved return inspection — see Phase 9 |
+
+Orders (Phase 9, see `docs/PHASE-9-ORDERS.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Money | every total is computed server-side from the product records at creation time (integer paise); client-sent prices are a `400`, never a discount |
+| Snapshots | items (`name`, `sku`, `imageUrl`, `unitPrice`, `listPrice`, `discount`, `lineTotal`) and the shipping address are frozen on the order; invoices never re-read the catalogue |
+| State machine | `order-status.ts` is the only authority: linear fulfilment, cancellation only before shipment, returns only after delivery; illegal jumps `409`, no-ops `400` |
+| Concurrency | each transition is a guarded `findOneAndUpdate` on the previous status plus its history entry, so a stale tab cannot double-apply |
+| Stock | `reserveForOrder` / `restockForOrder` with stable `order:<no>:<scope>:<productId>` reference ids; `cancellation.restocked` is a second exactly-once guard |
+| Payments | an admin records a *verified* payment; the storefront can never mark an order paid. Refunds are capped obligations that must be settled explicitly |
+| Returns | `requested → approved → received → inspected → restocked → returned`; inspection decides restocking, completion queues the refund |
+| Audit | append-only `history[]` (`kind`, `from`, `to`, `reason`, `note`, `by`, `at`) written in the same atomic update as the change |
+| Isolation | customer routes derive `userId` from the token; another customer's order is a `404`, never a `403` existence leak |
 
 Frontend auth & API layer (Phase 5):
 
@@ -294,4 +314,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 6. Product management (schema, admin CRUD, image uploads, admin UI) — `docs/PHASE-6-PRODUCTS.md`
 7. Category management (hierarchy, images, SEO, storefront browsing) — `docs/PHASE-7-CATEGORIES.md`
 8. Inventory management (stock adjustments, audit trail, alerts, order hooks) — `docs/PHASE-8-INVENTORY.md`
-9. Cart & wishlist · 10 Orders & checkout · 11 Payments (Razorpay) · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment
+9. Order management (checkout, lifecycle, shipping, cancellations, returns, refunds, invoices) — `docs/PHASE-9-ORDERS.md`
+10. Storefront cart & checkout UI · 11 Payments (Razorpay) · 12 Coupons, reviews, notifications · 13 Caching, queues, performance · 14 Testing, security review, deployment
