@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode, ThHTMLAttributes } from "react";
+import type { ReactNode, TdHTMLAttributes, ThHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 /** Horizontally scrollable table shell — keeps wide tables usable on mobile. */
@@ -67,7 +67,7 @@ export function TableCell({
   children,
   className,
   ...props
-}: HTMLAttributes<HTMLTableCellElement>) {
+}: TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td className={cn("px-5 py-3 text-slate-700", className)} {...props}>
       {children}

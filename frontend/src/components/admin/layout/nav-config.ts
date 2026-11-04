@@ -49,7 +49,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "Products",
         href: "/admin/products",
         icon: Package,
-        available: false,
+        available: true,
       },
       {
         label: "Categories",
@@ -150,10 +150,18 @@ const FALLBACK_LABELS: Record<string, string> = {
   notifications: "Notifications",
   settings: "Settings",
   new: "New",
+  create: "New",
   edit: "Edit",
 };
 
+/** A Mongo ObjectId in a URL is a record, not a page name. */
+const OBJECT_ID_SEGMENT = /^[0-9a-f]{24}$/i;
+
 function segmentLabel(segment: string) {
+  if (OBJECT_ID_SEGMENT.test(segment)) {
+    return "Product";
+  }
+
   return (
     FALLBACK_LABELS[segment] ??
     segment.replace(/-/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())

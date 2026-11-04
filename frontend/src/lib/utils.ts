@@ -84,3 +84,17 @@ export function initialsOf(name: string) {
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
 }
+
+/**
+ * Client-side slug preview only — mirrors the backend generator so the admin sees
+ * what will be stored. The backend remains the source of truth (and de-duplicates).
+ */
+export function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120);
+}

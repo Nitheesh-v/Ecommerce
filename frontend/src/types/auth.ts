@@ -16,18 +16,21 @@ export interface AuthSessionPayload {
   tokenType: string;
 }
 
+/** Pagination metadata attached to every list response. */
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 /** Every backend response uses this envelope. */
 export interface ApiSuccess<T> {
   success: true;
   data: T;
-  meta?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-  };
+  meta?: PaginationMeta;
 }
 
 export interface ApiError {

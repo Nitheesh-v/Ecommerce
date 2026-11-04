@@ -1,5 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
-import type { ApiSuccess, AuthSessionPayload } from "@/types/auth";
+import type { ApiSuccess, AuthSessionPayload, PaginationMeta } from "@/types/auth";
 import { session } from "./session";
 
 /**
@@ -96,4 +96,29 @@ export async function requestData<T>(
   const response = await request;
 
   return response.data.data;
+}
+
+/**
+ * Unwraps a paginated envelope into `{ data, meta }`.
+ *
+ * List endpoints return `{ success, data, meta }`; the admin tables need the
+ * pagination metadata, so it is returned alongside the rows instead of dropped.
+ */
+export async function requestPage<T>(
+  request: Promise<{ data: ApiSuccess<T[]> }>,
+): Promise<{ data: T[]; meta: PaginationMeta }> {
+  const response = await request;
+  const { data, meta } = response.data;
+
+  return {
+    data,
+    meta: meta ?? {
+      page: 1,
+      limit: data.length,
+      total: data.length,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  };
 }
