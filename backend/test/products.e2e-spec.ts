@@ -424,6 +424,128 @@ describe('Products (e2e)', () => {
     });
   });
 
+  describe('storefront filters and facets', () => {
+    let saleableId: string;
+    let soldOutId: string;
+    let fullPriceId: string;
+
+    beforeAll(async () => {
+      // Prices are deliberate: A and C carry sale prices, B is sold out at full
+      // price. Bands below are chosen so unrelated fixtures cannot match.
+      const create = async (body: Record<string, unknown>) =>
+        (
+          await asAdmin('post', '/api/admin/products')
+            .send(validProduct({ categoryId: audioCategoryId, status: 'published', ...body }))
+            .expect(201)
+        ).body.data.id as string;
+
+      saleableId = await create({
+        name: 'Filter Fixture A',
+        sku: 'SKU-FLT-0001',
+        price: 1_000_000,
+        salePrice: 800_000,
+        stock: 5,
+      });
+      soldOutId = await create({
+        name: 'Filter Fixture B',
+        sku: 'SKU-FLT-0002',
+        price: 1_200_000,
+        // No sale price at all: `undefined` is dropped from the JSON body.
+        salePrice: undefined,
+        stock: 0,
+      });
+      fullPriceId = await create({
+        name: 'Filter Fixture C',
+        sku: 'SKU-FLT-0003',
+        price: 1_100_000,
+        salePrice: 1_050_000,
+        stock: 9,
+      });
+
+      // Ratings are written by the reviews module; here they are set directly so the
+      // filter and sort can be exercised without a delivered order per product.
+      await products.updateRating(saleableId, 4.6, 12);
+      await products.updateRating(soldOutId, 3.2, 4);
+    });
+
+    const names = (body: { data: { name: string }[] }) => body.data.map((row) => row.name);
+
+    it('filters on the effective price, so a sale price is what the band sees', async () => {
+      const response = await request(server())
+        .get('/api/products?minPrice=900000&maxPrice=1150000&limit=50')
+        .expect(200);
+
+      const list = names(response.body);
+
+      // A (800 000 effective) is below the band, B (1 200 000) above it.
+      expect(list).not.toContain('Filter Fixture A');
+      expect(list).not.toContain('Filter Fixture B');
+      expect(list).toContain('Filter Fixture C');
+    });
+
+    it('filters on sale, stock and rating', async () => {
+      const onSale = await request(server()).get('/api/products?onSale=true&limit=50').expect(200);
+      const onSaleNames = names(onSale.body);
+
+      expect(onSaleNames).toContain('Filter Fixture A');
+      expect(onSaleNames).toContain('Filter Fixture C');
+      expect(onSaleNames).not.toContain('Filter Fixture B');
+
+      const inStock = await request(server()).get('/api/products?inStock=true&limit=50').expect(200);
+      expect(names(inStock.body)).not.toContain('Filter Fixture B');
+
+      const rated = await request(server()).get('/api/products?minRating=4&limit=50').expect(200);
+      const ratedNames = names(rated.body);
+
+      expect(ratedNames).toContain('Filter Fixture A');
+      expect(ratedNames).not.toContain('Filter Fixture B');
+    });
+
+    it('sorts by rating and exposes the cached stars on the card', async () => {
+      const response = await request(server())
+        .get('/api/products?sortBy=rating&sortOrder=desc&limit=50')
+        .expect(200);
+
+      const list = names(response.body);
+
+      expect(list.indexOf('Filter Fixture A')).toBeLessThan(
+        list.indexOf('Filter Fixture B'),
+      );
+
+      const detail = await request(server())
+        .get(`/api/products/${saleableId}`)
+        .expect(200);
+
+      expect(detail.body.data.ratingAverage).toBe(4.6);
+      expect(detail.body.data.ratingCount).toBe(12);
+    });
+
+    it('publishes filter values for the sidebar without being read as a slug', async () => {
+      const response = await request(server()).get('/api/products/facets').expect(200);
+      const { data } = response.body;
+
+      expect(data.total).toBeGreaterThanOrEqual(3);
+      expect(data.price.min).toBeGreaterThan(0);
+      expect(data.price.max).toBeGreaterThanOrEqual(data.price.min);
+
+      const audio = data.categories.find(
+        (row: { slug: string }) => row.slug === 'audio',
+      );
+
+      expect(audio).toMatchObject({ name: 'Audio' });
+      expect(audio.count).toBeGreaterThanOrEqual(3);
+      expect(audio.minPrice).toBeLessThanOrEqual(audio.maxPrice);
+
+      expect(data.ratings).toEqual([
+        { min: 4, count: expect.any(Number) },
+        { min: 3, count: expect.any(Number) },
+      ]);
+      expect(data.ratings[0].count).toBeGreaterThanOrEqual(1);
+      expect(data.inStock).toBeGreaterThanOrEqual(2);
+      expect(data.onSale).toBeGreaterThanOrEqual(2);
+    });
+  });
+
   describe('deletion', () => {
     it('deletes a product that has no order history', async () => {
       const created = await asAdmin('post', '/api/admin/products')

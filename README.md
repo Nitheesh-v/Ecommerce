@@ -144,6 +144,8 @@ Windows PowerShell 5.1 also aliases `curl` to `Invoke-WebRequest`; if you prefer
 | `GET` | `/api/admin/redemptions/export` | Ledger CSV (admin) |
 | `POST` | `/api/coupons/validate` | Server-priced coupon preview (public, 20/min) |
 | `GET` | `/api/offers/active` | Customer-visible live offers (public) |
+| `GET` | `/api/products` | Published products: search, category, price band, stock, sale, rating, sort, paging (public) |
+| `GET` | `/api/products/facets` | Filter values for the catalogue sidebar — category counts, price bounds, rating buckets (public) |
 | `GET` | `/api/products/:idOrSlug/reviews` | Approved reviews for a product (public) |
 | `GET` | `/api/products/:idOrSlug/reviews/summary` | Average rating, count and star distribution (public) |
 | `GET` | `/api/products/:idOrSlug/reviews/eligibility` | Whether the signed-in customer may review it (auth) |
@@ -225,7 +227,7 @@ The dashboard (`/admin/dashboard`) is entirely API-driven — six metric cards, 
 
 **Reports** (`/admin/reports`) covers sales and customers over one date range (`today`/`7d`/`30d`/`90d`/custom). Sales reuses the dashboard's own aggregations — revenue, orders, average order value, revenue and order series, status mix, sales by category, top products — so a figure can never disagree with the dashboard. Customers answers what the dashboard could not: new customers (first *ever* order inside the window), repeat customers, active customers, repeat rate, orders per customer and the top buyers, keyed by `userId` when signed in and by lower-cased email for guests. Both export as CSV attachments with the range in the header and quoted cells. See the [Phase 15 report](docs/PHASE-15-REPORTS-SETTINGS.md).
 
-The storefront (`/`) now renders from the public API: a landing page with active categories and featured products, `/categories`, `/categories/[slug]` (breadcrumbs, subcategories, paginated product grid) and `/products/[slug]`. Inactive categories and unpublished products are never served by the public API.
+**Storefront** renders from the public API only: inactive categories and unpublished products are never served, so the UI cannot show something the API would not sell. The home page (`/`) is a marketplace landing page — hero with a working search form, category tiles, deals (sale prices below list), top-rated, new arrivals and featured rails, plus a payment/support band read from the store settings document (so it stops promising cash-on-delivery the moment an admin turns it off). `/products` is the browse page: category counts, price bands and custom min/max, 4★/3★ rating buckets, in-stock and on-sale filters, five sort orders, per-filter chips, and link-based pagination — all of it in the URL and rendered on the server, so a filtered list is shareable and the back button works. Product cards show the discount percentage, the effective price against the struck-through list price, and a `4.6 ★ (12)` rating pill backed by approved reviews (the product's cached rating is written by the review moderation path, and a test asserts it equals the review summary). Shoppers can sign in or register at `/login` / `/register` (zod rules mirroring the API), see their profile at `/account`, and their own orders at `/account/orders` — the token lives in memory only and a reload recovers from the HttpOnly refresh cookie. See the [Phase 16 report](docs/PHASE-16-STOREFRONT-HOME-AUTH-CATALOGUE.md).
 
 Sidebar entries for modules that do not exist yet (notifications) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
 
@@ -251,4 +253,4 @@ MongoDB (local or Atlas). The API fails fast when the database is unreachable �
 
 ## Roadmap
 
-Phases 1–15: inspection → bootstrap → common layer → **auth/RBAC** → **admin console (dashboard)** → users → catalog → cart/wishlist → **inventory** → **orders** → **customers** → payments → coupons → reviews → reports/settings → notifications → performance → testing & deployment. Admin work is delivered in approved slices; catalog, orders and payments keep their original scope. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#10-phases) for the current state.
+Phases 1–16: inspection → bootstrap → common layer → **auth/RBAC** → **admin console (dashboard)** → users → catalog → cart/wishlist → **inventory** → **orders** → **customers** → payments → coupons → reviews → reports/settings → **storefront home, accounts & browsing** → cart/checkout UI → notifications → performance → testing & deployment. Admin work is delivered in approved slices; catalog, orders and payments keep their original scope. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#10-phases) for the current state.

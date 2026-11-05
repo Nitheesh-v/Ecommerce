@@ -337,6 +337,20 @@ Reports (Phase 15, see `docs/PHASE-15-REPORTS-SETTINGS.md`):
 | Exports | CSV attachments with the range in the header, quoted cells and CRLF rows — the same numbers the screen shows |
 | Module | `AdminModule` binds both repositories; `create-test-app` substitutes them, so report shapes are asserted without Mongo |
 
+Storefront: home, accounts and catalogue browsing (Phase 16, see `docs/PHASE-16-STOREFRONT-HOME-AUTH-CATALOGUE.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Ratings on cards | `products.ratingAverage`/`ratingCount` are written by `ReviewsService` after approve/reject/delete through `ProductsService.syncRating()`; the review summary endpoints stay the authority and a test asserts the two agree |
+| Filters | `minPrice`/`maxPrice` (effective, sale-aware), `inStock`, `onSale`, `minRating`, `sortBy=rating` — all applied by the repository, `$expr` on `$ifNull(salePrice, price)` for money |
+| Facets | `GET /api/products/facets` returns per-category counts and price bounds, the catalogue's price range, 4★/3★ buckets and stock/sale totals, computed over published products (not the current query) and declared before `:idOrSlug` |
+| Home page | server-rendered rails (deals, top rated, new arrivals, featured) plus category tiles and a COD/support band read from `GET /api/store/settings` |
+| Sessions | `useCustomerAuthStore` is separate from the admin store (which refuses non-admins); both write to the same in-memory `session`, access token never in storage, reload recovered from the HttpOnly refresh cookie |
+| Account area | `/login`, `/register` (zod rules mirroring the API), `/account`, `/account/orders`; `RequireCustomer` gates rendering, the API scopes every read and 404s a foreign order |
+| Browse page | filters/sort/page live in the URL and render on the server; `instant = false` because the page *is* the query; link-based pagination; per-filter chips; mobile disclosure |
+| Header | plain `GET /products` search form (works without JS, shareable), account control wrapped in `<Suspense>` because `usePathname` is dynamic |
+| Fail-soft reads | the store profile and facets return `null` when the API is unreachable, so the landing page (and `next build`) never depends on a running backend |
+
 Frontend auth & API layer (Phase 5):
 
 | Concern | Implementation |
@@ -419,4 +433,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 13. Offers, coupons & discounts (percentage/fixed/free shipping, checkout validation, redemption ledger) — `docs/PHASE-13-OFFERS.md`
 14. Reviews & ratings (verified-buyer reviews, moderation queue, product rating summary) — `docs/PHASE-14-REVIEWS.md`
 15. Reports & settings (sales/customer analytics, CSV exports, store settings, settings-backed pricing) — `docs/PHASE-15-REPORTS-SETTINGS.md`
-16. Storefront cart & checkout UI · 17 Notifications · 18 Caching, queues, performance · 19 Testing, security review, deployment
+16. Storefront home, customer accounts & catalogue browsing (landing rails, shopper auth, faceted browse, product ratings on cards) — `docs/PHASE-16-STOREFRONT-HOME-AUTH-CATALOGUE.md`
+17. Storefront cart & checkout UI (server-side cart, sign-in checkout) · 18 Notifications · 19 Caching, queues, performance · 20 Testing, security review, deployment

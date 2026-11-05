@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type {
   CreateProductInput,
+  ProductFacets,
   ProductListFilter,
   ProductListResult,
   ProductRecord,
@@ -38,6 +39,8 @@ export class InMemoryProductsRepository implements ProductsRepository {
       lowStockThreshold: input.lowStockThreshold,
       status: input.status,
       isFeatured: input.isFeatured,
+      ratingAverage: 0,
+      ratingCount: 0,
       images: input.images.map((image) => ({
         url: image.url,
         publicId: image.publicId,
@@ -130,6 +133,68 @@ export class InMemoryProductsRepository implements ProductsRepository {
     );
   }
 
+  async updateRating(
+    productId: string,
+    average: number,
+    count: number,
+  ): Promise<void> {
+    const existing = this.products.get(productId);
+
+    if (!existing) {
+      return;
+    }
+
+    this.products.set(productId, {
+      ...existing,
+      ratingAverage: average,
+      ratingCount: count,
+    });
+  }
+
+  async facets(): Promise<ProductFacets> {
+    const published = [...this.products.values()].filter(
+      (product) => product.status === 'published',
+    );
+    const effectivePrice = (product: ProductRecord) => product.salePrice ?? product.price;
+    const prices = published.map(effectivePrice);
+
+    const byCategory = new Map<string, { count: number; minPrice: number; maxPrice: number }>();
+
+    for (const product of published) {
+      const price = effectivePrice(product);
+      const current = byCategory.get(product.categoryId);
+
+      byCategory.set(product.categoryId, {
+        count: (current?.count ?? 0) + 1,
+        minPrice: Math.min(current?.minPrice ?? price, price),
+        maxPrice: Math.max(current?.maxPrice ?? price, price),
+      });
+    }
+
+    return {
+      total: published.length,
+      categories: [...byCategory.entries()].map(([categoryId, stats]) => ({
+        categoryId,
+        ...stats,
+      })),
+      price: {
+        min: prices.length > 0 ? Math.min(...prices) : 0,
+        max: prices.length > 0 ? Math.max(...prices) : 0,
+      },
+      ratings: [
+        { min: 4, count: published.filter((product) => product.ratingAverage >= 4).length },
+        { min: 3, count: published.filter((product) => product.ratingAverage >= 3).length },
+      ],
+      inStock: published.filter((product) => product.stock > 0).length,
+      onSale: published.filter(
+        (product) =>
+          product.salePrice !== null &&
+          product.salePrice !== undefined &&
+          product.salePrice < product.price,
+      ).length,
+    };
+  }
+
   async update(
     id: string,
     input: UpdateProductInput,
@@ -180,6 +245,24 @@ export class InMemoryProductsRepository implements ProductsRepository {
         return false;
       }
 
+      // Storefront filters compare the price the customer actually pays.
+      const effectivePrice = product.salePrice ?? product.price;
+
+      if (filter.minPrice !== undefined && effectivePrice < filter.minPrice) return false;
+      if (filter.maxPrice !== undefined && effectivePrice > filter.maxPrice) return false;
+      if (filter.inStock && product.stock <= 0) return false;
+      if (
+        filter.onSale &&
+        (product.salePrice === null ||
+          product.salePrice === undefined ||
+          product.salePrice >= product.price)
+      ) {
+        return false;
+      }
+      if (filter.minRating !== undefined && product.ratingAverage < filter.minRating) {
+        return false;
+      }
+
       if (filter.stockStatus === 'in' && product.stock <= 0) return false;
       if (filter.stockStatus === 'out' && product.stock > 0) return false;
       // "low" means running low but not yet empty — out-of-stock is its own filter.
@@ -200,9 +283,12 @@ export class InMemoryProductsRepository implements ProductsRepository {
     });
 
     const direction = filter.sortOrder === 'asc' ? 1 : -1;
+    // "Highest rated" breaks ties by how many ratings back the average.
+    const sortKey = (product: ProductRecord): string | number | Date =>
+      filter.sortBy === 'rating' ? product.ratingAverage : product[filter.sortBy];
     const sorted = matches.sort((a, b) => {
-      const left = a[filter.sortBy];
-      const right = b[filter.sortBy];
+      const left = sortKey(a);
+      const right = sortKey(b);
 
       if (left instanceof Date && right instanceof Date) {
         return (left.getTime() - right.getTime()) * direction;

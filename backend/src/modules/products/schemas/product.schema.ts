@@ -116,6 +116,20 @@ export class Product {
   @Prop({ type: Boolean, default: false })
   isFeatured!: boolean;
 
+  /**
+   * Denormalised rating, maintained by the reviews module whenever a review is
+   * approved, rejected or deleted.
+   *
+   * The storefront needs stars on every card and "highest rated" as a sort, and
+   * neither can afford an aggregate per product per page. The reviews endpoints
+   * remain the authority; these two fields are a cache of them.
+   */
+  @Prop({ type: Number, default: 0, min: 0, max: 5 })
+  ratingAverage!: number;
+
+  @Prop({ type: Number, default: 0, min: 0 })
+  ratingCount!: number;
+
   @Prop({ type: [ProductImageSchema], default: [] })
   images!: ProductImage[];
 
@@ -141,3 +155,5 @@ ProductSchema.index({ categoryId: 1, status: 1 });
 ProductSchema.index({ stock: 1 });
 // Storefront listing.
 ProductSchema.index({ status: 1, isFeatured: -1, createdAt: -1 });
+// "Highest rated" sort in the storefront.
+ProductSchema.index({ status: 1, ratingAverage: -1, ratingCount: -1 });

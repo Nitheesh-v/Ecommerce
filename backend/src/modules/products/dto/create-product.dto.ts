@@ -222,7 +222,7 @@ export class AdminProductsQueryDto {
   sortOrder: 'asc' | 'desc' = 'desc';
 }
 
-const PUBLIC_SORT_FIELDS = ['name', 'price', 'createdAt'] as const;
+const PUBLIC_SORT_FIELDS = ['name', 'price', 'createdAt', 'rating'] as const;
 
 export class PublicProductsQueryDto {
   @ApiPropertyOptional({ minimum: 1, default: 1 })
@@ -255,6 +255,39 @@ export class PublicProductsQueryDto {
   @ApiPropertyOptional({ type: Boolean, description: 'Only featured products' })
   @IsOptional()
   featured?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Minimum effective price, minor units (sale price counts)',
+    minimum: 0,
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  minPrice?: number;
+
+  @ApiPropertyOptional({
+    description: 'Maximum effective price, minor units (sale price counts)',
+    minimum: 0,
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  maxPrice?: number;
+
+  @ApiPropertyOptional({ description: 'Only products that can be bought right now' })
+  @IsOptional()
+  inStock?: boolean;
+
+  @ApiPropertyOptional({ description: 'Only products with a sale price below list' })
+  @IsOptional()
+  onSale?: boolean;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 5, description: 'Minimum star rating' })
+  @Type(() => Number)
+  @IsOptional()
+  minRating?: number;
 
   @ApiPropertyOptional({ enum: PUBLIC_SORT_FIELDS, default: 'createdAt' })
   @IsIn(PUBLIC_SORT_FIELDS)

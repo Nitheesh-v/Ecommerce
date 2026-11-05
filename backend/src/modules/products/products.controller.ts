@@ -29,6 +29,17 @@ export class ProductsController {
     return this.productsService.listPublic(query);
   }
 
+  /**
+   * Declared before `:idOrSlug` on purpose: otherwise "facets" would be read as a
+   * product slug.
+   */
+  @Get('facets')
+  @ApiOperation({ summary: 'Filter values for the storefront (categories, price, ratings)' })
+  @ApiOkResponse({ description: 'Counts and bounds over published products' })
+  facets() {
+    return this.productsService.getFacets();
+  }
+
   @Get(':idOrSlug')
   @ApiOperation({ summary: 'A published product by id or slug' })
   @ApiNotFoundResponse({ type: ApiErrorResponseDto })

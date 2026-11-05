@@ -1,4 +1,5 @@
-import { apiClient, requestData } from "@/lib/api/client";
+import { apiClient, requestData, requestPage } from "@/lib/api/client";
+import type { ApiSuccess } from "@/types/auth";
 import type { Order } from "@/types/order";
 import type {
   CheckoutConfig,
@@ -39,9 +40,18 @@ export const checkoutService = {
   },
 };
 
-/** The customer's own order (404 for someone else's, by design). */
+/** The customer's own orders (someone else's id is a 404, by design). */
 export const myOrdersService = {
   get(id: string, signal?: AbortSignal) {
     return requestData<Order>(apiClient.get(`/orders/${id}`, { signal }));
+  },
+
+  list(page = 1, limit = 10, signal?: AbortSignal) {
+    return requestPage<Order>(
+      apiClient.get<ApiSuccess<Order[]>>("/orders", {
+        signal,
+        params: { page, limit },
+      }),
+    );
   },
 };

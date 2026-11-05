@@ -6,10 +6,25 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName?: string;
+  phone?: string;
+}
+
 export const authService = {
   login(credentials: LoginCredentials) {
     return requestData<AuthSessionPayload>(
       apiClient.post("/auth/login", credentials),
+    );
+  },
+
+  /** Creates a customer account; the API signs the new customer in. */
+  register(payload: RegisterPayload) {
+    return requestData<AuthSessionPayload>(
+      apiClient.post("/auth/register", payload),
     );
   },
 

@@ -423,6 +423,58 @@ describe('Reviews & ratings (e2e)', () => {
       });
     });
 
+    it('mirrors the approved-review average onto the product card', async () => {
+      await buyAndReceive(headphonesId);
+      const created = await submitReview(headphonesId).expect(201);
+      const reviewId = created.body.data.id as string;
+
+      // While the review is pending, the card must keep the published maths.
+      const pendingCard = await request(server())
+        .get(`/api/products/${headphonesId}`)
+        .expect(200);
+      const pendingSummary = await request(server())
+        .get(`/api/products/${headphonesId}/reviews/summary`)
+        .expect(200);
+
+      expect(pendingCard.body.data.ratingCount).toBe(pendingSummary.body.data.reviewCount);
+
+      await approve(reviewId);
+
+      const card = await request(server())
+        .get(`/api/products/${headphonesId}`)
+        .expect(200);
+      const summary = await request(server())
+        .get(`/api/products/${headphonesId}/reviews/summary`)
+        .expect(200);
+
+      // The list card reads a cached copy of exactly what the review endpoints say.
+      expect(card.body.data.ratingCount).toBe(summary.body.data.reviewCount);
+      expect(card.body.data.ratingAverage).toBe(summary.body.data.averageRating);
+      expect(card.body.data.ratingCount).toBe(pendingCard.body.data.ratingCount + 1);
+    });
+
+    it('takes the stars back off the card when a review is deleted', async () => {
+      await buyAndReceive(headphonesId);
+      const created = await submitReview(headphonesId).expect(201);
+      const reviewId = created.body.data.id as string;
+
+      await approve(reviewId);
+
+      const approved = await request(server())
+        .get(`/api/products/${headphonesId}`)
+        .expect(200);
+
+      expect(approved.body.data.ratingCount).toBeGreaterThan(0);
+
+      await asAdmin('delete', `/api/admin/reviews/${reviewId}`).expect(200);
+
+      const after = await request(server())
+        .get(`/api/products/${headphonesId}`)
+        .expect(200);
+
+      expect(after.body.data.ratingCount).toBe(approved.body.data.ratingCount - 1);
+    });
+
     it('requires a reason to reject and hides a rejected review', async () => {
       await buyAndReceive(headphonesId);
       const created = await submitReview(headphonesId).expect(201);

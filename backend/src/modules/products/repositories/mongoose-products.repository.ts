@@ -7,6 +7,7 @@ import type { ProductDocument } from '../schemas/product.schema.js';
 import type { ProductImageInput } from './products.repository.js';
 import type {
   CreateProductInput,
+  ProductFacets,
   ProductListFilter,
   ProductListResult,
   ProductRecord,
@@ -96,23 +97,59 @@ export class MongooseProductsRepository implements ProductsRepository {
       query.$or = [{ name: pattern }, { sku: pattern }, { slug: pattern }];
     }
 
+    // Price is compared on what the customer actually pays, so a sale price is
+    // the number the slider filters on.
+    const effectivePrice = { $ifNull: ['$salePrice', '$price'] };
+    const expressions: Record<string, unknown>[] = [];
+
     if (filter.stockStatus === 'in') {
       query.stock = { $gt: 0 };
     } else if (filter.stockStatus === 'out') {
       query.stock = { $lte: 0 };
     } else if (filter.stockStatus === 'low') {
       // Running low but not empty: 0 < stock <= threshold (default 5).
-      query.$expr = {
+      expressions.push({
         $and: [
           { $gt: ['$stock', 0] },
           { $lte: ['$stock', { $ifNull: ['$lowStockThreshold', 5] }] },
         ],
-      };
+      });
     }
 
-    const sort: Record<string, SortOrder> = {
-      [filter.sortBy]: filter.sortOrder === 'asc' ? 1 : -1,
-    };
+    if (filter.inStock) {
+      query.stock = { $gt: 0 };
+    }
+
+    if (filter.minPrice !== undefined) {
+      expressions.push({ $gte: [effectivePrice, filter.minPrice] });
+    }
+
+    if (filter.maxPrice !== undefined) {
+      expressions.push({ $lte: [effectivePrice, filter.maxPrice] });
+    }
+
+    if (filter.onSale) {
+      expressions.push({
+        $and: [{ $ne: ['$salePrice', null] }, { $lt: ['$salePrice', '$price'] }],
+      });
+    }
+
+    if (filter.minRating !== undefined) {
+      query.ratingAverage = { $gte: filter.minRating };
+    }
+
+    if (expressions.length === 1) {
+      query.$expr = expressions[0];
+    } else if (expressions.length > 1) {
+      query.$expr = { $and: expressions };
+    }
+
+    // "Highest rated" breaks ties by how many ratings back the average: 5.0 from one
+    // review should not outrank 4.8 from two hundred.
+    const sort: Record<string, SortOrder> =
+      filter.sortBy === 'rating'
+        ? { ratingAverage: filter.sortOrder === 'asc' ? 1 : -1, ratingCount: -1 }
+        : { [filter.sortBy]: filter.sortOrder === 'asc' ? 1 : -1 };
 
     const [documents, total] = await Promise.all([
       this.productModel
@@ -155,6 +192,106 @@ export class MongooseProductsRepository implements ProductsRepository {
     return this.connection
       .collection('orders')
       .countDocuments({ 'items.productId': new Types.ObjectId(productId) });
+  }
+
+  async updateRating(
+    productId: string,
+    average: number,
+    count: number,
+  ): Promise<void> {
+    if (!isValidObjectId(productId)) {
+      return;
+    }
+
+    // A cache write, not a business rule: a deleted product simply has no rating.
+    await this.productModel
+      .updateOne(
+        { _id: new Types.ObjectId(productId) },
+        { $set: { ratingAverage: average, ratingCount: count } },
+      )
+      .exec();
+  }
+
+  async facets(): Promise<ProductFacets> {
+    const effectivePrice = { $ifNull: ['$salePrice', '$price'] };
+
+    const [perCategory, overall] = await Promise.all([
+      this.productModel
+        .aggregate<{
+          _id: Types.ObjectId;
+          count: number;
+          minPrice: number;
+          maxPrice: number;
+        }>([
+          { $match: { status: 'published' } },
+          {
+            $group: {
+              _id: '$categoryId',
+              count: { $sum: 1 },
+              minPrice: { $min: effectivePrice },
+              maxPrice: { $max: effectivePrice },
+            },
+          },
+        ])
+        .exec(),
+      this.productModel
+        .aggregate<{
+          total: number;
+          min: number | null;
+          max: number | null;
+          inStock: number;
+          onSale: number;
+          rating4: number;
+          rating3: number;
+        }>([
+          { $match: { status: 'published' } },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+              min: { $min: effectivePrice },
+              max: { $max: effectivePrice },
+              inStock: { $sum: { $cond: [{ $gt: ['$stock', 0] }, 1, 0] } },
+              onSale: {
+                $sum: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $ne: ['$salePrice', null] },
+                        { $lt: ['$salePrice', '$price'] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              },
+              rating4: { $sum: { $cond: [{ $gte: ['$ratingAverage', 4] }, 1, 0] } },
+              rating3: { $sum: { $cond: [{ $gte: ['$ratingAverage', 3] }, 1, 0] } },
+            },
+          },
+        ])
+        .exec(),
+    ]);
+
+    const summary = overall[0];
+
+    return {
+      total: summary?.total ?? 0,
+      categories: perCategory.map((row) => ({
+        categoryId: String(row._id),
+        count: row.count,
+        minPrice: row.minPrice,
+        maxPrice: row.maxPrice,
+      })),
+      price: { min: summary?.min ?? 0, max: summary?.max ?? 0 },
+      ratings: [
+        { min: 4, count: summary?.rating4 ?? 0 },
+        { min: 3, count: summary?.rating3 ?? 0 },
+      ],
+      inStock: summary?.inStock ?? 0,
+      onSale: summary?.onSale ?? 0,
+    };
   }
 
   private async exists(
@@ -231,6 +368,8 @@ function toRecord(document: ProductDocument): ProductRecord {
     lowStockThreshold: document.lowStockThreshold,
     status: document.status,
     isFeatured: document.isFeatured,
+    ratingAverage: document.ratingAverage ?? 0,
+    ratingCount: document.ratingCount ?? 0,
     images: (document.images ?? []).map((image) => ({
       url: image.url,
       publicId: image.publicId,

@@ -1,7 +1,14 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { fetchPublic, fetchPublicEnvelope, isNotFoundError } from "@/lib/api/public";
 import type { CategoryNode, CategoryPageView } from "@/types/category";
-import type { PublicProduct } from "@/types/storefront";
+import type { PublicStoreSettings } from "@/types/settings";
+import type {
+  CatalogueQuery,
+  ProductFacets,
+  ProductPage,
+  PublicProduct,
+  StoreSortField,
+} from "@/types/storefront";
 
 interface ProductListResult {
   items: PublicProduct[];
@@ -117,6 +124,119 @@ async function readFeaturedProducts(limit: number): Promise<PublicProduct[]> {
   );
 }
 
+/** The newest published products — the home page's "just landed" rail. */
+async function readNewArrivals(limit: number): Promise<PublicProduct[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("products");
+
+  return fetchPublic<PublicProduct[]>(
+    "/products",
+    { limit, sortBy: "createdAt", sortOrder: "desc" },
+    { fallback: [] },
+  );
+}
+
+/** Products with a sale price below list — the deals rail. */
+async function readDeals(limit: number): Promise<PublicProduct[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("products");
+
+  return fetchPublic<PublicProduct[]>(
+    "/products",
+    { onSale: "true", limit, sortBy: "price", sortOrder: "asc" },
+    { fallback: [] },
+  );
+}
+
+/** Highest rated first, which is what a marketplace puts above the fold. */
+async function readTopRated(limit: number): Promise<PublicProduct[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("products");
+
+  return fetchPublic<PublicProduct[]>(
+    "/products",
+    { sortBy: "rating", sortOrder: "desc", limit },
+    { fallback: [] },
+  );
+}
+
+/**
+ * The store's public profile (name, contact, COD switch).
+ *
+ * Comes from the settings document an admin edits, so the footer can stop promising
+ * cash-on-delivery the moment the store turns it off.
+ */
+async function readStoreProfile(): Promise<PublicStoreSettings | null> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("settings");
+
+  try {
+    return await fetchPublic<PublicStoreSettings>("/store/settings");
+  } catch {
+    // A restarting API must not break the landing page (or `next build`).
+    return null;
+  }
+}
+
+async function readFacets(): Promise<ProductFacets | null> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("products", "categories");
+
+  try {
+    return await fetchPublic<ProductFacets>("/products/facets");
+  } catch {
+    // The sidebar degrades to "filters unavailable"; the grid still renders.
+    return null;
+  }
+}
+
+/**
+ * The browse page's read.
+ *
+ * Every filter is part of the cache key (this is a `'use cache'` function), so two
+ * customers paging through different filters never share a page.
+ */
+async function readBrowse(query: CatalogueQuery): Promise<ProductPage> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("products", query.search ? `search-${query.search}` : "products");
+
+  const envelope = await fetchPublicEnvelope<PublicProduct[]>(
+    "/products",
+    {
+      search: query.search,
+      category: query.category,
+      minPrice: query.minPrice,
+      maxPrice: query.maxPrice,
+      inStock: query.inStock ? "true" : undefined,
+      onSale: query.onSale ? "true" : undefined,
+      minRating: query.minRating,
+      sortBy: (query.sortBy ?? "createdAt") satisfies StoreSortField,
+      sortOrder: query.sortOrder ?? "desc",
+      page: query.page ?? 1,
+      limit: query.limit ?? 12,
+    },
+    { fallback: [] },
+  );
+
+  return {
+    items: envelope.data,
+    meta: envelope.meta ?? {
+      page: query.page ?? 1,
+      limit: query.limit ?? 12,
+      total: envelope.data.length,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  };
+}
+
 export const catalogService = {
   /** Active categories, nested (roots with their children). */
   categoryTree: () => readCategoryTree(),
@@ -133,4 +253,22 @@ export const catalogService = {
 
   /** Featured products for the landing page. */
   featuredProducts: (limit = 8) => readFeaturedProducts(limit),
+
+  /** Newest published products. */
+  newArrivals: (limit = 8) => readNewArrivals(limit),
+
+  /** Products currently on sale. */
+  deals: (limit = 8) => readDeals(limit),
+
+  /** Highest-rated products. */
+  topRated: (limit = 8) => readTopRated(limit),
+
+  /** Filter values for the catalogue sidebar; `null` when the API is unreachable. */
+  facets: () => readFacets(),
+
+  /** A filtered, sorted, paginated page of the catalogue. */
+  browse: (query: CatalogueQuery) => readBrowse(query),
+
+  /** Public store profile (contact details, COD availability). */
+  storeProfile: () => readStoreProfile(),
 };

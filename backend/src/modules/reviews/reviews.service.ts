@@ -328,19 +328,44 @@ export class ReviewsService {
       );
     }
 
+    // A published or un-published rating changes the product's cached average, so
+    // the storefront card and the "highest rated" sort stay truthful.
+    await this.syncProductRating(review.productId);
+
     const products = await this.productLookup([review.productId]);
 
     return this.toView(updated, products.get(updated.productId));
   }
 
   async remove(id: string): Promise<{ deleted: true }> {
+    // The id is gone after the delete, and the rating has to be recomputed for it.
+    const review = await this.requireReview(id);
     const deleted = await this.reviews.remove(id);
 
     if (!deleted) {
       throw new NotFoundException('Review not found');
     }
 
+    await this.syncProductRating(review.productId);
+
     return { deleted: true };
+  }
+
+  /**
+   * Recomputes a product's cached rating from its approved reviews.
+   *
+   * `counts()` is already the authority (the summary endpoints read it), so the
+   * product document is just a copy of that answer — one code path, no second
+   * definition of "average".
+   */
+  private async syncProductRating(productId: string): Promise<void> {
+    const counts = await this.reviews.counts({ productId });
+
+    await this.productsService.syncRating(
+      productId,
+      counts.averageRating ?? 0,
+      counts.approved,
+    );
   }
 
   /* ---------------------------------------------------------------- internal */

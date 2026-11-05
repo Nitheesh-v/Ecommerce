@@ -56,11 +56,31 @@ export interface PublicProductView {
   stock: number;
   inStock: boolean;
   isFeatured: boolean;
+  /** Approved-review mean, 0–5 with one decimal; `0` until the first review lands. */
+  ratingAverage: number;
+  ratingCount: number;
   images: { url: string; alt?: string; isPrimary: boolean }[];
   seoTitle?: string;
   seoDescription?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/** Storefront filter values, ready to render (category names resolved). */
+export interface PublicFacetsView {
+  total: number;
+  price: { min: number; max: number };
+  ratings: { min: number; count: number }[];
+  inStock: number;
+  onSale: number;
+  categories: {
+    id: string;
+    slug: string;
+    name: string;
+    count: number;
+    minPrice: number;
+    maxPrice: number;
+  }[];
 }
 
 export interface DeleteProductResult {
@@ -144,7 +164,12 @@ export class ProductsService {
       search: query.search,
       categoryId: category?.id,
       status: 'published',
-      isFeatured: query.featured,
+      isFeatured: this.asBoolean(query.featured),
+      minPrice: query.minPrice,
+      maxPrice: query.maxPrice,
+      inStock: this.asBoolean(query.inStock) === true ? true : undefined,
+      onSale: this.asBoolean(query.onSale) === true ? true : undefined,
+      minRating: query.minRating,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     });
@@ -157,6 +182,58 @@ export class ProductsService {
       query.limit,
       total,
     );
+  }
+
+  /**
+   * Filter values for the storefront sidebar.
+   *
+   * Categories are resolved to slug/name here so the client never has to join; a
+   * category that no longer has published products is dropped rather than shown as
+   * a dead end.
+   */
+  async getFacets(): Promise<PublicFacetsView> {
+    const [facets, categories] = await Promise.all([
+      this.productsRepository.facets(),
+      this.categoriesService.listActive(),
+    ]);
+
+    const byId = new Map(categories.map((category) => [category.id, category]));
+
+    return {
+      total: facets.total,
+      price: facets.price,
+      ratings: facets.ratings,
+      inStock: facets.inStock,
+      onSale: facets.onSale,
+      categories: facets.categories
+        .flatMap((row) => {
+          const category = byId.get(row.categoryId);
+
+          return category
+            ? [
+                {
+                  id: category.id,
+                  slug: category.slug,
+                  name: category.name,
+                  count: row.count,
+                  minPrice: row.minPrice,
+                  maxPrice: row.maxPrice,
+                },
+              ]
+            : [];
+        })
+        .sort((a, b) => b.count - a.count),
+    };
+  }
+
+  /**
+   * Writes the denormalised rating a product card reads.
+   *
+   * Owned by the reviews module (it computes the number); this is the only write
+   * path so the cached value and the review counts cannot drift apart silently.
+   */
+  async syncRating(productId: string, average: number, count: number): Promise<void> {
+    await this.productsRepository.updateRating(productId, average, count);
   }
 
   async getPublic(idOrSlug: string): Promise<PublicProductView> {
@@ -479,6 +556,18 @@ export class ProductsService {
     };
   }
 
+  /**
+   * Query strings arrive as text, so "false" must not become a filter.
+   * `undefined` keeps the filter off entirely.
+   */
+  private asBoolean(value: boolean | string | undefined): boolean | undefined {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+
+    return value === true || value === 'true' || value === '1';
+  }
+
   private toPublicView(
     record: ProductRecord,
     category: CategoryRecord | null | undefined,
@@ -500,6 +589,8 @@ export class ProductsService {
       stock: record.stock,
       inStock: record.stock > 0,
       isFeatured: record.isFeatured,
+      ratingAverage: record.ratingAverage ?? 0,
+      ratingCount: record.ratingCount ?? 0,
       images: record.images.map((image) => ({
         url: image.url,
         alt: image.alt,

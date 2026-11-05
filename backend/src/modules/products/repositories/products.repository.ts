@@ -26,6 +26,9 @@ export interface ProductRecord {
   lowStockThreshold: number;
   status: ProductStatus;
   isFeatured: boolean;
+  /** Approved-review mean, 0–5 with one decimal; `0` until the first review lands. */
+  ratingAverage: number;
+  ratingCount: number;
   images: ProductImageRecord[];
   seoTitle?: string;
   seoDescription?: string;
@@ -62,7 +65,13 @@ export interface CreateProductInput {
 
 export type UpdateProductInput = Partial<CreateProductInput>;
 
-export type ProductSortField = 'name' | 'price' | 'stock' | 'createdAt' | 'updatedAt';
+export type ProductSortField =
+  | 'name'
+  | 'price'
+  | 'stock'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'rating';
 
 /** `in` = buyable, `low` = at or below threshold, `out` = no stock left. */
 export type StockStatusFilter = 'in' | 'low' | 'out';
@@ -76,8 +85,41 @@ export interface ProductListFilter {
   stockStatus?: StockStatusFilter;
   /** Storefront: only featured products. */
   isFeatured?: boolean;
+  /** Storefront: price band on the effective (sale-aware) price, minor units. */
+  minPrice?: number;
+  maxPrice?: number;
+  /** Storefront: only buyable products. */
+  inStock?: boolean;
+  /** Storefront: only products whose sale price undercuts the list price. */
+  onSale?: boolean;
+  /** Storefront: at least this star rating (approved reviews). */
+  minRating?: number;
   sortBy: ProductSortField;
   sortOrder: 'asc' | 'desc';
+}
+
+export interface ProductCategoryFacet {
+  categoryId: string;
+  count: number;
+  /** Effective-price bounds inside this category, minor units. */
+  minPrice: number;
+  maxPrice: number;
+}
+
+/**
+ * Storefront filter values, computed over everything currently published.
+ *
+ * Deliberately *not* narrowed by the active search or price filter: a sidebar whose
+ * options disappear as you use them is a trap. Category counts are the exception —
+ * they are the catalogue's shape, not the query's.
+ */
+export interface ProductFacets {
+  total: number;
+  categories: ProductCategoryFacet[];
+  price: { min: number; max: number };
+  ratings: { min: number; count: number }[];
+  inStock: number;
+  onSale: number;
 }
 
 export interface ProductListResult {
@@ -117,4 +159,19 @@ export abstract class ProductsRepository {
    * product would orphan history, so the service archives instead.
    */
   abstract countOrderReferences(productId: string): Promise<number>;
+
+  /**
+   * Writes the denormalised rating for one product.
+   *
+   * Called by the reviews module after a moderation change; it is a cache write, so
+   * a missing product is a no-op rather than an error.
+   */
+  abstract updateRating(
+    productId: string,
+    average: number,
+    count: number,
+  ): Promise<void>;
+
+  /** Filter values for the storefront, over published products only. */
+  abstract facets(): Promise<ProductFacets>;
 }

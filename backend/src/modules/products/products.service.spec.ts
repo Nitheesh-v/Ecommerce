@@ -6,6 +6,7 @@ import type { InventoryService } from '../inventory/inventory.service.js';
 import { ProductsService } from './products.service.js';
 import type {
   CreateProductInput,
+  ProductFacets,
   ProductListFilter,
   ProductListResult,
   ProductRecord,
@@ -46,6 +47,8 @@ class FakeProductsRepository implements ProductsRepository {
       id: (++this.sequence).toString(16).padStart(24, '0'),
       salePrice: input.salePrice ?? null,
       costPrice: input.costPrice ?? null,
+      ratingAverage: 0,
+      ratingCount: 0,
       images: input.images.map((image) => ({
         url: image.url,
         publicId: image.publicId,
@@ -67,6 +70,40 @@ class FakeProductsRepository implements ProductsRepository {
 
   async findBySlug(slug: string): Promise<ProductRecord | null> {
     return [...this.products.values()].find((item) => item.slug === slug) ?? null;
+  }
+
+  async updateRating(
+    productId: string,
+    average: number,
+    count: number,
+  ): Promise<void> {
+    const existing = this.products.get(productId);
+
+    if (existing) {
+      this.products.set(productId, {
+        ...existing,
+        ratingAverage: average,
+        ratingCount: count,
+      });
+    }
+  }
+
+  async facets(): Promise<ProductFacets> {
+    const published = [...this.products.values()].filter(
+      (product) => product.status === 'published',
+    );
+
+    return {
+      total: published.length,
+      categories: [],
+      price: { min: 0, max: 0 },
+      ratings: [
+        { min: 4, count: 0 },
+        { min: 3, count: 0 },
+      ],
+      inStock: published.filter((product) => product.stock > 0).length,
+      onSale: 0,
+    };
   }
 
   async update(id: string, input: UpdateProductInput): Promise<ProductRecord | null> {
