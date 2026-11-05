@@ -300,6 +300,19 @@ Coupons & discounts (Phase 13, see `docs/PHASE-13-OFFERS.md`):
 | History | the order stores `couponCode`/`couponDiscount` once; editing an offer never recalculates an existing order |
 | Modules | `CouponsModule` binds the two repositories and exposes `CouponPricingService`; orders inject that port and listen to `OrderEventsModule` — never import `OrdersModule` into coupons (cycle) |
 
+Reviews & ratings (Phase 14, see `docs/PHASE-14-REVIEWS.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Records | `reviews` = rating, headline, comment, status, moderator + reason, and the `orderId`/`orderNumber` that prove the purchase |
+| Eligibility | `findDeliveredPurchase()` scans the customer's `delivered` orders (bounded, indexed by `userId` + `status`) for the product snapshot — a cart or a wishlist is never evidence |
+| Duplicates | unique `(productId, userId)`; a second submit is a `409`, not an overwrite |
+| Publication | rows start `pending`; only `PATCH /api/admin/reviews/:id` approves/rejects (rejection needs a reason), and every public read filters `status: 'approved'` |
+| Repeat decisions | `moderate()` updates with a `status: { $ne: target }` guard, so a double click changes nothing (`409`) |
+| Maths | average, count and the 5→1 distribution are computed over **approved** rows by the API; the storefront only formats them |
+| Privacy | the public projection masks the author (`Asha R.`) and omits email, order and moderation fields |
+| No client trust | the create DTO is rating/title/comment only — `forbidNonWhitelisted` turns a posted `status` or `customerEmail` into a `400` |
+
 Frontend auth & API layer (Phase 5):
 
 | Concern | Implementation |
@@ -380,4 +393,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 11. Payment management (Razorpay, webhooks, refunds, console) — `docs/PHASE-11-PAYMENTS.md`
 12. Shipping & delivery management (parcels, delivery state machine, courier registry, tracking) — `docs/PHASE-12-SHIPPING.md`
 13. Offers, coupons & discounts (percentage/fixed/free shipping, checkout validation, redemption ledger) — `docs/PHASE-13-OFFERS.md`
-14. Storefront cart & checkout UI · 15 Reviews, notifications · 16 Caching, queues, performance · 17 Testing, security review, deployment
+14. Reviews & ratings (verified-buyer reviews, moderation queue, product rating summary) — `docs/PHASE-14-REVIEWS.md`
+15. Storefront cart & checkout UI · 16 Notifications · 17 Caching, queues, performance · 18 Testing, security review, deployment

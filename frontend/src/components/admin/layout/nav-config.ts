@@ -108,7 +108,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "Reviews",
         href: "/admin/reviews",
         icon: Star,
-        available: false,
+        available: true,
       },
     ],
   },

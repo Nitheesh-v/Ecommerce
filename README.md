@@ -144,6 +144,14 @@ Windows PowerShell 5.1 also aliases `curl` to `Invoke-WebRequest`; if you prefer
 | `GET` | `/api/admin/redemptions/export` | Ledger CSV (admin) |
 | `POST` | `/api/coupons/validate` | Server-priced coupon preview (public, 20/min) |
 | `GET` | `/api/offers/active` | Customer-visible live offers (public) |
+| `GET` | `/api/products/:idOrSlug/reviews` | Approved reviews for a product (public) |
+| `GET` | `/api/products/:idOrSlug/reviews/summary` | Average rating, count and star distribution (public) |
+| `GET` | `/api/products/:idOrSlug/reviews/eligibility` | Whether the signed-in customer may review it (auth) |
+| `POST` | `/api/products/:idOrSlug/reviews` | Submit a review — verified buyers only (auth) |
+| `GET` | `/api/reviews/mine` | The customer's own reviews and their status (auth) |
+| `GET` | `/api/admin/reviews` | Moderation queue: search, status, product, rating, dates (admin) |
+| `GET` | `/api/admin/reviews/summary` | Queue counts and approved average (admin) |
+| `GET`/`PATCH`/`DELETE` | `/api/admin/reviews/:id` | Read / approve-reject / delete a review (admin) |
 | `GET` | `/api` | Scaffold smoke test (`"Hello World!"`), removed when real modules land |
 | `GET` | `/api/health` | Liveness — always `200`, touches no dependency |
 | `GET` | `/api/health/ready` | Readiness — `200` when MongoDB is connected, `503` otherwise |
@@ -204,9 +212,11 @@ The dashboard (`/admin/dashboard`) is entirely API-driven — six metric cards, 
 
 **Offers & coupons** (`/admin/offers`) runs percentage, fixed-amount and free-shipping coupons. Six cards (total, active, scheduled, expired, redemptions, discount given), a server-paginated table with code/name search, status, discount-type and date filters, sortable columns, and pause/resume/archive actions. The editor carries the whole configuration — code, value, minimum spend, percentage cap, start/expiry, total and per-customer limits, applicable and excluded products/categories, visibility — and every change is written to an audit trail. Discounts are priced once, server-side: `POST /api/coupons/validate` re-prices the cart from the catalogue and returns the breakdown, and `POST /api/orders` re-quotes and reserves the use inside the same request, so a client can never supply an amount. A use is reserved at checkout, finalised when the order is confirmed, and reversed when it is cancelled or returned; the counters are claimed with guarded atomic increments and the ledger has a unique `(offer, order)` key, so retries and simultaneous checkouts cannot double-spend a code. Orders keep the discount they were created with, forever. Customers browse live codes at `/offers`, and the reusable `<CouponField>` renders the server-computed totals inside the storefront. See the [Phase 13 report](docs/PHASE-13-OFFERS.md).
 
+**Reviews & ratings** (`/admin/reviews`) is a moderation queue, not an open comment box. Only a customer whose order containing the product reached `delivered` may review it, and nothing reaches the storefront until an admin publishes it: five cards (total, awaiting moderation, published, rejected, average rating), search across customer/order/text, status, star and date filters, and approve / reject-with-reason / delete actions. Approving publishes the review with a masked author (`Asha R.`); a rejection requires a reason and stays visible only in the console. One review per customer per product is enforced by a unique index, and a repeated decision is a `409` rather than a silent rewrite. The product page shows the API-computed average, the 5→1 distribution and the latest approved reviews, plus a review form whose state comes from an eligibility check — though the submit endpoint re-verifies the delivered order regardless of what the UI claims. See the [Phase 14 report](docs/PHASE-14-REVIEWS.md).
+
 The storefront (`/`) now renders from the public API: a landing page with active categories and featured products, `/categories`, `/categories/[slug]` (breadcrumbs, subcategories, paginated product grid) and `/products/[slug]`. Inactive categories and unpublished products are never served by the public API.
 
-Sidebar entries for modules that do not exist yet (reviews, reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
+Sidebar entries for modules that do not exist yet (reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
 
 ## Seeding the store owner
 

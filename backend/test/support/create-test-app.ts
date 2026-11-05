@@ -31,6 +31,8 @@ import {
   CouponRedemption,
   Offer,
 } from '../../src/modules/coupons/schemas/offer.schema.js';
+import { ReviewsRepository } from '../../src/modules/reviews/repositories/reviews.repository.js';
+import { Review } from '../../src/modules/reviews/schemas/review.schema.js';
 import { ShipmentsRepository } from '../../src/modules/shipments/repositories/shipments.repository.js';
 import { Shipment } from '../../src/modules/shipments/schemas/shipment.schema.js';
 import { Product } from '../../src/modules/products/schemas/product.schema.js';
@@ -69,6 +71,8 @@ export interface CreateTestAppOptions {
   offers?: OffersRepository;
   /** Substitute the redemption ledger. */
   redemptions?: RedemptionsRepository;
+  /** Substitute review persistence. */
+  reviews?: ReviewsRepository;
 }
 
 /**
@@ -120,6 +124,8 @@ export async function createTestApp(
     .overrideProvider(getModelToken(CouponRedemption.name))
     .useValue({})
     .overrideProvider(getModelToken(CouponCustomerUsage.name))
+    .useValue({})
+    .overrideProvider(getModelToken(Review.name))
     .useValue({});
 
   if (options.users) {
@@ -200,6 +206,10 @@ export async function createTestApp(
     builder = builder
       .overrideProvider(RedemptionsRepository)
       .useValue(options.redemptions);
+  }
+
+  if (options.reviews) {
+    builder = builder.overrideProvider(ReviewsRepository).useValue(options.reviews);
   }
 
   const moduleFixture = await builder.compile();

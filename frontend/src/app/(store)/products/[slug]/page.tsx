@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, ImageOff } from "lucide-react";
 import { CouponField } from "@/components/store/coupon-field";
+import { ProductReviews } from "@/components/store/product-reviews";
 import { resolveImageUrl } from "@/lib/images";
 import { formatCurrency } from "@/lib/utils";
 import { catalogService } from "@/services/store/catalog.service";
@@ -162,6 +163,8 @@ async function ProductContent({ params }: PageProps) {
           </dl>
         </div>
       </div>
+
+      <ProductReviews productSlug={product.slug} />
     </div>
   );
 }
