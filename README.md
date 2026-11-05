@@ -152,6 +152,13 @@ Windows PowerShell 5.1 also aliases `curl` to `Invoke-WebRequest`; if you prefer
 | `GET` | `/api/admin/reviews` | Moderation queue: search, status, product, rating, dates (admin) |
 | `GET` | `/api/admin/reviews/summary` | Queue counts and approved average (admin) |
 | `GET`/`PATCH`/`DELETE` | `/api/admin/reviews/:id` | Read / approve-reject / delete a review (admin) |
+| `GET` | `/api/admin/settings` | Store settings, plus whether the currency is still editable (admin) |
+| `PATCH` | `/api/admin/settings` | Update identity, contact, address, pricing inputs and COD (admin) |
+| `GET` | `/api/store/settings` | Storefront-safe store profile: contact, address, currency, COD (public) |
+| `GET` | `/api/admin/reports/sales` | Sales report: revenue, orders, averages, series, mix, categories, top products (admin) |
+| `GET` | `/api/admin/reports/customers` | Customer report: new vs repeat, repeat rate, top buyers (admin) |
+| `GET` | `/api/admin/reports/sales/export` | Sales report CSV (admin) |
+| `GET` | `/api/admin/reports/customers/export` | Customer report CSV (admin) |
 | `GET` | `/api` | Scaffold smoke test (`"Hello World!"`), removed when real modules land |
 | `GET` | `/api/health` | Liveness — always `200`, touches no dependency |
 | `GET` | `/api/health/ready` | Readiness — `200` when MongoDB is connected, `503` otherwise |
@@ -214,9 +221,13 @@ The dashboard (`/admin/dashboard`) is entirely API-driven — six metric cards, 
 
 **Reviews & ratings** (`/admin/reviews`) is a moderation queue, not an open comment box. Only a customer whose order containing the product reached `delivered` may review it, and nothing reaches the storefront until an admin publishes it: five cards (total, awaiting moderation, published, rejected, average rating), search across customer/order/text, status, star and date filters, and approve / reject-with-reason / delete actions. Approving publishes the review with a masked author (`Asha R.`); a rejection requires a reason and stays visible only in the console. One review per customer per product is enforced by a unique index, and a repeated decision is a `409` rather than a silent rewrite. The product page shows the API-computed average, the 5→1 distribution and the latest approved reviews, plus a review form whose state comes from an eligibility check — though the submit endpoint re-verifies the delivered order regardless of what the UI claims. See the [Phase 14 report](docs/PHASE-14-REVIEWS.md).
 
+**Settings** (`/admin/settings`) is the store's single configuration document: name and legal entity, support email and phone, invoice/returns address, invoice footer, post-checkout note, currency, locale, tax rate, flat shipping fee, free-shipping threshold and the cash-on-delivery switch. It is authoritative — `ORDER_*` environment values only seed a fresh store, and orders and coupons read `SettingsService.pricing()` at the start of anything that prices money, so a save applies to the next order without a redeploy. Placed orders keep their own snapshot of rate, fee and currency, so no history is rewritten. Currency is effectively write-once: prices are stored as minor units of one currency, so a change is refused with `409` once any product or order exists and the console disables the field with the reason. `codEnabled: false` is enforced in checkout, not just hidden in the browser. See the [Phase 15 report](docs/PHASE-15-REPORTS-SETTINGS.md).
+
+**Reports** (`/admin/reports`) covers sales and customers over one date range (`today`/`7d`/`30d`/`90d`/custom). Sales reuses the dashboard's own aggregations — revenue, orders, average order value, revenue and order series, status mix, sales by category, top products — so a figure can never disagree with the dashboard. Customers answers what the dashboard could not: new customers (first *ever* order inside the window), repeat customers, active customers, repeat rate, orders per customer and the top buyers, keyed by `userId` when signed in and by lower-cased email for guests. Both export as CSV attachments with the range in the header and quoted cells. See the [Phase 15 report](docs/PHASE-15-REPORTS-SETTINGS.md).
+
 The storefront (`/`) now renders from the public API: a landing page with active categories and featured products, `/categories`, `/categories/[slug]` (breadcrumbs, subcategories, paginated product grid) and `/products/[slug]`. Inactive categories and unpublished products are never served by the public API.
 
-Sidebar entries for modules that do not exist yet (reports, notifications, settings) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
+Sidebar entries for modules that do not exist yet (notifications) are shown as `Soon` and are not clickable, so nothing leads to a 404. The API gap list is in the [Phase 5 report](docs/PHASE-5-ADMIN-DASHBOARD.md#5-wired-vs-missing).
 
 ## Seeding the store owner
 
@@ -240,4 +251,4 @@ MongoDB (local or Atlas). The API fails fast when the database is unreachable �
 
 ## Roadmap
 
-Phases 1–14: inspection → bootstrap → common layer → **auth/RBAC** → **admin console (dashboard)** → users → catalog → cart/wishlist → **inventory** → **orders** → **customers** → payments → coupons/reviews/notifications → performance → testing & deployment. Admin work is delivered in approved slices; catalog, orders and payments keep their original scope. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#10-phases) for the current state.
+Phases 1–15: inspection → bootstrap → common layer → **auth/RBAC** → **admin console (dashboard)** → users → catalog → cart/wishlist → **inventory** → **orders** → **customers** → payments → coupons → reviews → reports/settings → notifications → performance → testing & deployment. Admin work is delivered in approved slices; catalog, orders and payments keep their original scope. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#10-phases) for the current state.

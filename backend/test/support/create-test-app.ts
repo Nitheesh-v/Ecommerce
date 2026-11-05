@@ -34,6 +34,11 @@ import {
 import { ReviewsRepository } from '../../src/modules/reviews/repositories/reviews.repository.js';
 import { Review } from '../../src/modules/reviews/schemas/review.schema.js';
 import { ShipmentsRepository } from '../../src/modules/shipments/repositories/shipments.repository.js';
+import { CustomerInsightsRepository } from '../../src/modules/admin/repositories/customer-insights.repository.js';
+import { InMemoryCustomerInsightsRepository } from './in-memory-customer-insights.repository.js';
+import { SettingsRepository } from '../../src/modules/settings/repositories/settings.repository.js';
+import { StoreSetting } from '../../src/modules/settings/schemas/setting.schema.js';
+import { InMemorySettingsRepository } from './in-memory-settings.repository.js';
 import { Shipment } from '../../src/modules/shipments/schemas/shipment.schema.js';
 import { Product } from '../../src/modules/products/schemas/product.schema.js';
 import { ImageStorage } from '../../src/modules/uploads/image-storage.js';
@@ -73,6 +78,10 @@ export interface CreateTestAppOptions {
   redemptions?: RedemptionsRepository;
   /** Substitute review persistence. */
   reviews?: ReviewsRepository;
+  /** Substitute store settings (defaults to an in-memory store seeded from env). */
+  settings?: SettingsRepository;
+  /** Substitute customer analytics (defaults to an empty store). */
+  customerInsights?: CustomerInsightsRepository;
 }
 
 /**
@@ -126,6 +135,8 @@ export async function createTestApp(
     .overrideProvider(getModelToken(CouponCustomerUsage.name))
     .useValue({})
     .overrideProvider(getModelToken(Review.name))
+    .useValue({})
+    .overrideProvider(getModelToken(StoreSetting.name))
     .useValue({});
 
   if (options.users) {
@@ -211,6 +222,18 @@ export async function createTestApp(
   if (options.reviews) {
     builder = builder.overrideProvider(ReviewsRepository).useValue(options.reviews);
   }
+
+  // Settings are always substituted: orders and coupons price through them, and a
+  // real one would need the database.
+  builder = builder
+    .overrideProvider(SettingsRepository)
+    .useValue(options.settings ?? new InMemorySettingsRepository());
+
+  // Customer analytics normally aggregates the orders collection in Mongo; the e2e
+  // suite substitutes deterministic fixtures so report shapes can be asserted.
+  builder = builder
+    .overrideProvider(CustomerInsightsRepository)
+    .useValue(options.customerInsights ?? new InMemoryCustomerInsightsRepository());
 
   const moduleFixture = await builder.compile();
   // Mirrors `main.ts`, so webhook signature tests exercise the production stack.

@@ -20,6 +20,7 @@ import { OrdersModule } from './modules/orders/orders.module.js';
 import { CouponsModule } from './modules/coupons/coupons.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
 import { ReviewsModule } from './modules/reviews/reviews.module.js';
+import { SettingsModule } from './modules/settings/settings.module.js';
 import { ShipmentsModule } from './modules/shipments/shipments.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
 import { UploadsModule } from './modules/uploads/uploads.module.js';
@@ -74,6 +75,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard.js';
     CouponsModule,
     PaymentsModule,
     ReviewsModule,
+    SettingsModule,
     ShipmentsModule,
     UploadsModule,
     HealthModule,

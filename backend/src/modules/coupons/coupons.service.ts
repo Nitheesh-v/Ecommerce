@@ -14,6 +14,7 @@ import type { PaginatedResult } from '../../common/utils/pagination.util.js';
 import { CategoriesService } from '../categories/categories.service.js';
 import { OrderEvents } from '../orders/order-events.js';
 import { computeTotals, resolvePricingConfig } from '../orders/pricing.js';
+import { SettingsService } from '../settings/settings.service.js';
 import type { PricingConfig } from '../orders/pricing.js';
 import type { OrderRecord } from '../orders/repositories/orders.repository.js';
 import { ProductsService } from '../products/products.service.js';
@@ -187,7 +188,13 @@ export class CouponsService
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(CouponsService.name);
-  private readonly pricing: PricingConfig = resolvePricingConfig();
+  /**
+   * Pricing configuration, refreshed from store settings at the entry of every
+   * method that prices or renders money. `SettingsService` answers from memory, so
+   * this costs no database round trip; the environment value is only a fallback
+   * until the first refresh.
+   */
+  private pricing: PricingConfig = resolvePricingConfig();
   private unsubscribe: (() => void) | null = null;
 
   constructor(
@@ -196,8 +203,14 @@ export class CouponsService
     private readonly productsService: ProductsService,
     private readonly categoriesService: CategoriesService,
     private readonly orderEvents: OrderEvents,
+    private readonly settings: SettingsService,
   ) {
     super();
+  }
+
+  /** Pulls the current currency/tax/shipping configuration. */
+  private async refreshPricing(): Promise<void> {
+    this.pricing = await this.settings.pricing();
   }
 
   onModuleInit(): void {
@@ -214,6 +227,8 @@ export class CouponsService
   // ------------------------------------------------------------------- admin
 
   async list(query: OffersQueryDto): Promise<PaginatedResult<OfferView>> {
+    await this.refreshPricing();
+
     const now = new Date();
     const { items, total } = await this.offers.list({
       page: query.page,
@@ -247,6 +262,8 @@ export class CouponsService
   }
 
   async get(id: string): Promise<OfferDetailView> {
+    await this.refreshPricing();
+
     const offer = await this.requireOffer(id);
     const now = new Date();
     const { total } = await this.redemptions.list({
@@ -278,6 +295,8 @@ export class CouponsService
   }
 
   async create(dto: CreateOfferDto, actor: AuthenticatedUser): Promise<OfferDetailView> {
+    await this.refreshPricing();
+
     this.assertValidConfig({
       type: dto.type,
       value: dto.value,
@@ -443,6 +462,8 @@ export class CouponsService
    * keeps the audit trail intact.
    */
   async archive(id: string, actor: AuthenticatedUser): Promise<OfferDetailView> {
+    await this.refreshPricing();
+
     const offer = await this.requireOffer(id);
 
     if (!offer.isActive && !offer.customerVisible) {
@@ -548,6 +569,8 @@ export class CouponsService
 
   /** Active, customer-visible offers for `/offers`. */
   async publicOffers(query: PublicOffersQueryDto): Promise<PublicOfferView[]> {
+    await this.refreshPricing();
+
     const offers = await this.offers.listPublic(
       { search: query.search?.trim(), limit: query.limit },
       new Date(),
@@ -566,6 +589,8 @@ export class CouponsService
     dto: ValidateCouponDto,
     user: AuthenticatedUser | null,
   ): Promise<CouponValidationView> {
+    await this.refreshPricing();
+
     const lines = await this.resolveLines(dto.items);
     const quote = await this.quote({
       code: dto.code,
@@ -610,6 +635,8 @@ export class CouponsService
   // ------------------------------------------------------------- pricing port
 
   async quote(input: CouponQuoteInput): Promise<CouponQuote> {
+    await this.refreshPricing();
+
     const code = input.code?.trim().toUpperCase();
 
     if (!code) {

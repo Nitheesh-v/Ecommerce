@@ -14,6 +14,7 @@ import type { CreateProductInput, ProductRecord } from '../products/repositories
 import type { AdminProductView, ProductsService } from '../products/products.service.js';
 import type { UsersService } from '../users/users.service.js';
 import type { CouponPricingService } from '../coupons/coupon-pricing.js';
+import type { SettingsService } from '../settings/settings.service.js';
 import { OrderEvents } from './order-events.js';
 import { OrdersService } from './orders.service.js';
 import { computeTotals, DEFAULT_PRICING } from './pricing.js';
@@ -73,8 +74,11 @@ describe('OrdersService', () => {
   let inventory: InventoryService;
   let service: OrdersService;
   let headphones: ProductRecord;
+  /** Mutable so a test can turn cash-on-delivery off mid-flight. */
+  let codAllowed: boolean;
 
   beforeEach(() => {
+    codAllowed = true;
     products = new InMemoryProductsRepository();
     orders = new InMemoryOrdersRepository();
     const inventoryRepository = new InMemoryInventoryRepository(products);
@@ -117,6 +121,15 @@ describe('OrdersService', () => {
         attach: async () => undefined,
         release: async () => undefined,
       } as unknown as CouponPricingService,
+      {
+        pricing: async () => ({
+          currency: 'INR',
+          taxRatePercent: 0,
+          flatShippingCharge: 4_900,
+          freeShippingThreshold: 99_900,
+        }),
+        codEnabled: async () => codAllowed,
+      } as unknown as SettingsService,
     );
     headphones = products.seed(productInput());
   });
@@ -221,6 +234,25 @@ describe('OrdersService', () => {
 
       expect((await products.findById(headphones.id))?.stock).toBe(10);
       expect(orders.all()).toHaveLength(0);
+    });
+
+    it('refuses cash on delivery when the store has switched it off', async () => {
+      codAllowed = false;
+
+      // The browser can hide the option; only the server can refuse it.
+      await expect(checkout()).rejects.toThrow(/Cash on delivery is currently unavailable/);
+
+      // Nothing was reserved or written on the way out.
+      const { total } = await orders.list({ page: 1, limit: 1 } as never);
+      expect(total).toBe(0);
+    });
+
+    it('still accepts prepaid orders while cash on delivery is off', async () => {
+      codAllowed = false;
+
+      const { order } = await checkout({ paymentMethod: 'upi' });
+
+      expect(order.payment.method).toBe('upi');
     });
 
     it('refuses unpublished products', async () => {

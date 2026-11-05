@@ -40,6 +40,7 @@ import {
   ORDER_STATUS_LABELS,
 } from './order-status.js';
 import { CouponPricingService } from '../coupons/coupon-pricing.js';
+import { SettingsService } from '../settings/settings.service.js';
 import type { CouponQuote } from '../coupons/coupon-pricing.js';
 import { OrderEvents } from './order-events.js';
 import { computeTotals, resolvePricingConfig } from './pricing.js';
@@ -127,7 +128,12 @@ export interface CreateOrderResult {
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
-  private readonly pricing: PricingConfig;
+  /**
+   * Refreshed from store settings at the start of every write/read that prices
+   * something (`SettingsService` caches the document, so this is not a query per
+   * call). The environment only seeds a fresh store.
+   */
+  private pricing: PricingConfig;
   private readonly store: StoreProfile;
 
   constructor(
@@ -139,9 +145,21 @@ export class OrdersService {
     // Coupons are reached through an abstract port: orders never sees an Offer and
     // the coupon module never writes an order.
     private readonly coupons: CouponPricingService,
+    // Store settings own the pricing inputs (currency, tax, shipping, COD).
+    private readonly settings: SettingsService,
   ) {
     this.pricing = resolvePricingConfig();
     this.store = resolveStoreProfile();
+  }
+
+  /**
+   * Pulls the current pricing configuration.
+   *
+   * Called at the entry of anything that prices or renders money; the settings
+   * service answers from an in-memory copy, so this costs nothing per request.
+   */
+  private async refreshPricing(): Promise<void> {
+    this.pricing = await this.settings.pricing();
   }
 
   // ------------------------------------------------------------------ reads
@@ -231,6 +249,16 @@ export class OrdersService {
     actor: OrderActor & { role: Role };
   }): Promise<CreateOrderResult> {
     const { dto, customer, actor } = input;
+
+    await this.refreshPricing();
+
+    // Cash-on-delivery is an operator switch: turning it off must fail the checkout
+    // here, not just hide the option in the browser.
+    if (dto.paymentMethod === 'cod' && !(await this.settings.codEnabled())) {
+      throw new BadRequestException(
+        'Cash on delivery is currently unavailable — choose another payment method',
+      );
+    }
 
     // Idempotent replay: return the order that key already created.
     if (dto.idempotencyKey) {

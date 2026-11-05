@@ -313,6 +313,30 @@ Reviews & ratings (Phase 14, see `docs/PHASE-14-REVIEWS.md`):
 | Privacy | the public projection masks the author (`Asha R.`) and omits email, order and moderation fields |
 | No client trust | the create DTO is rating/title/comment only — `forbidNonWhitelisted` turns a posted `status` or `customerEmail` into a `400` |
 
+Store settings (Phase 15, see `docs/PHASE-15-REPORTS-SETTINGS.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Shape | a single `settings` document (`key: 'store'`): identity, contact, address, invoice footer, order note, currency, locale, tax rate, shipping fee, free-shipping threshold, COD switch, `updatedBy` |
+| Authority | the database wins over the environment: `DEFAULT_PRICING` only seeds a fresh store, `SettingsService.pricing()` returns the stored values |
+| Pricing consumers | `OrdersService` and `CouponsService` call `refreshPricing()` at the entry of anything that prices or renders money — the settings service answers from memory, invalidated on write |
+| History | checkout snapshots rate, fee, tax and currency onto the order, so a settings change never rewrites a placed order |
+| Currency | stored prices are minor units of one currency, so a change is refused with `409` once any product or order exists (`currencyLocked` tells the console to disable the field) |
+| COD | `codEnabled: false` is enforced in `createOrder()` with a `400`, not just hidden in the UI |
+| Public read | `GET /api/store/settings` exposes name/contact/address/currency/locale/COD only; tax, fees and the moderator trail stay admin-only |
+| No cycles | `SettingsModule` imports no feature module; the currency guard's `dataFootprint()` is two `countDocuments()` on the order and product models registered locally |
+
+Reports (Phase 15, see `docs/PHASE-15-REPORTS-SETTINGS.md`):
+
+| Concern | Implementation |
+| --- | --- |
+| Sales | composed from `DashboardRepository` (metrics, revenue/order series, status mix, category sales, top products) so a figure cannot differ from the dashboard |
+| Customers | `CustomerInsightsRepository` over the `orders` collection: new (first **ever** order in range), repeat, active, repeat rate, orders per customer, top buyers |
+| Identity | a customer is `userId` when signed in, else lower-cased email; guest rows carry `id: null` |
+| Exclusions | cancelled orders are excluded everywhere; refunded orders still count as purchases |
+| Exports | CSV attachments with the range in the header, quoted cells and CRLF rows — the same numbers the screen shows |
+| Module | `AdminModule` binds both repositories; `create-test-app` substitutes them, so report shapes are asserted without Mongo |
+
 Frontend auth & API layer (Phase 5):
 
 | Concern | Implementation |
@@ -394,4 +418,5 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 12. Shipping & delivery management (parcels, delivery state machine, courier registry, tracking) — `docs/PHASE-12-SHIPPING.md`
 13. Offers, coupons & discounts (percentage/fixed/free shipping, checkout validation, redemption ledger) — `docs/PHASE-13-OFFERS.md`
 14. Reviews & ratings (verified-buyer reviews, moderation queue, product rating summary) — `docs/PHASE-14-REVIEWS.md`
-15. Storefront cart & checkout UI · 16 Notifications · 17 Caching, queues, performance · 18 Testing, security review, deployment
+15. Reports & settings (sales/customer analytics, CSV exports, store settings, settings-backed pricing) — `docs/PHASE-15-REPORTS-SETTINGS.md`
+16. Storefront cart & checkout UI · 17 Notifications · 18 Caching, queues, performance · 19 Testing, security review, deployment

@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CouponsModule } from '../coupons/coupons.module.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
 import { ProductsModule } from '../products/products.module.js';
+import { SettingsModule } from '../settings/settings.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { ActiveAccountGuard } from '../auth/guards/active-account.guard.js';
 import { AdminOrdersController } from './admin-orders.controller.js';
@@ -32,6 +33,8 @@ import { Order, OrderSchema } from './schemas/order.schema.js';
     InventoryModule,
     // Needed to block suspended accounts and to learn the checkout phone number.
     UsersModule,
+    // Pricing inputs (currency, tax, shipping) and the cash-on-delivery switch.
+    SettingsModule,
   ],
   controllers: [OrdersController, AdminOrdersController],
   providers: [

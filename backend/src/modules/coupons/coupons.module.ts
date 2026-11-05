@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CategoriesModule } from '../categories/categories.module.js';
 import { OrderEventsModule } from '../orders/order-events.module.js';
+import { SettingsModule } from '../settings/settings.module.js';
 import { ProductsModule } from '../products/products.module.js';
 import { AdminOffersController } from './admin-offers.controller.js';
 import { AdminRedemptionsController } from './admin-redemptions.controller.js';
@@ -41,6 +42,8 @@ import { OffersRepository, RedemptionsRepository } from './repositories/offers.r
       { name: CouponCustomerUsage.name, schema: CouponCustomerUsageSchema },
     ]),
     OrderEventsModule,
+    // Currency and tax inputs for every preview this module renders.
+    SettingsModule,
     ProductsModule,
     CategoriesModule,
   ],
