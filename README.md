@@ -250,6 +250,24 @@ npm run seed:categories   # starter categories so products can be created (Phase
 
 MongoDB (local or Atlas). The API fails fast when the database is unreachable — 3 bounded retries, then exit code `1` — and `autoIndex` is disabled in production. Atlas setup details (IP allow-list, least-privilege user, URI encoding) are in the Phase 2 report.
 
+### "Could not connect to any servers in your MongoDB Atlas cluster"
+
+That message means the driver never reached a single seed host. In practice it is one of four things, in this order:
+
+1. **Your IP is not on the allow-list.** Atlas → *Network Access* → *Add IP Address* → *Add Current IP Address* (or `0.0.0.0/0` on a throwaway dev cluster only). The entry takes up to a minute to become *Active*; restart the API after it does. A VPN, a mobile hotspot or a new network changes your egress IP.
+2. **The cluster is paused.** Free-tier clusters pause when idle — resume it in the Atlas UI.
+3. **The URI is wrong or unencoded.** A password containing `@`, `:` or `#` must be percent-encoded (`@` → `%40`), or the driver reads half of it as the hostname. Copying the full string from Atlas → *Connect* → *Drivers* avoids this.
+4. **SRV lookups are blocked.** `mongodb+srv://` needs DNS SRV/TXT records; some VPNs and corporate DNS servers drop them. Use the non-SRV "standard connection string" instead.
+
+```bash
+cd backend
+npm run db:check      # parses the URI, lists anything certainly wrong, then tests a real connection
+```
+
+`db:check` prints the connection string with the password masked, distinguishes the four cases above, and exits non-zero on failure — the same diagnosis the API prints at boot, from the same tested module (`src/database/database-diagnostics.ts`).
+
+Running without Atlas is fine too: install MongoDB locally (or `docker run -d -p 27017:27017 mongo:7`) and keep `MONGODB_URI=mongodb://127.0.0.1:27017/ecommerce`.
+
 ## Security notes
 
 - `.env` files are gitignored at both root and package level; only `.env.example` is committed.

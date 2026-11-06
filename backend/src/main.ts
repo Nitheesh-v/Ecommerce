@@ -2,6 +2,10 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
+import {
+  diagnoseConnectionFailure,
+  looksLikeDatabaseError,
+} from './database/database-diagnostics.js';
 import { configureApp } from './app.setup.js';
 import type { ValidatedEnv } from './config/env.validation.js';
 
@@ -33,8 +37,18 @@ async function bootstrap(): Promise<void> {
 try {
   await bootstrap();
 } catch (error) {
-  logger.error(
-    `Application failed to start: ${error instanceof Error ? error.message : String(error)}`,
-  );
+  if (looksLikeDatabaseError(error)) {
+    // A database failure is the one boot error worth a checklist: the driver's own
+    // message names neither your host, your user, nor your allow-list. The URI is
+    // read from the environment here because `ConfigModule` has already loaded `.env`.
+    logger.error(
+      diagnoseConnectionFailure(error, process.env.MONGODB_URI ?? '').details,
+    );
+  } else {
+    logger.error(
+      `Application failed to start: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
   process.exit(1);
 }

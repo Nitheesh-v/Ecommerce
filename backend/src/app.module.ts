@@ -29,6 +29,7 @@ import { ShipmentsModule } from './modules/shipments/shipments.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
 import { UploadsModule } from './modules/uploads/uploads.module.js';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
+import { diagnoseConnectionFailure } from './database/database-diagnostics.js';
 import { RolesGuard } from './modules/auth/guards/roles.guard.js';
 
 @Module({
@@ -52,6 +53,21 @@ import { RolesGuard } from './modules/auth/guards/roles.guard.js';
         retryDelay: 3_000,
         // Building indexes on every boot is a production hazard; use migrations.
         autoIndex: configService.get('NODE_ENV', { infer: true }) !== 'production',
+        /**
+         * Turns the driver's one-liner ("Could not connect to any servers…") into
+         * something an operator can act on, without repeating the full checklist on
+         * every retry — `main.ts` prints that once when the retries run out.
+         */
+        connectionErrorFactory: (error: Error): Error => {
+          const uri = configService.get('MONGODB_URI', { infer: true });
+          const { summary } = diagnoseConnectionFailure(error, uri);
+          const annotated = new Error(`${error.message}\n  ↳ ${summary}`);
+
+          annotated.name = error.name;
+          annotated.stack = error.stack;
+
+          return annotated;
+        },
       }),
     }),
 
