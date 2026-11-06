@@ -18,6 +18,10 @@ import { CategoriesRepository } from '../../src/modules/categories/repositories/
 import { CustomersRepository } from '../../src/modules/customers/repositories/customers.repository.js';
 import { Category } from '../../src/modules/categories/schemas/category.schema.js';
 import { InventoryRepository } from '../../src/modules/inventory/repositories/inventory.repository.js';
+import { MailSender, NoopMailSender } from '../../src/modules/notifications/mail/mail-sender.js';
+import { NotificationsRepository } from '../../src/modules/notifications/repositories/notifications.repository.js';
+import { Notification } from '../../src/modules/notifications/schemas/notification.schema.js';
+import { InMemoryNotificationsRepository } from './in-memory-notifications.repository.js';
 import { InventoryAlert } from '../../src/modules/inventory/schemas/inventory-alert.schema.js';
 import { InventoryMovement } from '../../src/modules/inventory/schemas/inventory-movement.schema.js';
 import { OrdersRepository } from '../../src/modules/orders/repositories/orders.repository.js';
@@ -86,6 +90,10 @@ export interface CreateTestAppOptions {
   addresses?: AddressesRepository;
   /** Substitute the server-side cart. */
   carts?: CartsRepository;
+  /** Substitute notification persistence (defaults to an empty in-memory store). */
+  notifications?: NotificationsRepository;
+  /** Substitute the email transport (defaults to the no-op sender — no SMTP in CI). */
+  mailSender?: MailSender;
   /** Substitute store settings (defaults to an in-memory store seeded from env). */
   settings?: SettingsRepository;
   /** Substitute customer analytics (defaults to an empty store). */
@@ -149,6 +157,8 @@ export async function createTestApp(
     .overrideProvider(getModelToken(Address.name))
     .useValue({})
     .overrideProvider(getModelToken(Cart.name))
+    .useValue({})
+    .overrideProvider(getModelToken(Notification.name))
     .useValue({});
 
   if (options.users) {
@@ -242,6 +252,19 @@ export async function createTestApp(
   if (options.carts) {
     builder = builder.overrideProvider(CartsRepository).useValue(options.carts);
   }
+
+  // Notifications are always substituted: every flow records them (orders, payments,
+  // shipments, reviews, inventory alerts), so an empty in-memory store keeps the
+  // suite deterministic without a database.
+  builder = builder
+    .overrideProvider(NotificationsRepository)
+    .useValue(options.notifications ?? new InMemoryNotificationsRepository());
+
+  // Email is always stubbed. `NoopMailSender` reports `configured: false`, so rows
+  // land as `skipped` — the honest state of a store with no SMTP.
+  builder = builder
+    .overrideProvider(MailSender)
+    .useValue(options.mailSender ?? new NoopMailSender());
 
   // Settings are always substituted: orders and coupons price through them, and a
   // real one would need the database.

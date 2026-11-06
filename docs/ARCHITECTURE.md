@@ -434,4 +434,4 @@ Checklist: DTO on every input · service owns rules and enforces ownership · `@
 14. Reviews & ratings (verified-buyer reviews, moderation queue, product rating summary) — `docs/PHASE-14-REVIEWS.md`
 15. Reports & settings (sales/customer analytics, CSV exports, store settings, settings-backed pricing) — `docs/PHASE-15-REPORTS-SETTINGS.md`
 16. Storefront home, customer accounts & catalogue browsing (landing rails, shopper auth, faceted browse, product ratings on cards) — `docs/PHASE-16-STOREFRONT-HOME-AUTH-CATALOGUE.md`
-17. Storefront cart & checkout UI (server-side cart, sign-in checkout) · 18 Notifications · 19 Caching, queues, performance · 20 Testing, security review, deployment
+17. Storefront cart & checkout UI (server-side cart, sign-in checkout) · 18 **Notifications** · 19 Caching, queues, performance · 20 Testing, security review, deployment

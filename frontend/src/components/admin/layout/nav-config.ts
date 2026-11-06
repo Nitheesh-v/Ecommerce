@@ -130,7 +130,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "Notifications",
         href: "/admin/notifications",
         icon: Bell,
-        available: false,
+        available: true,
       },
       {
         label: "Settings",

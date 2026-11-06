@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import type { ValidatedEnv } from '../../config/env.validation.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './auth.controller.js';
 import { MongooseSessionsRepository } from './repositories/mongoose-sessions.repository.js';
@@ -14,6 +15,8 @@ import { TokenService } from './services/token.service.js';
 @Module({
   imports: [
     UsersModule,
+    // The welcome message on sign-up (in-app + email when SMTP is configured).
+    NotificationsModule,
     MongooseModule.forFeature([{ name: Session.name, schema: SessionSchema }]),
 
     // `global: true` so the global JwtAuthGuard (registered in AppModule) and

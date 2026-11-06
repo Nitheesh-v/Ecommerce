@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Heart, Package, Star, UserRound } from "lucide-react";
+import { Bell, ChevronRight, Heart, Package, Star, UserRound } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
 
@@ -11,6 +11,12 @@ const LINKS = [
     label: "My orders",
     description: "Track deliveries, download invoices, request returns",
     icon: Package,
+  },
+  {
+    href: "/account/notifications",
+    label: "Notifications",
+    description: "Order, payment and delivery updates",
+    icon: Bell,
   },
   {
     href: "/offers",

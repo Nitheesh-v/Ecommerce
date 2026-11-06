@@ -429,6 +429,10 @@ export class OrdersService {
 
       this.logger.log(`order ${created.orderNumber} placed (${created.items.length} lines)`);
 
+      // Best-effort: the bus logs a failing listener and never fails the order, so
+      // a broken mail server cannot turn a successful checkout into an error page.
+      await this.orderEvents.emitOrderPlaced(created);
+
       // Learn the contact number the customer used at checkout. Best-effort: a
       // profile nicety must never fail a placed order.
       if (customer.userId) {

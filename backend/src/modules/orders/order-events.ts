@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { OrderRecord } from './repositories/orders.repository.js';
 
+/** Notified once, right after an order is first written. */
+export type PlacedListener = (order: OrderRecord) => Promise<void> | void;
+
 /** Notified after an order's refund ledger changes. */
 export type RefundChangedListener = (order: OrderRecord) => Promise<void> | void;
 
@@ -25,8 +28,18 @@ export type StatusChangedListener = (
 @Injectable()
 export class OrderEvents {
   private readonly logger = new Logger(OrderEvents.name);
+  private readonly placedListeners = new Set<PlacedListener>();
   private readonly refundListeners = new Set<RefundChangedListener>();
   private readonly statusListeners = new Set<StatusChangedListener>();
+
+  /** @returns an unsubscribe function (called on module destroy). */
+  onOrderPlaced(listener: PlacedListener): () => void {
+    this.placedListeners.add(listener);
+
+    return () => {
+      this.placedListeners.delete(listener);
+    };
+  }
 
   /** @returns an unsubscribe function (called on module destroy). */
   onRefundChanged(listener: RefundChangedListener): () => void {
@@ -54,6 +67,31 @@ export class OrderEvents {
    * this to confirm or reverse a redemption without the orders module knowing
    * anything about coupons.
    */
+  /**
+   * Publishes a newly created order.
+   *
+   * Fired exactly once per order — the idempotent replay path returns early and
+   * never reaches this call — so a duplicate "order received" email is impossible
+   * even before the notification's own `dedupeKey` is considered.
+   */
+  async emitOrderPlaced(order: OrderRecord): Promise<void> {
+    if (this.placedListeners.size === 0) {
+      return;
+    }
+
+    const results = await Promise.allSettled(
+      [...this.placedListeners].map(async (listener) => listener(order)),
+    );
+
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        this.logger.warn(
+          `An order-placed listener failed for ${order.orderNumber}: ${String(result.reason)}`,
+        );
+      }
+    }
+  }
+
   async emitStatusChanged(order: OrderRecord): Promise<void> {
     if (this.statusListeners.size === 0) {
       return;

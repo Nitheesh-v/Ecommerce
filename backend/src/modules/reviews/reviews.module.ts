@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { OrdersModule } from '../orders/orders.module.js';
 import { ProductsModule } from '../products/products.module.js';
 import { UsersModule } from '../users/users.module.js';
@@ -29,6 +30,8 @@ import { ReviewsService } from './reviews.service.js';
     OrdersModule,
     // `ActiveAccountGuard` re-reads the account, so suspended customers cannot post.
     UsersModule,
+    // "New review awaiting moderation" lands in the operator feed.
+    NotificationsModule,
   ],
   controllers: [
     ProductReviewsController,

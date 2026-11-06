@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ActiveAccountGuard } from '../auth/guards/active-account.guard.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { OrdersModule } from '../orders/orders.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AdminShipmentsController } from './admin-shipments.controller.js';
@@ -26,6 +27,8 @@ import { ShipmentsService } from './shipments.service.js';
     MongooseModule.forFeature([{ name: Shipment.name, schema: ShipmentSchema }]),
     OrdersModule,
     UsersModule,
+    // Failed-delivery notices (the only shipment state that leaves the order alone).
+    NotificationsModule,
   ],
   controllers: [AdminShipmentsController, OrderTrackingController],
   providers: [

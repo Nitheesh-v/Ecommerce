@@ -9,6 +9,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-us
 import { createPaginatedResult } from '../../common/utils/pagination.util.js';
 import type { PaginatedResult } from '../../common/utils/pagination.util.js';
 import { OrdersRepository } from '../orders/repositories/orders.repository.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { ProductsService } from '../products/products.service.js';
 import type { CreateReviewDto, ModerateReviewDto } from './dto/create-review.dto.js';
 import type {
@@ -106,6 +107,7 @@ export class ReviewsService {
     private readonly reviews: ReviewsRepository,
     private readonly productsService: ProductsService,
     private readonly orders: OrdersRepository,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /* ---------------------------------------------------------------- customer */
@@ -189,6 +191,21 @@ export class ReviewsService {
     if (!created) {
       throw new ConflictException('You have already reviewed this product');
     }
+
+    // In-app only: the moderation queue is a console job, and an email per review
+    // would be the loudest thing this store sends.
+    await this.notifications.notifyAdmins({
+      type: 'review_submitted',
+      data: {
+        reviewId: created.id,
+        productId: product.id,
+        productName: product.name,
+        customerName: created.customerName,
+        rating: created.rating,
+        comment: created.comment.slice(0, 280),
+      },
+      dedupeKey: `review_submitted:${created.id}`,
+    });
 
     return this.toView(created, { name: product.name, slug: product.slug });
   }

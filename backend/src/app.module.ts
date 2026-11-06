@@ -15,6 +15,7 @@ import { AddressesModule } from './modules/addresses/addresses.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { CartsModule } from './modules/cart/cart.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { CategoriesModule } from './modules/categories/categories.module.js';
 import { CheckoutModule } from './modules/checkout/checkout.module.js';
 import { CustomersModule } from './modules/customers/customers.module.js';
@@ -80,6 +81,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard.js';
     AddressesModule,
     CartsModule,
     CheckoutModule,
+    NotificationsModule,
     ReviewsModule,
     SettingsModule,
     ShipmentsModule,

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import type { ValidatedEnv } from '../../config/env.validation.js';
 import { ActiveAccountGuard } from '../auth/guards/active-account.guard.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { OrdersModule } from '../orders/orders.module.js';
 import { OrderEventsModule } from '../orders/order-events.module.js';
 import { UsersModule } from '../users/users.module.js';
@@ -46,6 +47,8 @@ import {
     OrderEventsModule,
     // `ActiveAccountGuard` re-reads the account, so suspended customers cannot pay.
     UsersModule,
+    // "Your payment failed" — recorded in-app and emailed when SMTP exists.
+    NotificationsModule,
   ],
   controllers: [PaymentsController, AdminPaymentsController],
   providers: [

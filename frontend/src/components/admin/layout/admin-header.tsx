@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  Bell,
   ChevronDown,
   LogOut,
   Menu,
@@ -13,6 +12,7 @@ import {
   Settings,
   UserRound,
 } from "lucide-react";
+import { AdminNotificationBell } from "@/components/admin/notifications/admin-notification-bell";
 import { cn, initialsOf } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
 import { useUiStore } from "@/store/ui.store";
@@ -24,7 +24,6 @@ const iconButtonClass =
 
 export function AdminHeader() {
   const pathname = usePathname();
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const toggleSidebar = useUiStore((state) => state.toggleSidebar);
   const setMobileNavOpen = useUiStore((state) => state.setMobileNavOpen);
@@ -105,38 +104,7 @@ export function AdminHeader() {
           />
         </div>
 
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setNotificationsOpen((open) => !open)}
-            aria-label="Notifications"
-            aria-haspopup="menu"
-            aria-expanded={notificationsOpen}
-            className={iconButtonClass}
-          >
-            <Bell className="h-[18px] w-[18px]" aria-hidden />
-          </button>
-          <Popover
-            open={notificationsOpen}
-            onClose={() => setNotificationsOpen(false)}
-            className="w-72"
-          >
-            <div className="border-b border-slate-100 px-4 py-3">
-              <p className="text-sm font-semibold text-slate-900">
-                Notifications
-              </p>
-            </div>
-            <div className="px-4 py-8 text-center">
-              <p className="text-sm font-medium text-slate-700">
-                Nothing here yet
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Order, payment and low-stock alerts will appear once the
-                notifications module ships.
-              </p>
-            </div>
-          </Popover>
-        </div>
+        <AdminNotificationBell />
 
         <div className="relative">
           <button

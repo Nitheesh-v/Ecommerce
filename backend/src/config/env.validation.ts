@@ -121,6 +121,24 @@ export const envSchema = z.object({
    */
   SHIPROCKET_EMAIL: z.string().email().optional(),
   SHIPROCKET_PASSWORD: z.string().min(4).optional(),
+  /**
+   * Optional outbound email (Notifications, phase 18).
+   *
+   * Nothing here is required: with no SMTP the store still records every
+   * notification in-app and marks its email half `skipped`. When `SMTP_HOST` is
+   * set, `MAIL_FROM` must be too — an SMTP client with no envelope sender is a
+   * configuration bug that would only surface at the first real send.
+   */
+  SMTP_HOST: z.string().min(1).optional(),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+  SMTP_SECURE: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((value) => (value === undefined ? undefined : value === 'true')),
+  SMTP_USER: z.string().min(1).optional(),
+  SMTP_PASSWORD: z.string().min(1).optional(),
+  MAIL_FROM: z.string().email().optional(),
+
   DELHIVERY_API_TOKEN: z.string().min(8).optional(),
   BLUEDART_API_KEY: z.string().min(4).optional(),
   BLUEDART_LICENCE_KEY: z.string().min(4).optional(),
@@ -156,6 +174,12 @@ export interface ValidatedEnv {
   DELHIVERY_API_TOKEN?: string;
   BLUEDART_API_KEY?: string;
   BLUEDART_LICENCE_KEY?: string;
+  SMTP_HOST?: string;
+  SMTP_PORT: number;
+  SMTP_SECURE?: boolean;
+  SMTP_USER?: string;
+  SMTP_PASSWORD?: string;
+  MAIL_FROM?: string;
 }
 
 /**
@@ -207,6 +231,19 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     );
   }
 
+  // A half-configured mail server would fail at the first customer email instead
+  // of at boot, where it can actually be fixed.
+  if (env.SMTP_HOST && !env.MAIL_FROM) {
+    throw new Error(
+      'Invalid environment configuration:\n  - MAIL_FROM is required when SMTP_HOST is set (it is the envelope sender)',
+    );
+  }
+  if ((env.SMTP_USER && !env.SMTP_PASSWORD) || (!env.SMTP_USER && env.SMTP_PASSWORD)) {
+    throw new Error(
+      'Invalid environment configuration:\n  - SMTP_USER and SMTP_PASSWORD must be set together (or both left empty for an open relay)',
+    );
+  }
+
   // A half-configured courier would advertise an integration that cannot book a
   // parcel; fail at boot with the exact pair that is wrong.
   for (const [label, pair] of [
@@ -246,5 +283,11 @@ export function validateEnv(config: Record<string, unknown>): ValidatedEnv {
     DELHIVERY_API_TOKEN: env.DELHIVERY_API_TOKEN,
     BLUEDART_API_KEY: env.BLUEDART_API_KEY,
     BLUEDART_LICENCE_KEY: env.BLUEDART_LICENCE_KEY,
+    SMTP_HOST: env.SMTP_HOST,
+    SMTP_PORT: env.SMTP_PORT,
+    SMTP_SECURE: env.SMTP_SECURE,
+    SMTP_USER: env.SMTP_USER,
+    SMTP_PASSWORD: env.SMTP_PASSWORD,
+    MAIL_FROM: env.MAIL_FROM,
   };
 }

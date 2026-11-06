@@ -14,6 +14,7 @@ import { Role } from '../../common/enums/role.enum.js';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface.js';
 import { createPaginatedResult } from '../../common/utils/pagination.util.js';
 import type { PaginatedResult } from '../../common/utils/pagination.util.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { ORDER_STATUS_LABELS } from '../orders/order-status.js';
 import { OrderEvents } from '../orders/order-events.js';
 import { OrdersService } from '../orders/orders.service.js';
@@ -295,6 +296,7 @@ export class PaymentsService {
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly ordersService: OrdersService,
     private readonly orderEvents: OrderEvents,
+    private readonly notifications: NotificationsService,
   ) {}
 
   onModuleInit(): void {
@@ -1103,6 +1105,39 @@ export class PaymentsService {
     return updated ?? (await this.payments.findById(payment.id)) ?? payment;
   }
 
+  /**
+   * Tells the customer a payment attempt failed.
+   *
+   * Only sent when the payment actually transitioned to `failed` (guarded above) and
+   * only when the order still belongs to someone: a guest order has an email but no
+   * account, and a guest is still a customer, so the address is enough.
+   */
+  private async notifyPaymentFailed(payment: PaymentRecord, reason: string): Promise<void> {
+    const order = await this.safeOrder(payment.orderId);
+
+    if (!order) {
+      return;
+    }
+
+    await this.notifications.notify({
+      type: 'payment_failed',
+      audience: 'customer',
+      userId: order.userId,
+      recipientEmail: order.customerEmail,
+      recipientName: order.customerName,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        total: order.total,
+        amount: payment.amount,
+        currency: payment.currency ?? order.currency,
+        reason,
+        method: payment.method,
+      },
+      dedupeKey: `payment_failed:${payment.id}`,
+    });
+  }
+
   private async markFailed(
     payment: PaymentRecord,
     reason: string,
@@ -1124,7 +1159,15 @@ export class PaymentsService {
       },
     );
 
-    return updated ?? (await this.payments.findById(payment.id)) ?? payment;
+    const current = updated ?? (await this.payments.findById(payment.id)) ?? payment;
+
+    if (updated) {
+      // `notify()` never throws and the `dedupeKey` is unique, so a webhook replay
+      // cannot produce a second "payment failed" email.
+      await this.notifyPaymentFailed(current, reason);
+    }
+
+    return current;
   }
 
   private async resolveWebhookPayment(

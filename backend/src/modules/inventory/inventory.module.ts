@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { InventoryController } from './inventory.controller.js';
 import { InventoryNotifier } from './inventory.notifier.js';
 import { InventoryService } from './inventory.service.js';
@@ -24,6 +25,8 @@ import {
  */
 @Module({
   imports: [
+    // Stock alerts land in the operator notification feed.
+    NotificationsModule,
     MongooseModule.forFeature([
       { name: InventoryMovement.name, schema: InventoryMovementSchema },
       { name: InventoryAlert.name, schema: InventoryAlertSchema },

@@ -1,5 +1,6 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import type { PublicUser, UserRecord } from '../../users/repositories/users.repository.js';
+import { NotificationsService } from '../../notifications/notifications.service.js';
 import { UsersService } from '../../users/users.service.js';
 import type { LoginDto } from '../dto/login.dto.js';
 import type { RegisterDto } from '../dto/register.dto.js';
@@ -39,10 +40,23 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly tokenService: TokenService,
     private readonly sessionsRepository: SessionsRepository,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async register(input: RegisterDto, meta: ClientMetadata): Promise<AuthResult> {
     const user = await this.usersService.create(input);
+
+    // A welcome message is a courtesy, not part of the transaction: `notify()`
+    // never throws and the account exists either way.
+    await this.notifications.notify({
+      type: 'welcome',
+      audience: 'customer',
+      userId: user.id,
+      recipientEmail: user.email,
+      recipientName: [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null,
+      data: {},
+      dedupeKey: `welcome:${user.id}`,
+    });
 
     return this.issueSession(user, meta);
   }

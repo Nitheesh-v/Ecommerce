@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Search, ShoppingBag, Store, Tag, LayoutGrid } from "lucide-react";
 import { AccountMenu } from "./account/account-menu";
 import { CartBadge } from "./cart-badge";
+import { NotificationBell } from "./notification-bell";
 
 /**
  * Storefront chrome.
@@ -67,6 +68,11 @@ export function StoreHeader() {
             }
           >
             <CartBadge />
+          </Suspense>
+
+          {/* Only renders for a signed-in shopper; reads the unread count. */}
+          <Suspense fallback={null}>
+            <NotificationBell />
           </Suspense>
           {/*
             The account control reads `usePathname`/`useRouter` (both dynamic), so it

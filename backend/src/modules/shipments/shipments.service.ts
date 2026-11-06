@@ -10,6 +10,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-us
 import { createPaginatedResult } from '../../common/utils/pagination.util.js';
 import type { PaginatedResult } from '../../common/utils/pagination.util.js';
 import { ORDER_STATUS_LABELS } from '../orders/order-status.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { OrdersService } from '../orders/orders.service.js';
 import type { OrderRecord } from '../orders/repositories/orders.repository.js';
 import type { OrderStatus } from '../orders/schemas/order.schema.js';
@@ -174,6 +175,7 @@ export class ShipmentsService {
     private readonly shipments: ShipmentsRepository,
     private readonly ordersService: OrdersService,
     private readonly couriers: CourierRegistry,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ------------------------------------------------------------------ create
@@ -334,6 +336,13 @@ export class ShipmentsService {
     }
 
     await this.syncOrder(updated, actor, dto.reason?.trim());
+
+    // A failed delivery moves no order status (the parcel is still in flight), so it
+    // has to be announced here or the customer would only find out on the tracking
+    // page. `notify()` never throws: a mail outage cannot fail a courier scan.
+    if (to === 'delivery_failed') {
+      await this.notifyDeliveryFailed(updated, dto.reason?.trim());
+    }
 
     return this.detail(updated.id);
   }
@@ -527,6 +536,39 @@ export class ShipmentsService {
     }
 
     return this.toTrackingView(order, shipment);
+  }
+
+  /** "We could not deliver your parcel" — the one shipment state that changes no order. */
+  private async notifyDeliveryFailed(
+    shipment: ShipmentRecord,
+    reason?: string,
+  ): Promise<void> {
+    try {
+      const order = await this.ordersService.getOrderRecord(shipment.orderId);
+
+      await this.notifications.notify({
+        type: 'delivery_failed',
+        audience: 'customer',
+        userId: order.userId,
+        recipientEmail: order.customerEmail,
+        recipientName: order.customerName,
+        data: {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          reason: reason ?? 'The courier could not complete the delivery',
+          courier: shipment.courier.name ?? '',
+          trackingNumber: shipment.courier.trackingNumber ?? '',
+        },
+        // One message per failed attempt: the attempt counter makes each one distinct.
+        dedupeKey: `delivery_failed:${shipment.id}:${shipment.events.length}`,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Could not announce the failed delivery of ${shipment.shipmentNumber}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   // --------------------------------------------------------------- internals
