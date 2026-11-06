@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Toaster } from "@/components/admin/ui/toaster";
 import { StoreFooter, StoreHeader } from "@/components/store/store-header";
 
 /**
@@ -6,6 +7,8 @@ import { StoreFooter, StoreHeader } from "@/components/store/store-header";
  *
  * Categories and products are rendered on the server (SEO + no client fetch
  * waterfall); the header links back to the admin console for the store owner.
+ * `Toaster` is mounted once here — the cart and the checkout report rejected
+ * quantity changes, coupon removals and copied order numbers through it.
  */
 export default function StoreLayout({ children }: { children: ReactNode }) {
   return (
@@ -15,6 +18,7 @@ export default function StoreLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <StoreFooter />
+      <Toaster />
     </div>
   );
 }

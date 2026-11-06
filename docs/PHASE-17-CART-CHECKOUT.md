@@ -194,6 +194,8 @@ id is refused), plays a CSS-only checkmark animation (respecting
   `couponPending`, `couponError`. Every mutation stores the cart the API returned.
   It subscribes to the session module once, so **signing in loads the cart and signing
   out (or an expired refresh) empties it** — a shared browser cannot leak a basket.
+- `Toaster` is now mounted in the storefront shell as well as the admin one, so the cart's
+  and the checkout's toasts are actually visible.
 - The header gained a cart icon with a blue count badge (hidden at zero, icon always
   visible), and product pages gained a real "Add to cart" button that sends signed-out
   shoppers to sign-in with the product page as `next`.

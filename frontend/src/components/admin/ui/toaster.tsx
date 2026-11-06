@@ -10,7 +10,13 @@ const STYLES: Record<ToastVariant, { icon: typeof Info; className: string }> = {
   info: { icon: Info, className: "text-sky-600" },
 };
 
-/** Bottom-right stack of transient messages; rendered once by `AdminShell`. */
+/*
+ * Bottom-right stack of transient messages.
+ *
+ * Rendered once per shell: `AdminShell` for the console and the storefront
+ * `(store)` layout for the cart and the checkout. Rendering it twice would
+ * double every message, so neither shell nests the other.
+ */
 export function Toaster() {
   const toasts = useToastStore((state) => state.toasts);
   const dismiss = useToastStore((state) => state.dismiss);
