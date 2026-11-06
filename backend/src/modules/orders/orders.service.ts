@@ -463,6 +463,35 @@ export class OrdersService {
 
   // ------------------------------------------------------------ transitions
 
+  /**
+   * Confirms a freshly placed order once there is nothing left to wait for.
+   *
+   * A new order is written as `pending`. For cash on delivery there is no payment to
+   * await — the shop has accepted the order and the money arrives at the door — so
+   * checkout confirms it immediately. An online order is confirmed only after its
+   * payment is actually `paid`; until then the gateway is still the one deciding.
+   *
+   * Idempotent by design: a replay of the same checkout (or a second verification of
+   * the same capture) simply returns the confirmations it already has.
+   */
+  async confirmPlacement(id: string, actor: AuthenticatedUser): Promise<OrderView> {
+    const order = await this.requireOrder(id);
+
+    if (order.status !== 'pending') {
+      return this.toView(order);
+    }
+
+    const awaitingMoney = order.paymentMethod !== 'cod' && order.paymentStatus !== 'paid';
+
+    if (awaitingMoney) {
+      throw new ConflictException(
+        'This order cannot be confirmed until its payment has been verified',
+      );
+    }
+
+    return this.updateStatus(id, { status: 'confirmed' }, actor);
+  }
+
   async updateStatus(
     id: string,
     dto: UpdateOrderStatusDto,

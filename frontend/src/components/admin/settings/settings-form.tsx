@@ -43,6 +43,7 @@ interface Draft {
   flatShippingCharge: string;
   freeShippingThreshold: string;
   codEnabled: boolean;
+  codMaxAmount: string;
 }
 
 function toDraft(settings: StoreSettings): Draft {
@@ -65,6 +66,7 @@ function toDraft(settings: StoreSettings): Draft {
     flatShippingCharge: toMajor(settings.flatShippingCharge),
     freeShippingThreshold: toMajor(settings.freeShippingThreshold),
     codEnabled: settings.codEnabled,
+    codMaxAmount: settings.codMaxAmount > 0 ? toMajor(settings.codMaxAmount) : "",
   };
 }
 
@@ -90,6 +92,7 @@ function toPayload(draft: Draft): UpdateSettingsPayload {
     flatShippingCharge: toMinor(draft.flatShippingCharge),
     freeShippingThreshold: toMinor(draft.freeShippingThreshold),
     codEnabled: draft.codEnabled,
+    codMaxAmount: draft.codMaxAmount.trim() ? toMinor(draft.codMaxAmount) : 0,
   };
 }
 
@@ -366,6 +369,21 @@ export function SettingsForm({
             label="Allow cash on delivery"
             description="Turning this off hides the option and makes the API refuse COD checkouts."
           />
+          <Field
+            label={`Cash-on-delivery limit (${settings.currency})`}
+            htmlFor="codMaxAmount"
+            hint="Highest order total accepted with COD. Leave empty for no limit — checkout refuses anything above it."
+          >
+            <Input
+              id="codMaxAmount"
+              type="number"
+              min={0}
+              step="0.01"
+              value={draft.codMaxAmount}
+              onChange={(event) => set("codMaxAmount", event.target.value)}
+              placeholder="No limit"
+            />
+          </Field>
           <Field
             label="Invoice footer"
             htmlFor="invoiceFooter"

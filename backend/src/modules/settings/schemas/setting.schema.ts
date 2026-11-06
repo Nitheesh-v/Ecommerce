@@ -95,6 +95,17 @@ export class StoreSetting {
   @Prop({ type: Boolean, default: true })
   codEnabled!: boolean;
 
+  /**
+   * Largest order total allowed with cash on delivery **and** paid by cash, in minor
+   * units; `0` means "no cap".
+   *
+   * The store can accept COD only for smaller baskets: a courier collecting a large
+   * amount is a real loss when it is refused at the door. Checkout enforces this
+   * server-side — hiding the option in the browser is not enough.
+   */
+  @Prop({ type: Number, required: true, min: 0, default: 0 })
+  codMaxAmount!: number;
+
   @Prop({ type: actorSchema, default: null })
   updatedBy!: { userId: string | null; email: string } | null;
 }

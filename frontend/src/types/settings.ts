@@ -26,6 +26,8 @@ export interface StoreSettings {
   /** Free shipping from this order value, minor units. */
   freeShippingThreshold: number;
   codEnabled: boolean;
+  /** Highest COD order total, minor units; `0` means no cap. */
+  codMaxAmount: number;
   /**
    * `true` once products or orders exist: stored prices are amounts in the current
    * currency, so switching it would relabel money instead of converting it.
@@ -49,6 +51,7 @@ export type UpdateSettingsPayload = Partial<{
   flatShippingCharge: number;
   freeShippingThreshold: number;
   codEnabled: boolean;
+  codMaxAmount: number;
 }>;
 
 /** The public subset the storefront may read. */
@@ -60,4 +63,6 @@ export interface PublicStoreSettings {
   currency: string;
   locale: string;
   codEnabled: boolean;
+  /** Highest COD order total, minor units; `0` means no cap. */
+  codMaxAmount: number;
 }

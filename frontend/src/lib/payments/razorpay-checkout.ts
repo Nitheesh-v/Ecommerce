@@ -93,6 +93,39 @@ export function loadRazorpayCheckout(): Promise<void> {
   return scriptPromise;
 }
 
+/**
+ * Everything the widget needs, independent of where it came from.
+ *
+ * Two flows use this: paying for an order that already exists
+ * (`openCheckout`, `/api/payments`) and placing a new order at checkout
+ * (`/api/checkout`). The widget only ever sees a publishable key and an order id
+ * the server created for the exact amount.
+ */
+export interface RazorpaySession {
+  keyId: string | null;
+  amount: number;
+  currency: string;
+  gatewayOrderId: string;
+  /** Shown on the widget, e.g. `ORD-20261105-0001`. */
+  orderNumber: string;
+  prefill?: { name: string; email: string; contact?: string };
+  notes?: Record<string, string>;
+  description?: string;
+}
+
+export interface RazorpayIds {
+  gatewayOrderId: string;
+  gatewayPaymentId: string;
+  signature: string;
+}
+
+export interface RazorpayHandlers {
+  /** The widget says the payment went through — verify it before believing it. */
+  onSuccess: (ids: RazorpayIds) => void | Promise<void>;
+  onFailed?: (message: string) => void;
+  onDismissed?: () => void;
+}
+
 export interface PayOrderHandlers {
   onVerified: (result: VerifyPaymentResult) => void;
   /** The widget reported a failure (declined card, etc.). */
@@ -102,12 +135,14 @@ export interface PayOrderHandlers {
 }
 
 /**
- * Opens the checkout for a session returned by `POST /api/payments/create-order`
- * and verifies the result server-side.
+ * Opens the hosted widget for a server-created gateway order.
+ *
+ * Nothing here is trusted: `onSuccess` is where the caller verifies the ids with
+ * the API, and only the server's answer may change a status.
  */
-export async function openCheckout(
-  session: CheckoutSession,
-  handlers: PayOrderHandlers,
+export async function openRazorpay(
+  session: RazorpaySession,
+  handlers: RazorpayHandlers,
 ): Promise<void> {
   if (!session.keyId) {
     throw new Error("Online payments are not configured on this server");
@@ -126,7 +161,7 @@ export async function openCheckout(
     amount: session.amount,
     currency: session.currency,
     name: "Ecommerce26",
-    description: `Order ${session.orderNumber}`,
+    description: session.description ?? `Order ${session.orderNumber}`,
     order_id: session.gatewayOrderId,
     prefill: session.prefill,
     notes: session.notes,
@@ -138,13 +173,11 @@ export async function openCheckout(
     handler: (response) => {
       void (async () => {
         try {
-          const result = await checkoutService.verify({
+          await handlers.onSuccess({
             gatewayOrderId: response.razorpay_order_id,
             gatewayPaymentId: response.razorpay_payment_id,
             signature: response.razorpay_signature,
           });
-
-          handlers.onVerified(result);
         } catch (error) {
           handlers.onFailed?.(
             error instanceof Error
@@ -163,4 +196,23 @@ export async function openCheckout(
   });
 
   checkout.open();
+}
+
+/**
+ * Opens the checkout for a session returned by `POST /api/payments/create-order`
+ * and verifies the result server-side.
+ */
+export async function openCheckout(
+  session: CheckoutSession,
+  handlers: PayOrderHandlers,
+): Promise<void> {
+  await openRazorpay(session, {
+    onSuccess: async (ids) => {
+      const result = await checkoutService.verify(ids);
+
+      handlers.onVerified(result);
+    },
+    onFailed: handlers.onFailed,
+    onDismissed: handlers.onDismissed,
+  });
 }

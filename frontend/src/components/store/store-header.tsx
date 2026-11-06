@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Search, ShoppingBag, Store, Tag, LayoutGrid } from "lucide-react";
 import { AccountMenu } from "./account/account-menu";
+import { CartBadge } from "./cart-badge";
 
 /**
  * Storefront chrome.
@@ -58,6 +59,15 @@ export function StoreHeader() {
             <Tag className="h-4 w-4" aria-hidden />
             <span className="hidden sm:inline">Offers</span>
           </Link>
+
+          {/* Reads the cart store, which only exists in the browser. */}
+          <Suspense
+            fallback={
+              <span className="h-9 w-9 animate-pulse rounded-lg bg-slate-100" aria-hidden />
+            }
+          >
+            <CartBadge />
+          </Suspense>
           {/*
             The account control reads `usePathname`/`useRouter` (both dynamic), so it
             is deferred: the rest of the header stays part of the static shell and this

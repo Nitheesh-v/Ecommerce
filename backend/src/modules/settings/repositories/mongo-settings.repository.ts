@@ -92,6 +92,7 @@ function toRecord(document: AnyDocument): StoreSettingsRecord {
     flatShippingCharge: document.flatShippingCharge,
     freeShippingThreshold: document.freeShippingThreshold,
     codEnabled: document.codEnabled !== false,
+    codMaxAmount: document.codMaxAmount ?? 0,
     updatedBy: document.updatedBy
       ? { userId: document.updatedBy.userId ?? undefined, email: document.updatedBy.email }
       : null,

@@ -22,6 +22,8 @@ export interface StoreSettingsRecord {
   /** Free shipping from this order value, minor units. */
   freeShippingThreshold: number;
   codEnabled: boolean;
+  /** Upper bound for a COD order total, minor units; `0` disables the cap. */
+  codMaxAmount: number;
   updatedBy: SettingsActor | null;
   createdAt: Date;
   updatedAt: Date;

@@ -11,9 +11,12 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor.
 import { validateEnv } from './config/env.validation.js';
 import type { ValidatedEnv } from './config/env.validation.js';
 import { HealthModule } from './health/health.module.js';
+import { AddressesModule } from './modules/addresses/addresses.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { CartsModule } from './modules/cart/cart.module.js';
 import { CategoriesModule } from './modules/categories/categories.module.js';
+import { CheckoutModule } from './modules/checkout/checkout.module.js';
 import { CustomersModule } from './modules/customers/customers.module.js';
 import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { OrdersModule } from './modules/orders/orders.module.js';
@@ -74,6 +77,9 @@ import { RolesGuard } from './modules/auth/guards/roles.guard.js';
     CustomersModule,
     CouponsModule,
     PaymentsModule,
+    AddressesModule,
+    CartsModule,
+    CheckoutModule,
     ReviewsModule,
     SettingsModule,
     ShipmentsModule,

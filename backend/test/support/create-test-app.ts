@@ -8,7 +8,11 @@ import type { App } from 'supertest/types.js';
 import { configureApp } from '../../src/app.setup.js';
 import type { ValidatedEnv } from '../../src/config/env.validation.js';
 import { DashboardRepository } from '../../src/modules/admin/repositories/dashboard.repository.js';
+import { AddressesRepository } from '../../src/modules/addresses/repositories/addresses.repository.js';
+import { Address } from '../../src/modules/addresses/schemas/address.schema.js';
 import { SessionsRepository } from '../../src/modules/auth/repositories/sessions.repository.js';
+import { CartsRepository } from '../../src/modules/cart/repositories/cart.repository.js';
+import { Cart } from '../../src/modules/cart/schemas/cart.schema.js';
 import { Session } from '../../src/modules/auth/schemas/session.schema.js';
 import { CategoriesRepository } from '../../src/modules/categories/repositories/categories.repository.js';
 import { CustomersRepository } from '../../src/modules/customers/repositories/customers.repository.js';
@@ -78,6 +82,10 @@ export interface CreateTestAppOptions {
   redemptions?: RedemptionsRepository;
   /** Substitute review persistence. */
   reviews?: ReviewsRepository;
+  /** Substitute the customer address book. */
+  addresses?: AddressesRepository;
+  /** Substitute the server-side cart. */
+  carts?: CartsRepository;
   /** Substitute store settings (defaults to an in-memory store seeded from env). */
   settings?: SettingsRepository;
   /** Substitute customer analytics (defaults to an empty store). */
@@ -137,6 +145,10 @@ export async function createTestApp(
     .overrideProvider(getModelToken(Review.name))
     .useValue({})
     .overrideProvider(getModelToken(StoreSetting.name))
+    .useValue({})
+    .overrideProvider(getModelToken(Address.name))
+    .useValue({})
+    .overrideProvider(getModelToken(Cart.name))
     .useValue({});
 
   if (options.users) {
@@ -221,6 +233,14 @@ export async function createTestApp(
 
   if (options.reviews) {
     builder = builder.overrideProvider(ReviewsRepository).useValue(options.reviews);
+  }
+
+  if (options.addresses) {
+    builder = builder.overrideProvider(AddressesRepository).useValue(options.addresses);
+  }
+
+  if (options.carts) {
+    builder = builder.overrideProvider(CartsRepository).useValue(options.carts);
   }
 
   // Settings are always substituted: orders and coupons price through them, and a

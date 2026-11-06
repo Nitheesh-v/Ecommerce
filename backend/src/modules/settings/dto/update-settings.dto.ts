@@ -154,4 +154,14 @@ export class UpdateSettingsDto {
   @IsBoolean()
   @IsOptional()
   codEnabled?: boolean;
+
+  @ApiPropertyOptional({
+    minimum: 0,
+    description: 'Highest COD order total in minor units; 0 means no limit',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  codMaxAmount?: number;
 }

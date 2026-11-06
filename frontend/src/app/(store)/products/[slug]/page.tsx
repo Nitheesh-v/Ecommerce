@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, ImageOff } from "lucide-react";
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { CouponField } from "@/components/store/coupon-field";
 import { ProductReviews } from "@/components/store/product-reviews";
 import { resolveImageUrl } from "@/lib/images";
@@ -116,15 +117,28 @@ async function ProductContent({ params }: PageProps) {
             ) : null}
           </div>
 
-          <p
-            className={
-              product.inStock
-                ? "text-xs font-medium text-emerald-600"
-                : "text-xs font-medium text-rose-600"
-            }
-          >
-            {product.inStock ? "In stock" : "Out of stock"}
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p
+              className={
+                product.inStock
+                  ? "text-xs font-medium text-emerald-600"
+                  : "text-xs font-medium text-rose-600"
+              }
+            >
+              {product.inStock ? "In stock" : "Out of stock"}
+            </p>
+            {product.inStock ? (
+              <span className="text-[11px] text-slate-500">
+                {product.stock} available
+              </span>
+            ) : null}
+          </div>
+
+          <AddToCartButton
+            productId={product.id}
+            inStock={product.inStock}
+            stock={product.stock}
+          />
 
           <div className="border-t border-slate-200 pt-4">
             {/* Preview only: the discount is priced by the API, and checkout re-quotes. */}

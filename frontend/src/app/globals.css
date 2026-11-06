@@ -26,6 +26,51 @@ body {
 }
 
 /*
+ * Order confirmation: a checkmark that pops in and draws itself. Pure CSS so the
+ * success page needs no animation library and works before hydration.
+ */
+@keyframes check-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 48;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-check-pop {
+  animation: check-pop 420ms ease-out both;
+}
+
+.animate-check-draw {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: check-draw 520ms 140ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-check-pop,
+  .animate-check-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
  * Print: the order invoice prints on its own sheet. Console chrome (sidebar,
  * top bar) and explicit `no-print` blocks never reach paper.
  */

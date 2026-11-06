@@ -21,6 +21,8 @@ export interface SettingsView {
   flatShippingCharge: number;
   freeShippingThreshold: number;
   codEnabled: boolean;
+  /** Highest COD order total in minor units; `0` means no cap. */
+  codMaxAmount: number;
   /**
    * `true` once the store has products or orders: every stored price is a minor-unit
    * amount in the current currency, so switching it would relabel money, not convert
@@ -39,6 +41,7 @@ export interface PublicStoreView {
   currency: string;
   locale: string;
   codEnabled: boolean;
+  codMaxAmount: number;
 }
 
 const CURRENCY_ISO = /^[A-Z]{3}$/;
@@ -104,6 +107,23 @@ export class SettingsService {
     return (await this.get()).codEnabled;
   }
 
+  /**
+   * What a cash-on-delivery checkout is allowed to be.
+   *
+   * Returned together because the two only make sense as a pair: checkout shows the
+   * option when `enabled`, and refuses the order above `maxAmount` (when it is not
+   * zero).
+   */
+  async codPolicy(): Promise<{ enabled: boolean; maxAmount: number; currency: string }> {
+    const settings = await this.get();
+
+    return {
+      enabled: settings.codEnabled,
+      maxAmount: settings.codMaxAmount,
+      currency: settings.currency,
+    };
+  }
+
   async view(): Promise<SettingsView> {
     const [settings, footprint] = await Promise.all([
       this.get(),
@@ -124,6 +144,7 @@ export class SettingsService {
       flatShippingCharge: settings.flatShippingCharge,
       freeShippingThreshold: settings.freeShippingThreshold,
       codEnabled: settings.codEnabled,
+      codMaxAmount: settings.codMaxAmount,
       currencyLocked: footprint.orders > 0 || footprint.products > 0,
       updatedBy: settings.updatedBy?.email ?? null,
       updatedAt: settings.updatedAt.toISOString(),
@@ -142,6 +163,7 @@ export class SettingsService {
       currency: settings.currency,
       locale: settings.locale,
       codEnabled: settings.codEnabled,
+      codMaxAmount: settings.codMaxAmount,
     };
   }
 
@@ -177,6 +199,7 @@ export class SettingsService {
         flatShippingCharge: next.flatShippingCharge,
         freeShippingThreshold: next.freeShippingThreshold,
         codEnabled: next.codEnabled,
+        codMaxAmount: next.codMaxAmount,
       },
       actor,
     );
@@ -222,6 +245,8 @@ export class SettingsService {
       flatShippingCharge: this.fallback.flatShippingCharge,
       freeShippingThreshold: this.fallback.freeShippingThreshold,
       codEnabled: true,
+      // No cap until an operator sets one.
+      codMaxAmount: 0,
       updatedBy: null,
       createdAt: now,
       updatedAt: now,
@@ -240,6 +265,9 @@ export class SettingsService {
     }
     if (settings.flatShippingCharge < 0 || settings.freeShippingThreshold < 0) {
       throw new BadRequestException('Shipping amounts cannot be negative');
+    }
+    if (settings.codMaxAmount < 0 || !Number.isInteger(settings.codMaxAmount)) {
+      throw new BadRequestException('The COD limit must be a whole, non-negative amount');
     }
     if (!Number.isInteger(settings.taxRatePercent)) {
       throw new BadRequestException('Tax rate must be a whole percentage');
@@ -307,6 +335,7 @@ function merge(
     freeShippingThreshold:
       dto.freeShippingThreshold ?? current.freeShippingThreshold,
     codEnabled: dto.codEnabled ?? current.codEnabled,
+    codMaxAmount: dto.codMaxAmount ?? current.codMaxAmount,
     updatedBy: current.updatedBy,
     createdAt: current.createdAt,
     updatedAt: current.updatedAt,
