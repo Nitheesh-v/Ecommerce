@@ -266,7 +266,25 @@ npm run db:check      # parses the URI, lists anything certainly wrong, then tes
 
 `db:check` prints the connection string with the password masked, distinguishes the four cases above, and exits non-zero on failure — the same diagnosis the API prints at boot, from the same tested module (`src/database/database-diagnostics.ts`).
 
-Running without Atlas is fine too: install MongoDB locally (or `docker run -d -p 27017:27017 mongo:7`) and keep `MONGODB_URI=mongodb://127.0.0.1:27017/ecommerce`.
+### Running without Atlas at all
+
+Atlas is convenient until your ISP hands you a new IP. For day-to-day development a local
+database is faster and has no allow-list:
+
+```bash
+cd backend
+npm run db:local      # finds your mongod, starts it on 127.0.0.1:27017, data in backend/.data/db
+```
+
+It prints the one line to put in `.env`:
+
+```ini
+MONGODB_URI=mongodb://127.0.0.1:27017/ecommerce
+```
+
+Then `npm run db:check` (should be green) and `npm run start:dev`. `npm run db:local -- --print-uri` prints the URI without starting anything, and if something is already listening on the port it says so instead of failing. No `mongod` installed? The script names the one-line install for Windows (`winget`), macOS (`brew`), Linux (`apt`) and Docker, and honours `MONGOD_BINARY` if yours lives somewhere unusual.
+
+Switch back to Atlas by restoring the `mongodb+srv://` URI — nothing else changes.
 
 ## Security notes
 

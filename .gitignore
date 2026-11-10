@@ -15,6 +15,9 @@ backend/.env*
 # Uploaded product images (runtime data; Cloudinary or object storage in production)
 backend/uploads/
 
+# Local MongoDB data directory created by `npm run db:local`
+backend/.data/
+
 # Build files
 .next/
 dist/
