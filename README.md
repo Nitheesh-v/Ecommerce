@@ -1,5 +1,7 @@
 # Ecommerce — Single-Vendor E-Commerce Platform
 
+![CI](https://github.com/Nitheesh-v/Ecommerce/actions/workflows/ci.yml/badge.svg)
+
 Production-oriented, single-vendor e-commerce platform. Monorepo with a Next.js (App Router) storefront/admin and a NestJS REST API backed by MongoDB.
 
 > **Status: Phase 18 (notifications) complete.** Authentication with rotating refresh tokens, a guarded `/admin` console, the catalogue, categories, inventory, the full order lifecycle, customers, payments, shipping, offers, reviews, reports/settings, the shopper-facing storefront, a server-side cart with a three-step checkout, and a notification pipeline — order, payment, delivery and stock events recorded in-app and emailed over SMTP when configured — are implemented and verified. Next: caching, queues and performance.
@@ -197,9 +199,24 @@ Health probes are intentionally flat, unthrottled and outside the envelope. Ever
 ## Scripts
 
 Backend: `verify` (typecheck + lint + unit + e2e + build), `smoke` (HTTP probes against a running API), `build`, `start:dev`, `start:prod`, `typecheck`, `lint` (oxlint), `format` (prettier), `test` (Vitest), `test:e2e`, `test:cov`.
-Frontend: `dev`, `build`, `start`, `typecheck` (`next typegen && tsc`), `lint` (`eslint`, includes the React Compiler hooks rules).
+Frontend: `verify` (typecheck + lint + build), `dev`, `build`, `start`, `typecheck` (`next typegen && tsc`), `lint` (`eslint`, includes the React Compiler hooks rules).
 
-E2E tests do not require a database: the Mongoose connection is substituted, so `npm run test:e2e` is CI-safe.
+E2E tests do not require a database: the Mongoose connection is substituted, so `npm run test:e2e` is CI-safe. Backend also exposes `db:check` (diagnose `MONGODB_URI`) and `db:local` (start a local `mongod`).
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push (including `arena/**` branches), on pull
+requests to `main`, and on demand. Two jobs, in parallel, on Node 22:
+
+| Job | Command | What it proves |
+| --- | --- | --- |
+| Backend | `npm run verify` | typecheck, lint, unit tests, e2e tests, `nest build` |
+| Frontend | `npm run verify` | typecheck (`next typegen` + `tsc`), lint, `next build` |
+
+It is the same command you run locally — there is no CI-only path, so green locally
+means green in the pipeline. Neither job needs MongoDB: the e2e app replaces every
+model token with an in-memory fake (`test/support/create-test-app.ts`), so the suite
+never opens a socket to a database.
 
 ## Admin console
 

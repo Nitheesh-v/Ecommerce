@@ -1,0 +1,83 @@
+# Full path: .github/workflows/ci.yml
+#
+# Every push and pull request runs exactly what `npm run verify` runs locally —
+# nothing CI-only, so a green local verify means a green pipeline. The suites need
+# no MongoDB: the e2e app stubs every model token (test/support/create-test-app.ts).
+name: Continuous integration
+
+on:
+  push:
+    branches:
+      - main
+      - 'arena/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# A new push to the same branch cancels the run that is already in flight.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  CI: 'true'
+
+jobs:
+  backend:
+    name: Backend — typecheck, lint, unit, e2e, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify
+        run: npm run verify
+
+  frontend:
+    name: Frontend — typecheck, lint, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # The storefront is server-rendered with cacheComponents; it builds without a
+      # live API because every catalogue read is fail-soft.
+      - name: Verify
+        run: npm run verify
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:5000/api
