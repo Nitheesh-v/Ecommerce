@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import Link from "next/link";
 import {
   ArrowDown,
@@ -155,17 +157,14 @@ export function ProductsTable({
               return (
                 <TableRow key={product.id} className={cn(busy && "opacity-60")}>
                   <TableCell>
-                    <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                    <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                       {image ? (
-                        // Plain <img>: product images can live on any admin-configured
-                        // host (local /uploads or a Cloudinary account), and a 40px
-                        // thumbnail gains nothing from the optimizer.
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <Image
                           src={image}
                           alt={product.name}
-                          loading="lazy"
-                          className="h-full w-full object-cover"
+                          fill
+                          sizes="40px"
+                          className="object-cover"
                         />
                       ) : (
                         <ImageOff className="h-4 w-4 text-slate-300" aria-hidden />

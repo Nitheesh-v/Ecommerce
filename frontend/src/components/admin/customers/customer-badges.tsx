@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Badge } from "@/components/admin/ui/badge";
 import { CUSTOMER_STATUS_LABELS, type CustomerStatus } from "@/types/customer";
 
@@ -32,11 +33,12 @@ export function CustomerAvatar({
 
   if (imageUrl) {
     return (
-      // avatars may be served from any configured origin
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Image
         src={imageUrl}
         alt=""
+        width={56}
+        height={56}
+        sizes="56px"
         className={`${dimensions} shrink-0 rounded-full border border-slate-200 object-cover`}
       />
     );

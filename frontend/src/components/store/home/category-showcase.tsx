@@ -1,3 +1,4 @@
+import Image from "next/image";
 // src/components/store/home/category-showcase.tsx
 
 import Link from "next/link";
@@ -60,12 +61,12 @@ export function CategoryShowcase({
               className="group relative block aspect-[3/4] overflow-hidden rounded-[24px] border border-cream-300 bg-cream-200"
             >
               {image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={image}
                   alt={category.image?.alt ?? category.name}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+                  fill
+                  sizes="(min-width: 1024px) 25vw, 50vw"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
                 />
               ) : (
                 <span className="flex h-full items-center justify-center p-4">

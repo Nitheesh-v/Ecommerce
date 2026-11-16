@@ -1,3 +1,4 @@
+import Image from "next/image";
 // src/components/store/home/lookbook.tsx
 
 import Link from "next/link";
@@ -67,12 +68,12 @@ export function Lookbook({ products }: { products: PublicProduct[] }) {
             href={`/products/${product.slug}`}
             className={`group relative block overflow-hidden rounded-[20px] border border-cream-300 bg-cream-200 ${SPANS[index] ?? "col-span-1 row-span-1"}`}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={image}
               alt={product.name}
-              loading="lazy"
-              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+              fill
+              sizes="(min-width: 1024px) 33vw, 100vw"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
             />
 
             <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-bark-950/85 via-bark-950/20 to-transparent px-3 pt-10 pb-3">

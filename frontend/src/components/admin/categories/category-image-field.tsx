@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { getApiErrorMessage } from "@/lib/api/errors";
@@ -71,8 +73,7 @@ export function CategoryImageField({
     <div className="flex items-start gap-3">
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
         {preview ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt="" className="h-full w-full object-cover" />
+          <Image src={preview} alt="" fill sizes="96px" className="object-cover" />
         ) : (
           <span className="flex h-full w-full items-center justify-center text-slate-300">
             <ImagePlus className="h-6 w-6" aria-hidden />

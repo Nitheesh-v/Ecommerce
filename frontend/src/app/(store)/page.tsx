@@ -1,3 +1,4 @@
+import Image from "next/image";
 // src/app/(store)/page.tsx
 
 import type { Metadata } from "next";
@@ -292,14 +293,14 @@ export default async function StoreHomePage() {
                         href={`/products/${product.slug}`}
                         className="group overflow-hidden rounded-2xl bg-cream-50 p-2 text-bark-900 transition-transform hover:-translate-y-0.5"
                       >
-                        <span className="block aspect-square overflow-hidden rounded-xl bg-cream-200">
+                        <span className="relative block aspect-square overflow-hidden rounded-xl bg-cream-200">
                           {image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
+                            <Image
                               src={image}
                               alt=""
-                              loading="lazy"
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              fill
+                              sizes="96px"
+                              className="object-cover transition-transform duration-500 group-hover:scale-105"
                             />
                           ) : null}
                         </span>

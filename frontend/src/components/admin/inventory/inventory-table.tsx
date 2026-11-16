@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import Link from "next/link";
 import { ArrowDownUp, History, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/admin/ui/button";
@@ -109,14 +111,13 @@ export function InventoryTable({
                 <TableCell>
                   <div className="flex items-center gap-3">
                     {row.imageUrl ? (
-                      // Uploaded thumbnails are arbitrary sizes; next/image needs
-                      // configured remote patterns, so a plain img is intentional.
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={row.imageUrl}
                         alt=""
+                        width={40}
+                        height={40}
+                        sizes="40px"
                         className="h-10 w-10 rounded-lg border border-slate-100 object-cover"
-                        loading="lazy"
                       />
                     ) : (
                       <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-[10px] font-medium text-slate-400">

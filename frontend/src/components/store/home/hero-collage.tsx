@@ -1,3 +1,4 @@
+import Image from "next/image";
 // src/components/store/home/hero-collage.tsx
 
 import Link from "next/link";
@@ -41,12 +42,12 @@ function CollageCard({
       className={`animate-float group relative block overflow-hidden rounded-[24px] border border-cream-300 bg-cream-200 ${className}`}
       style={{ animationDelay: delay }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={image}
         alt={product.name}
+        fill
         sizes={sizes}
-        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+        className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
       />
       <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-bark-950/80 via-bark-950/25 to-transparent px-4 pt-10 pb-4">
         <span className="block text-[10px] tracking-[0.2em] text-cream-300 uppercase">

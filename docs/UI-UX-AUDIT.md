@@ -99,24 +99,49 @@ quieter style, which matches what a product page needs: one decision per screen.
 - **Numbers come from the API** — the page computes only the presentation of a discount (percent, "you save"), never a total.
 - **Empty, loading and error states are components, not afterthoughts** — every new section ships with its skeleton.
 
-## The open item: `next/image`
+## Adopted: `next/image` everywhere
 
-The stack guidance is unambiguous — *use `next/image` for all images, never `<img>`* —
-and this codebase disables that lint rule in a dozen places. It is not a one-line
-change, which is why it is not in this pass:
+The stack guidance is unambiguous — *use `next/image` for all images* — and the codebase
+was disabling that lint rule in 23 places. All of them now use the component; zero
+`<img>` tags remain in `src/`.
 
-- Images come from two places (`frontend/src/lib/images.ts`): Cloudinary absolute URLs
-  and API-relative `/uploads/…` paths resolved against `NEXT_PUBLIC_API_URL`.
-- `next/image` refuses hosts that are not declared in `images.remotePatterns`, so
-  `next.config.ts` must derive the API origin from the environment and allow
-  `res.cloudinary.com` — and a misconfiguration shows up as broken images, not an error.
-- Every usage needs a container with a definite size (`fill` inside the existing
-  aspect-ratio wrappers is the natural fit) and a `sizes` attribute.
+**Configuration** (`next.config.ts`), because the failure mode is a broken image, not an
+error:
 
-The fix is scoped: `next.config.ts` + `components/store/product-card.tsx`,
-`category-card.tsx`, `home/{hero-collage,lookbook,category-showcase}.tsx`, the product
-page gallery and the cart line thumbnails. It needs verification against the real
-catalogue, because the failure mode is visual.
+```ts
+const apiOrigin = new URL(API_BASE_URL);          // same variable the browser client uses
+images: {
+  dangerouslyAllowLocalIP: isLocalApi,            // only when the API host is localhost
+  remotePatterns: [
+    { protocol: …, hostname: apiOrigin.hostname, port: apiOrigin.port, pathname: "/uploads/**" },
+    { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
+  ],
+}
+```
+
+- **The API origin is derived, not hard-coded** — a deployment sets `NEXT_PUBLIC_API_URL`
+  once and both the API client and the image allow-list follow.
+- **`dangerouslyAllowLocalIP` follows the API host.** Next 16 refuses to fetch images from
+  private addresses (SSRF protection); a dev API on `localhost:5000` needs the flag, a
+  deployed store on a real hostname must not have it.
+- **Cloudinary needs no cloud name** on the frontend: URLs arrive fully qualified.
+
+**Sizing strategy.** Fixed-aspect containers use `fill` plus a `sizes` value that matches
+the grid (`(min-width: 1280px) 22vw, (min-width: 768px) 33vw, 50vw` for product cards,
+`80px` for cart thumbnails, …); thumbnails with intrinsic dimensions use `width`/`height`.
+The product gallery's first frame is `priority`, everything else lazy-loads by default.
+
+**Verified, not assumed:**
+
+```bash
+curl "$HOST/_next/image?url=<encoded local upload>&w=96&q=75"
+# → 200, Content-Type: image/jpeg, Cache-Control: public, max-age=14400
+curl "$HOST/_next/image?url=<encoded https://example.com/x.jpg>&w=96&q=75"
+# → 400 "url parameter is not allowed"   (allow-list is doing its job)
+```
+
+Both probes were run against `next start` with a stub upload server on the API origin, so
+the optimizer path is checked end to end rather than inferred from a green build.
 
 ## Re-running it later
 

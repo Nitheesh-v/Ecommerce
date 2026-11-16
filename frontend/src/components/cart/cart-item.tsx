@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 // src/components/cart/cart-item.tsx
 
 /**
@@ -50,10 +52,9 @@ export function CartItemRow({
         !item.available && "opacity-60",
       )}
     >
-      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-cream-300 bg-cream-100">
+      <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-cream-300 bg-cream-100">
         {image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt={item.name} className="h-full w-full object-cover" />
+          <Image src={image} alt={item.name} fill sizes="80px" className="object-cover" />
         ) : (
           <ImageOff className="h-5 w-5 text-cream-400" aria-hidden />
         )}

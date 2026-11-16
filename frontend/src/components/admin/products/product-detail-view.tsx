@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -170,13 +172,14 @@ export function ProductDetailView({ id }: { id: string }) {
       <div className="grid gap-5 xl:grid-cols-3">
         <div className="space-y-5">
           <Card className="overflow-hidden">
-            <div className="flex aspect-square items-center justify-center bg-slate-50">
+            <div className="relative flex aspect-square items-center justify-center bg-slate-50">
               {mainImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={mainImage}
                   alt={gallery[imageIndex]?.alt ?? product.name}
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="(min-width: 1024px) 42vw, 100vw"
+                  className="object-cover"
                 />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-slate-400">
@@ -199,20 +202,14 @@ export function ProductDetailView({ id }: { id: string }) {
                       aria-label={`Show image ${index + 1}`}
                       aria-current={index === imageIndex}
                       className={cn(
-                        "h-14 w-14 overflow-hidden rounded-lg border-2 bg-slate-50 transition-colors",
+                        "relative h-14 w-14 overflow-hidden rounded-lg border-2 bg-slate-50 transition-colors",
                         index === imageIndex
                           ? "border-slate-900"
                           : "border-transparent hover:border-slate-300",
                       )}
                     >
                       {src ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={src}
-                          alt=""
-                          loading="lazy"
-                          className="h-full w-full object-cover"
-                        />
+                        <Image src={src} alt="" fill sizes="56px" className="object-cover" />
                       ) : null}
                     </button>
                   );

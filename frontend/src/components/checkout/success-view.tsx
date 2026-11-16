@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 // src/components/checkout/success-view.tsx
 
 /**
@@ -189,10 +191,9 @@ export function SuccessView({ orderId }: { orderId: string }) {
 
             return (
               <li key={`${item.sku}-${item.name}`} className="flex items-center gap-3 py-2">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-cream-300 bg-cream-100">
+                <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-cream-300 bg-cream-100">
                   {image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={image} alt="" className="h-full w-full object-cover" />
+                    <Image src={image} alt="" fill sizes="40px" className="object-cover" />
                   ) : (
                     <PackageCheck className="h-4 w-4 text-cream-400" aria-hidden />
                   )}

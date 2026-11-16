@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -165,12 +167,12 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {item.imageUrl ? (
-                          // Snapshot URL: plain <img> because images may be served from
-                          // any configured origin.
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={item.imageUrl}
                             alt=""
+                            width={40}
+                            height={40}
+                            sizes="40px"
                             className="h-10 w-10 shrink-0 rounded-lg border border-slate-200 object-cover"
                           />
                         ) : (

@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,13 +40,15 @@ export function ProductGallery({
   return (
     <div className="space-y-3">
       <div className="overflow-hidden rounded-[24px] border border-cream-300 bg-cream-100">
-        <div className="aspect-[4/5]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        <div className="relative aspect-[4/5]">
+          <Image
             key={current.url}
             src={current.url}
             alt={current.alt ?? name}
-            className="h-full w-full object-cover"
+            fill
+            priority
+            sizes="(min-width: 1024px) 46vw, 100vw"
+            className="object-cover"
           />
         </div>
       </div>
@@ -60,17 +63,18 @@ export function ProductGallery({
                 aria-pressed={index === active}
                 aria-label={`Show image ${index + 1} of ${images.length}`}
                 className={cn(
-                  "h-16 w-16 cursor-pointer overflow-hidden rounded-xl border transition-colors sm:h-20 sm:w-20",
+                  "relative h-16 w-16 cursor-pointer overflow-hidden rounded-xl border transition-colors sm:h-20 sm:w-20",
                   index === active
                     ? "border-bark-900 ring-2 ring-bark-900/15"
                     : "border-cream-300 hover:border-bark-300",
                 )}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={image.url}
                   alt=""
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="80px"
+                  className="object-cover"
                 />
               </button>
             </li>

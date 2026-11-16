@@ -1,3 +1,4 @@
+import Image from "next/image";
 // src/components/store/category-card.tsx
 
 import Link from "next/link";
@@ -14,14 +15,14 @@ export function CategoryCard({ category }: { category: CategoryNode }) {
       href={`/categories/${category.slug}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-cream-300 bg-cream-50 transition-all duration-300 hover:-translate-y-0.5 hover:border-cream-400 hover:shadow-[0_22px_45px_-28px_rgba(58,34,22,0.5)]"
     >
-      <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-cream-200">
+      <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-cream-200">
         {image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={image}
             alt={category.image?.alt ?? category.name}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+            fill
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
           />
         ) : (
           <FolderTree className="h-8 w-8 text-bark-300" aria-hidden />

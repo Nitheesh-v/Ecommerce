@@ -1,3 +1,4 @@
+import Image from "next/image";
 // src/components/store/product-card.tsx
 
 import Link from "next/link";
@@ -64,12 +65,12 @@ export function ProductCard({ product }: { product: PublicProduct }) {
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-cream-200">
         {image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={image}
             alt={product.name}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+            fill
+            sizes="(min-width: 1280px) 22vw, (min-width: 768px) 33vw, 50vw"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">

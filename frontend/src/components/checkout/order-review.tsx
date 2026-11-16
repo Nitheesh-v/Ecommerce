@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 // src/components/checkout/order-review.tsx
 
 /**
@@ -60,10 +62,9 @@ export function OrderReview({
 
           return (
             <li key={item.productId} className="flex items-center gap-3 p-2.5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-cream-300 bg-cream-100">
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-cream-300 bg-cream-100">
                 {image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={image} alt={item.name} className="h-full w-full object-cover" />
+                  <Image src={image} alt={item.name} fill sizes="48px" className="object-cover" />
                 ) : (
                   <ImageOff className="h-4 w-4 text-cream-400" aria-hidden />
                 )}

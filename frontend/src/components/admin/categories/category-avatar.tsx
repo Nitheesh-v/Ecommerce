@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { FolderTree } from "lucide-react";
 import { Badge } from "@/components/admin/ui/badge";
 import { resolveImageUrl } from "@/lib/images";
@@ -29,8 +30,7 @@ export function CategoryAvatar({
       )}
     >
       {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
+        <Image src={src} alt="" width={80} height={80} sizes="80px" className="h-full w-full object-cover" />
       ) : name ? (
         name.trim().charAt(0).toUpperCase()
       ) : (

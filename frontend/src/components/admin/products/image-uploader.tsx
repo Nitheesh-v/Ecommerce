@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useRef, useState } from "react";
 import {
   ChevronLeft,
@@ -130,13 +132,15 @@ export function ImageUploader({
               key={`${image.url}-${index}`}
               className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={src ?? ""}
-                alt={image.alt ?? `Product image ${index + 1}`}
-                loading="lazy"
-                className="h-full w-full object-cover"
-              />
+              {src ? (
+                <Image
+                  src={src}
+                  alt={image.alt ?? `Product image ${index + 1}`}
+                  fill
+                  sizes="(min-width: 1024px) 16vw, 33vw"
+                  className="object-cover"
+                />
+              ) : null}
 
               <div className="absolute inset-x-1 top-1 flex items-center justify-between gap-1">
                 <button

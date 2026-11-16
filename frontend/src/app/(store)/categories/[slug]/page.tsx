@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -84,13 +85,14 @@ async function CategoryContent({ params, searchParams }: PageProps) {
       </nav>
 
       <header className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-cream-300 bg-cream-50">
+        <div className="relative flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-cream-300 bg-cream-50">
           {hero ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={hero}
               alt={category.image?.alt ?? category.name}
-              className="h-full w-full object-cover"
+              fill
+              sizes="112px"
+              className="object-cover"
             />
           ) : (
             <FolderTree className="h-8 w-8 text-cream-400" aria-hidden />
