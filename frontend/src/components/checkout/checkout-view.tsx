@@ -46,7 +46,17 @@ import type {
 } from "@/types/cart";
 import type { CheckoutConfig } from "@/types/payment";
 import type { PublicStoreSettings } from "@/types/settings";
+import { guestOrderEmail } from "@/lib/store/guest-cart";
 import { AddressSelector } from "./address-selector";
+import {
+  EMPTY_GUEST_DETAILS,
+  GuestAddressForm,
+  GuestFormError,
+  type GuestDetails,
+  guestSummary,
+  toGuestAddress,
+  validateGuestDetails,
+} from "./guest-address-form";
 import { OrderReview } from "./order-review";
 import { PaymentSelector } from "./payment-selector";
 
@@ -69,12 +79,22 @@ export function CheckoutView() {
   const cartStatus = useCartStore((state) => state.status);
   const fetchCart = useCartStore((state) => state.fetchCart);
 
+  const isGuest = authStatus !== "authenticated";
+
+  const [guestDetails, setGuestDetails] =
+    useState<GuestDetails>(EMPTY_GUEST_DETAILS);
+  const [guestErrors, setGuestErrors] = useState<
+    ReturnType<typeof validateGuestDetails>["fields"]
+  >({});
+  const [guestSubmitError, setGuestSubmitError] = useState<string | null>(null);
+
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addressesLoading, setAddressesLoading] = useState(true);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [addressId, setAddressId] = useState<string | null>(null);
 
-  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("online");
+  const [paymentMethod, setPaymentMethod] =
+    useState<CheckoutPaymentMethod>("online");
   const [options, setOptions] = useState<CheckoutPaymentOptions | null>(null);
 
   /**
@@ -103,20 +123,22 @@ export function CheckoutView() {
     void bootstrap();
   }, [bootstrap]);
 
+  /*
+   * No sign-in redirect. A guest has a cart of their own, so they check out here
+   * with a typed address; the offer to create an account sits alongside, where it
+   * can be taken up *after* the order rather than as a toll gate.
+   */
   useEffect(() => {
-    if (authStatus === "unauthenticated") {
-      router.replace("/login?next=%2Fcheckout");
-    }
-  }, [authStatus, router]);
-
-  useEffect(() => {
-    if (authStatus === "authenticated" && cartStatus === "idle") {
+    if (
+      (authStatus === "authenticated" || authStatus === "unauthenticated") &&
+      cartStatus === "idle"
+    ) {
       void fetchCart();
     }
   }, [authStatus, cartStatus, fetchCart]);
 
   useEffect(() => {
-    if (placedOrderId || authStatus !== "authenticated") {
+    if (placedOrderId || authStatus === "idle" || authStatus === "loading") {
       return;
     }
 
@@ -131,7 +153,9 @@ export function CheckoutView() {
         return current;
       }
 
-      return list.find((address) => address.isDefault)?.id ?? list[0]?.id ?? null;
+      return (
+        list.find((address) => address.isDefault)?.id ?? list[0]?.id ?? null
+      );
     });
   }, []);
 
@@ -222,9 +246,12 @@ export function CheckoutView() {
   // ------------------------------------------------------------------ preview
 
   const cartTotal = cart?.totals.total ?? 0;
-  const cartKey = cart ? `${cart.updatedAt ?? ""}:${cart.totals.total}:${cart.items.length}` : "";
+  const cartKey = cart
+    ? `${cart.updatedAt ?? ""}:${cart.totals.total}:${cart.items.length}`
+    : "";
   const codAllowed = options
-    ? options.codAvailable && (options.codMaxAmount === 0 || cartTotal <= options.codMaxAmount)
+    ? options.codAvailable &&
+      (options.codMaxAmount === 0 || cartTotal <= options.codMaxAmount)
     : false;
 
   /**
@@ -235,29 +262,55 @@ export function CheckoutView() {
   const method: CheckoutPaymentMethod =
     options && paymentMethod === "cod" && !codAllowed && options.onlineAvailable
       ? "online"
-      : options && paymentMethod === "online" && !options.onlineAvailable && codAllowed
+      : options &&
+          paymentMethod === "online" &&
+          !options.onlineAvailable &&
+          codAllowed
         ? "cod"
         : paymentMethod;
 
-  const previewKey = `${addressId ?? ""}|${method}|${cartKey}`;
-  const canPreview = Boolean(
-    addressId && cart && cart.items.length > 0 && cart.unavailableCount === 0,
+  /**
+   * A guest's address is only previewable once it would pass the same validation —
+   * the form and the API agree on the rules, so this is not a guess.
+   */
+  const guestAddressReady = Boolean(
+    !isGuest ||
+    (guestDetails.email.trim() && !Object.values(guestErrors).some(Boolean)),
   );
+  const addressKey = isGuest ? "guest" : (addressId ?? "");
+  const previewKey = `${addressKey}|${method}|${cartKey}`;
+  const canPreview =
+    !isGuest && addressId
+      ? Boolean(cart && cart.items.length > 0 && cart.unavailableCount === 0)
+      : Boolean(
+          isGuest &&
+          guestAddressReady &&
+          cart &&
+          cart.items.length > 0 &&
+          cart.unavailableCount === 0,
+        );
   const preview =
     previewState && previewState.key === previewKey ? previewState.data : null;
   const previewError =
     previewState && previewState.key === previewKey ? previewState.error : null;
-  const previewLoading = canPreview && (!previewState || previewState.key !== previewKey);
+  const previewLoading =
+    canPreview && (!previewState || previewState.key !== previewKey);
 
   useEffect(() => {
-    if (!canPreview || !addressId) {
+    if (!canPreview) {
       return;
     }
 
     const controller = new AbortController();
+    const addressInput = isGuest
+      ? { guestAddress: toGuestAddress(guestDetails.address) }
+      : { addressId: addressId as string };
 
     checkoutApi
-      .previewCheckout({ addressId, paymentMethod: method }, controller.signal)
+      .previewCheckout(
+        { ...addressInput, paymentMethod: method },
+        controller.signal,
+      )
       .then((result) => {
         setPreviewState({ key: previewKey, data: result, error: null });
         setOptions(result.paymentOptions);
@@ -275,15 +328,42 @@ export function CheckoutView() {
       });
 
     return () => controller.abort();
-  }, [addressId, canPreview, method, previewKey]);
+  }, [
+    addressId,
+    canPreview,
+    isGuest,
+    method,
+    previewKey,
+    guestDetails.address,
+  ]);
 
-  const selectedAddress = addresses.find((address) => address.id === addressId) ?? null;
+  const selectedAddress =
+    addresses.find((address) => address.id === addressId) ?? null;
+  /**
+   * "Step 1 is done" — an account's chosen address, or a guest's typed one. One
+   * flag, so every button and progress marker below agrees with `place()`.
+   */
+  const hasAddress = isGuest ? guestAddressReady : Boolean(addressId);
   const totals = preview?.totals ?? cart?.totals ?? null;
 
   // -------------------------------------------------------------------- place
 
   const place = async () => {
-    if (!addressId) {
+    setGuestSubmitError(null);
+
+    if (isGuest) {
+      const { fields } = validateGuestDetails(guestDetails);
+
+      if (Object.values(fields).some(Boolean)) {
+        setGuestErrors(fields);
+        setSection(1);
+        setPlaceError(
+          "Check the delivery details below — a few fields need fixing",
+        );
+
+        return;
+      }
+    } else if (!addressId) {
       setPlaceError("Choose a delivery address first");
       setSection(1);
 
@@ -294,15 +374,27 @@ export function CheckoutView() {
     setPlaceError(null);
     idempotencyKey.current ??= crypto.randomUUID();
 
+    const addressInput = isGuest
+      ? { guestAddress: toGuestAddress(guestDetails.address) }
+      : { addressId: addressId as string };
+
     try {
       const placed = await checkoutApi.placeOrder({
-        addressId,
+        ...addressInput,
+        ...(isGuest ? { guestEmail: guestDetails.email.trim() } : {}),
         paymentMethod: method,
         customerNote: notes.trim() || undefined,
         idempotencyKey: idempotencyKey.current,
       });
 
       setPlacedOrderId(placed.orderId);
+
+      if (isGuest) {
+        // Without this, a reload on the confirmation page would have no way to
+        // identify the order — the guest has no token.
+        guestOrderEmail.remember(placed.orderId, guestDetails.email.trim());
+      }
+
       // The server already emptied it; this is what moves the header badge.
       void fetchCart();
 
@@ -314,7 +406,11 @@ export function CheckoutView() {
 
       if (!placed.payment) {
         setPlaceError(
-          `Order ${placed.orderNumber} was created but no payment could be started. Open it from “My orders” to pay.`,
+          `Order ${placed.orderNumber} was created but no payment could be started. ${
+            isGuest
+              ? "Keep this page — we have also sent the order details to your email."
+              : "Open it from “My orders” to pay."
+          }`,
         );
         setPlacing(false);
 
@@ -340,7 +436,7 @@ export function CheckoutView() {
             } catch (error) {
               // The order exists; only the confirmation failed. Say so honestly.
               setPlaceError(
-                `${getApiErrorMessage(error)} — order ${placed.orderNumber} is saved; you can retry the payment from “My orders”.`,
+                `${getApiErrorMessage(error)} — order ${placed.orderNumber} is saved${isGuest ? "" : "; you can retry the payment from “My orders”"}.`,
               );
               setPlacing(false);
             }
@@ -381,7 +477,9 @@ export function CheckoutView() {
     return (
       <div className="mx-auto max-w-md rounded-2xl border border-rose-200 bg-rose-50/60 px-6 py-10 text-center">
         <AlertTriangle className="mx-auto h-7 w-7 text-rose-500" aria-hidden />
-        <p className="mt-3 text-sm font-medium text-rose-900">Checkout is unavailable</p>
+        <p className="mt-3 text-sm font-medium text-rose-900">
+          Checkout is unavailable
+        </p>
         <p className="mt-1 text-xs text-rose-800">
           We could not load your cart. Please try again.
         </p>
@@ -407,9 +505,12 @@ export function CheckoutView() {
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex items-baseline justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-bark-900">Checkout</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-bark-900">
+            Checkout
+          </h1>
           <p className="mt-0.5 text-sm text-bark-500">
-            {cart.totals.itemCount} {cart.totals.itemCount === 1 ? "item" : "items"} ·{" "}
+            {cart.totals.itemCount}{" "}
+            {cart.totals.itemCount === 1 ? "item" : "items"} ·{" "}
             {formatPrice(cart.totals.total, cart.totals.currency)}
           </p>
         </div>
@@ -422,14 +523,20 @@ export function CheckoutView() {
         </Link>
       </div>
 
-      <CheckoutProgress current={section} addressChosen={Boolean(addressId)} />
+      <CheckoutProgress current={section} addressChosen={hasAddress} />
 
       {blockedByStock ? (
         <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" aria-hidden />
+          <AlertTriangle
+            className="mt-0.5 h-4 w-4 shrink-0 text-rose-600"
+            aria-hidden
+          />
           <p className="text-xs text-rose-900">
             Some items are no longer available.{" "}
-            <Link href="/cart" className="font-semibold underline-offset-2 hover:underline">
+            <Link
+              href="/cart"
+              className="font-semibold underline-offset-2 hover:underline"
+            >
               Review your cart
             </Link>{" "}
             before checking out.
@@ -442,53 +549,105 @@ export function CheckoutView() {
         title="Delivery address"
         icon={MapPin}
         open={section === 1}
-        complete={Boolean(addressId)}
+        complete={hasAddress}
         summary={
-          selectedAddress
-            ? `${selectedAddress.recipientName}, ${selectedAddress.city} ${selectedAddress.postalCode}`
-            : "No address yet"
+          isGuest
+            ? guestSummary(guestDetails)
+            : selectedAddress
+              ? `${selectedAddress.recipientName}, ${selectedAddress.city} ${selectedAddress.postalCode}`
+              : "No address yet"
         }
         onOpen={() => setSection(1)}
       >
-        <AddressSelector
-          addresses={addresses}
-          selectedId={addressId}
-          onSelect={(id) => {
-            setAddressId(id);
-            setSection(2);
-          }}
-          onCreated={(created) => {
-            setAddresses((current) => [created, ...current]);
-            setAddressId(created.id);
-            setSection(2);
-          }}
-          loading={addressesLoading}
-          disabled={placing}
-        />
+        {isGuest ? (
+          <>
+            <GuestAddressForm
+              value={guestDetails}
+              onChange={(next) => {
+                setGuestDetails(next);
+                setGuestErrors({});
+                setGuestSubmitError(null);
+              }}
+              errors={guestErrors}
+              disabled={placing}
+            />
 
-        {addressError ? (
-          <p role="alert" className="mt-2 text-xs text-rose-600">
-            {addressError}{" "}
-            <button
-              type="button"
-              onClick={() => void reloadAddresses()}
-              className="font-medium underline-offset-2 hover:underline"
-            >
-              Retry
-            </button>
-          </p>
-        ) : null}
+            {guestSubmitError ? (
+              <GuestFormError message={guestSubmitError} />
+            ) : null}
 
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            disabled={!addressId || placing}
-            onClick={() => setSection(2)}
-            className="rounded-lg bg-baby-400 px-3 py-2 text-xs font-semibold text-bark-950 hover:bg-baby-300 disabled:opacity-60"
-          >
-            Continue to payment
-          </button>
-        </div>
+            <p className="mt-3 text-[11px] text-bark-500">
+              Have an account?{" "}
+              <Link
+                href="/login?next=%2Fcheckout"
+                className="font-medium text-bark-800 underline underline-offset-2 hover:text-bark-950"
+              >
+                Sign in
+              </Link>{" "}
+              and this cart comes with you.
+            </p>
+          </>
+        ) : (
+          <>
+            <AddressSelector
+              addresses={addresses}
+              selectedId={addressId}
+              onSelect={(id) => {
+                setAddressId(id);
+                setSection(2);
+              }}
+              onCreated={(created) => {
+                setAddresses((current) => [created, ...current]);
+                setAddressId(created.id);
+                setSection(2);
+              }}
+              loading={addressesLoading}
+              disabled={placing}
+            />
+
+            {addressError ? (
+              <p role="alert" className="mt-2 text-xs text-rose-600">
+                {addressError}{" "}
+                <button
+                  type="button"
+                  onClick={() => void reloadAddresses()}
+                  className="font-medium underline-offset-2 hover:underline"
+                >
+                  Retry
+                </button>
+              </p>
+            ) : null}
+
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                disabled={!hasAddress || placing}
+                onClick={() => {
+                  if (isGuest) {
+                    const { fields } = validateGuestDetails(guestDetails);
+
+                    if (Object.values(fields).some(Boolean)) {
+                      setGuestErrors(fields);
+                      setGuestSubmitError(
+                        "A couple of details still need fixing before we can price delivery",
+                      );
+
+                      return;
+                    }
+
+                    setGuestErrors({});
+                    setGuestSubmitError(null);
+                  }
+
+                  setSection(2);
+                }}
+                className="rounded-lg bg-baby-400 px-3 py-2 text-xs font-semibold text-bark-950 hover:bg-baby-300 disabled:opacity-60"
+              >
+                Continue to payment
+              </button>
+            </div>
+          </>
+        )}
       </CheckoutSection>
 
       <CheckoutSection
@@ -497,11 +656,13 @@ export function CheckoutView() {
         icon={CreditCard}
         open={section === 2}
         complete={
-          Boolean(addressId) &&
+          hasAddress &&
           (method === "online" ? Boolean(options?.onlineAvailable) : codAllowed)
         }
         summary={
-          method === "cod" ? "Cash on delivery" : "Pay online (card / UPI / net banking)"
+          method === "cod"
+            ? "Cash on delivery"
+            : "Pay online (card / UPI / net banking)"
         }
         onOpen={() => setSection(2)}
       >
@@ -528,7 +689,7 @@ export function CheckoutView() {
           </button>
           <button
             type="button"
-            disabled={placing || !addressId}
+            disabled={placing || !hasAddress}
             onClick={() => setSection(3)}
             className="rounded-lg bg-baby-400 px-3 py-2 text-xs font-semibold text-bark-950 hover:bg-baby-300 disabled:opacity-60"
           >
@@ -544,7 +705,9 @@ export function CheckoutView() {
         open={section === 3}
         complete={false}
         summary={
-          totals ? `${formatPrice(totals.total, totals.currency)} payable` : "Not priced yet"
+          totals
+            ? `${formatPrice(totals.total, totals.currency)} payable`
+            : "Not priced yet"
         }
         onOpen={() => setSection(3)}
       >
@@ -562,7 +725,7 @@ export function CheckoutView() {
             <div className="mt-1.5 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => setSection(addressId ? 2 : 1)}
+                onClick={() => setSection(hasAddress ? 2 : 1)}
                 className="font-semibold underline-offset-2 hover:underline"
               >
                 Change address or payment method
@@ -585,7 +748,7 @@ export function CheckoutView() {
             onNotesChange={setNotes}
             onPlace={() => void place()}
             placing={placing}
-            disabled={!addressId || blockedByStock}
+            disabled={!hasAddress || blockedByStock}
             error={placeError}
           />
         ) : (
@@ -657,7 +820,11 @@ function CheckoutProgress({
 }) {
   const steps = [
     { index: 1 as Section, label: "Address", done: addressChosen },
-    { index: 2 as Section, label: "Payment", done: addressChosen && current > 2 },
+    {
+      index: 2 as Section,
+      label: "Payment",
+      done: addressChosen && current > 2,
+    },
     { index: 3 as Section, label: "Review", done: false },
   ];
 
@@ -671,7 +838,10 @@ function CheckoutProgress({
         const active = step.index === current;
 
         return (
-          <li key={step.index} className="flex min-w-0 flex-1 items-center gap-1.5">
+          <li
+            key={step.index}
+            className="flex min-w-0 flex-1 items-center gap-1.5"
+          >
             <span
               className={cn(
                 "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition-colors",
@@ -742,8 +912,12 @@ function CheckoutSection({
         </span>
         <Icon className="h-4 w-4 shrink-0 text-bark-400" aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-bark-900">{title}</span>
-          <span className="mt-0.5 block truncate text-[11px] text-bark-500">{summary}</span>
+          <span className="block text-sm font-semibold text-bark-900">
+            {title}
+          </span>
+          <span className="mt-0.5 block truncate text-[11px] text-bark-500">
+            {summary}
+          </span>
         </span>
         <ChevronDown
           className={cn(
@@ -754,7 +928,9 @@ function CheckoutSection({
         />
       </button>
 
-      {open ? <div className="border-t border-cream-200 p-4">{children}</div> : null}
+      {open ? (
+        <div className="border-t border-cream-200 p-4">{children}</div>
+      ) : null}
     </section>
   );
 }

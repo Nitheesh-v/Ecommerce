@@ -1,5 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import type { ApiSuccess, AuthSessionPayload, PaginationMeta } from "@/types/auth";
+import { guestCart } from "@/lib/store/guest-cart";
 import { session } from "./session";
 
 /**
@@ -22,11 +23,29 @@ export const apiClient = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+/**
+ * Cart and checkout are the only routes that work without an account, and they
+ * identify a guest by this header. Sending it always is deliberate: the server
+ * ignores it whenever a token is present (the account's cart wins), so there is no
+ * "am I signed in?" branch here that could go stale mid-session.
+ */
+const GUEST_IDENTIFIED_PATHS = ["/cart", "/checkout"];
+
 apiClient.interceptors.request.use((config) => {
   const token = session.getAccessToken();
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  const url = config.url ?? "";
+
+  if (GUEST_IDENTIFIED_PATHS.some((path) => url.startsWith(path))) {
+    const guestHeaders = guestCart.header();
+
+    for (const [name, value] of Object.entries(guestHeaders)) {
+      config.headers[name] = value;
+    }
   }
 
   return config;

@@ -18,8 +18,6 @@ import { useEffect, useState } from "react";
 import { Loader2, ShoppingBag } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useCartStore } from "@/store/cart.store";
-import { useCustomerAuthStore } from "@/store/customer-auth.store";
-import { usePathname, useRouter } from "next/navigation";
 import { toast } from "@/store/toast.store";
 
 export function StickyBuyBar({
@@ -35,10 +33,7 @@ export function StickyBuyBar({
   inStock: boolean;
   stock: number;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const addItem = useCartStore((state) => state.addItem);
-  const authStatus = useCustomerAuthStore((state) => state.status);
   const [visible, setVisible] = useState(false);
   const [adding, setAdding] = useState(false);
 
@@ -83,12 +78,6 @@ export function StickyBuyBar({
   const available = inStock && stock > 0;
 
   const onClick = async () => {
-    if (authStatus === "unauthenticated") {
-      router.push(`/login?next=${encodeURIComponent(pathname || `/products`)}`);
-
-      return;
-    }
-
     setAdding(true);
     const added = await addItem(productId, 1);
     setAdding(false);

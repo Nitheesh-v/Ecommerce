@@ -52,13 +52,43 @@ export const cartService = {
   removeCoupon() {
     return requestData<Cart>(apiClient.delete("/cart/coupon"));
   },
+
+  /**
+   * Hands this browser's guest cart to the signed-in account.
+   *
+   * Quantities are added per product and clamped to stock by the server, and the
+   * guest cart is retired afterwards — replaying its token must not resurrect a
+   * basket on a shared computer.
+   */
+  mergeGuestCart(guestCartId: string) {
+    return requestData<Cart>(apiClient.post("/cart/merge", { guestCartId }));
+  },
 };
 
+/** A delivery address typed in by a guest (a signed-in caller uses `addressId`). */
+export interface GuestAddressInput {
+  recipientName: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country?: string;
+}
+
+/** Exactly one of `addressId` / `guestAddress`, decided by whether there is an account. */
+export interface CheckoutAddressInput {
+  addressId?: string;
+  guestAddress?: GuestAddressInput;
+}
+
 /** Where the customer intends to pay. */
-export interface PlaceOrderInput {
-  addressId: string;
+export interface PlaceOrderInput extends CheckoutAddressInput {
   paymentMethod: CheckoutPaymentMethod;
   customerNote?: string;
+  /** Guest only: where the confirmation goes. */
+  guestEmail?: string;
   /** Makes a double-click idempotent instead of placing two orders. */
   idempotencyKey?: string;
 }
@@ -72,7 +102,7 @@ export interface PlaceOrderInput {
  */
 export const checkoutApi = {
   previewCheckout(
-    input: { addressId: string; paymentMethod: CheckoutPaymentMethod },
+    input: CheckoutAddressInput & { paymentMethod: CheckoutPaymentMethod },
     signal?: AbortSignal,
   ) {
     return requestData<CheckoutPreview>(

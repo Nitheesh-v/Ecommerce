@@ -220,7 +220,9 @@ describe('Cart & checkout (e2e)', () => {
   // -------------------------------------------------------------- authorization
 
   describe('authorization', () => {
-    it('requires a signed-in customer for the cart and checkout', async () => {
+    it('requires an identity — an account or a guest cart id', async () => {
+      // No token and no cart id: nothing to authenticate, so 401 rather than a
+      // silently shared anonymous cart.
       await request(server()).get('/api/cart').expect(401);
       await request(server()).post('/api/cart/items').send({ productId: headphonesId }).expect(401);
       await request(server()).delete('/api/cart').expect(401);
@@ -232,6 +234,13 @@ describe('Cart & checkout (e2e)', () => {
         .post('/api/checkout/place')
         .send({ addressId, paymentMethod: 'cod' })
         .expect(401);
+      // A malformed cart id is not an identity either.
+      await request(server())
+        .get('/api/cart')
+        .set('x-cart-id', 'not-a-real-token')
+        .expect(401);
+      // Addresses stay account-only: a guest types one at checkout, they do not
+      // get an address book.
       await request(server()).post('/api/addresses').send(ADDRESS).expect(401);
     });
 

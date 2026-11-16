@@ -12,7 +12,7 @@ import Image from "next/image";
  * who opens somebody else's order id simply gets a friendly refusal (the API
  * answers 404 for an order that is not theirs).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -26,7 +26,9 @@ import { Skeleton } from "@/components/admin/ui/states";
 import { getApiErrorMessage, isAbortError } from "@/lib/api/errors";
 import { resolveImageUrl } from "@/lib/images";
 import { formatPrice } from "@/components/ui/format-currency";
+import { guestOrderEmail } from "@/lib/store/guest-cart";
 import { myOrdersService } from "@/services/store/orders.service";
+import { useCustomerAuthStore } from "@/store/customer-auth.store";
 import { toast } from "@/store/toast.store";
 import type { Order } from "@/types/order";
 
@@ -36,42 +38,96 @@ type State =
   | { status: "error"; message: string };
 
 export function SuccessView({ orderId }: { orderId: string }) {
+  const authStatus = useCustomerAuthStore((state) => state.status);
+  const bootstrap = useCustomerAuthStore((state) => state.bootstrap);
+
   const [state, setState] = useState<State>(() =>
     orderId
       ? { status: "loading" }
       : { status: "error", message: "No order was specified." },
   );
 
+  /**
+   * A guest has no session, so their confirmation is read with the number + email
+   * they typed (remembered at checkout). `null` means "ask for the email".
+   */
+  const [email, setEmail] = useState<string | null>(() =>
+    orderId ? guestOrderEmail.get(orderId) : null,
+  );
+  const [emailDraft, setEmailDraft] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!orderId) {
+    void bootstrap();
+  }, [bootstrap]);
+
+  useEffect(() => {
+    if (!orderId || authStatus === "idle" || authStatus === "loading") {
+      return;
+    }
+
+    const signedIn = authStatus === "authenticated";
+
+    if (!signedIn && !email) {
+      // Nothing to fetch yet — the email form collects the missing half of the pair.
+      // Derived in render rather than written to state from here.
       return;
     }
 
     const controller = new AbortController();
     let active = true;
 
-    myOrdersService
-      .get(orderId, controller.signal)
+    const read = signedIn
+      ? myOrdersService.get(orderId, controller.signal)
+      : myOrdersService.guestLookup(orderId, email ?? "", controller.signal);
+
+    read
       .then((order) => {
         if (active) {
           setState({ status: "ready", order });
         }
       })
       .catch((error: unknown) => {
-        if (!active || isAbortError(error)) {
-          return;
+        if (active && !isAbortError(error)) {
+          setState({ status: "error", message: getApiErrorMessage(error) });
         }
-
-        setState({ status: "error", message: getApiErrorMessage(error) });
       });
 
     return () => {
       active = false;
       controller.abort();
     };
-  }, [orderId]);
+  }, [authStatus, email, orderId]);
 
-  if (state.status === "loading") {
+  /**
+   * Guests are asked for the email rather than shown only a refusal. The API needs
+   * both halves of the pair, and the person in front of the screen is the one person
+   * who knows which address they used.
+   */
+  const submitEmail = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const value = emailDraft.trim();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
+      setEmailError("Enter the email address you used at checkout");
+
+      return;
+    }
+
+    setEmailError(null);
+    guestOrderEmail.remember(orderId, value);
+    setState({ status: "loading" });
+    setEmail(value);
+  };
+
+  /**
+   * A guest with no remembered email has half a credential; the form is the other
+   * half. Derived, so it reads the same before and after the fetch gives up.
+   */
+  const needsEmail = authStatus === "unauthenticated" && !email;
+
+  if (state.status === "loading" && !needsEmail) {
     return (
       <div className="mx-auto max-w-xl space-y-3">
         <Skeleton className="mx-auto h-16 w-16 rounded-full" />
@@ -81,21 +137,91 @@ export function SuccessView({ orderId }: { orderId: string }) {
     );
   }
 
-  if (state.status === "error") {
+  if (state.status === "error" || needsEmail) {
+    const signedIn = authStatus === "authenticated";
+    const message = state.status === "error" ? state.message : "";
+
     return (
-      <div className="mx-auto max-w-md rounded-2xl border border-cream-300 bg-cream-50 px-6 py-12 text-center">
+      <div className="mx-auto max-w-md rounded-2xl border border-cream-300 bg-cream-50 px-6 py-12">
         <PackageCheck className="mx-auto h-7 w-7 text-cream-400" aria-hidden />
-        <h1 className="mt-3 text-lg font-semibold text-bark-900">
-          We could not open that order
-        </h1>
-        <p className="mt-1.5 text-sm text-bark-500">{state.message}</p>
+
+        {needsEmail ? (
+          <>
+            <h1 className="mt-3 text-center text-lg font-semibold text-bark-900">
+              Open your order
+            </h1>
+            <p className="mt-1.5 text-center text-sm text-bark-500">
+              Enter the email you used at checkout and we will show the order.
+            </p>
+
+            <form onSubmit={submitEmail} className="mt-5 space-y-2" noValidate>
+              <label htmlFor="order-email" className="block text-xs font-medium text-bark-700">
+                Email
+              </label>
+              <input
+                id="order-email"
+                type="email"
+                autoComplete="email"
+                value={emailDraft}
+                onChange={(event) => {
+                  setEmailDraft(event.target.value);
+                  setEmailError(null);
+                }}
+                placeholder="you@example.com"
+                aria-invalid={emailError ? true : undefined}
+                className="w-full rounded-lg border border-cream-300 bg-cream-50 px-3 py-2 text-sm text-bark-900 placeholder:text-bark-400 focus:border-bark-300 focus:ring-2 focus:ring-baby-300 focus:outline-none"
+              />
+              {emailError ? (
+                <p role="alert" className="text-[11px] text-rose-600">
+                  {emailError}
+                </p>
+              ) : null}
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 transition-colors hover:bg-baby-300"
+              >
+                Show my order
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            <h1 className="mt-3 text-center text-lg font-semibold text-bark-900">
+              We could not open that order
+            </h1>
+            <p className="mt-1.5 text-center text-sm text-bark-500">{message}</p>
+            {!signedIn ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail(null);
+                  setEmailDraft("");
+                  setEmailError(null);
+                }}
+                className="mt-3 w-full text-center text-xs font-medium text-bark-600 underline underline-offset-2 hover:text-bark-900"
+              >
+                Try a different email
+              </button>
+            ) : null}
+          </>
+        )}
+
         <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
-          <Link
-            href="/account/orders"
-            className="inline-flex items-center justify-center rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 hover:bg-baby-300"
-          >
-            My orders
-          </Link>
+          {signedIn ? (
+            <Link
+              href="/account/orders"
+              className="inline-flex items-center justify-center rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 hover:bg-baby-300"
+            >
+              My orders
+            </Link>
+          ) : (
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 hover:bg-baby-300"
+            >
+              Create an account
+            </Link>
+          )}
           <Link
             href="/products"
             className="inline-flex items-center justify-center rounded-lg border border-cream-300 px-4 py-2 text-sm font-medium text-bark-800 hover:bg-cream-100"
@@ -105,6 +231,10 @@ export function SuccessView({ orderId }: { orderId: string }) {
         </div>
       </div>
     );
+  }
+
+  if (state.status !== "ready") {
+    return <Skeleton className="h-40 w-full rounded-2xl" />;
   }
 
   const { order } = state;

@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { addressService } from "@/services/store/address.service";
 import type { Address, AddressInput } from "@/types/address";
 
-interface DraftAddress {
+export interface DraftAddress {
   label: string;
   recipientName: string;
   phone: string;
@@ -29,7 +29,7 @@ interface DraftAddress {
   country: string;
 }
 
-const EMPTY_DRAFT: DraftAddress = {
+export const EMPTY_DRAFT: DraftAddress = {
   label: "Home",
   recipientName: "",
   phone: "",
@@ -44,7 +44,9 @@ const EMPTY_DRAFT: DraftAddress = {
 const PHONE_PATTERN = /^[\d+\-\s()]{6,20}$/;
 const POSTAL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9\s-]{2,15}$/;
 
-function validate(draft: DraftAddress): Partial<Record<keyof DraftAddress, string>> {
+export function validate(
+  draft: DraftAddress,
+): Partial<Record<keyof DraftAddress, string>> {
   const errors: Partial<Record<keyof DraftAddress, string>> = {};
 
   if (draft.recipientName.trim().length < 2) {
@@ -86,7 +88,9 @@ export function AddressSelector({
 }) {
   const [adding, setAdding] = useState(addresses.length === 0);
   const [draft, setDraft] = useState<DraftAddress>(EMPTY_DRAFT);
-  const [errors, setErrors] = useState<Partial<Record<keyof DraftAddress, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof DraftAddress, string>>
+  >({});
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -171,7 +175,9 @@ export function AddressSelector({
             <span
               className={cn(
                 "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
-                selected ? "border-bark-900 bg-bark-900 text-cream-50" : "border-cream-400",
+                selected
+                  ? "border-bark-900 bg-bark-900 text-cream-50"
+                  : "border-cream-400",
               )}
               aria-hidden
             >
@@ -309,7 +315,9 @@ export function AddressSelector({
               disabled={saving}
               className="inline-flex items-center gap-1.5 rounded-lg bg-baby-400 px-3 py-2 text-xs font-semibold text-bark-950 hover:bg-baby-300 disabled:opacity-70"
             >
-              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
+              {saving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : null}
               {saving ? "Saving…" : "Save address"}
             </button>
           </div>
@@ -353,7 +361,9 @@ function Field({
 
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1 block text-[11px] font-medium text-bark-700">{label}</span>
+      <span className="mb-1 block text-[11px] font-medium text-bark-700">
+        {label}
+      </span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -368,10 +378,28 @@ function Field({
         required={required}
       />
       {error ? (
-        <span id={errorId} role="alert" className="mt-1 block text-[11px] text-rose-600">
+        <span
+          id={errorId}
+          role="alert"
+          className="mt-1 block text-[11px] text-rose-600"
+        >
           {error}
         </span>
       ) : null}
     </label>
   );
+}
+
+/** The draft as the checkout API's `guestAddress` expects it. */
+export function toGuestAddress(draft: DraftAddress) {
+  return {
+    recipientName: draft.recipientName.trim(),
+    phone: draft.phone.trim(),
+    line1: draft.line1.trim(),
+    line2: draft.line2.trim() || undefined,
+    city: draft.city.trim(),
+    state: draft.state.trim(),
+    postalCode: draft.postalCode.trim(),
+    country: draft.country.trim() || "India",
+  };
 }

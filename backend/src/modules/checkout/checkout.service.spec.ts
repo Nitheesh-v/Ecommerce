@@ -31,6 +31,9 @@ const USER: AuthenticatedUser = {
   role: Role.Customer,
 };
 
+/** The identity the guard attaches for a signed-in caller. */
+const OWNER = { cartId: 'cart:user-1', user: USER };
+
 const ADDRESS: AddressRecord = {
   id: 'addr-1',
   userId: USER.id,
@@ -173,7 +176,7 @@ describe('CheckoutService', () => {
   // ------------------------------------------------------------------ preview
 
   it('prices the cart without writing anything', async () => {
-    const preview = await service.preview(USER, {
+    const preview = await service.preview(OWNER, {
       addressId: ADDRESS.id,
       paymentMethod: 'online',
     });
@@ -197,7 +200,7 @@ describe('CheckoutService', () => {
     addresses.requireOwned.mockRejectedValueOnce(new NotFoundException('Address not found'));
 
     await expect(
-      service.preview(USER, { addressId: 'addr-other', paymentMethod: 'cod' }),
+      service.preview(OWNER, { addressId: 'addr-other', paymentMethod: 'cod' }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -205,7 +208,7 @@ describe('CheckoutService', () => {
     cart.checkoutSnapshot.mockResolvedValueOnce(snapshot({ items: [] }));
 
     await expect(
-      service.preview(USER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
+      service.preview(OWNER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -215,7 +218,7 @@ describe('CheckoutService', () => {
     );
 
     await expect(
-      service.preview(USER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
+      service.preview(OWNER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
     ).rejects.toMatchObject({
       response: expect.objectContaining({
         message: expect.stringContaining('Copper Mug') as unknown as string,
@@ -229,7 +232,7 @@ describe('CheckoutService', () => {
     );
 
     await expect(
-      service.place(USER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
+      service.place(OWNER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
@@ -237,7 +240,7 @@ describe('CheckoutService', () => {
     settings.codPolicy.mockResolvedValueOnce({ enabled: false, maxAmount: 0, currency: 'INR' });
 
     await expect(
-      service.preview(USER, { addressId: ADDRESS.id, paymentMethod: 'cod' }),
+      service.preview(OWNER, { addressId: ADDRESS.id, paymentMethod: 'cod' }),
     ).rejects.toThrow(/cash on delivery is currently unavailable/i);
   });
 
@@ -249,7 +252,7 @@ describe('CheckoutService', () => {
     });
 
     await expect(
-      service.place(USER, { addressId: ADDRESS.id, paymentMethod: 'cod' }),
+      service.place(OWNER, { addressId: ADDRESS.id, paymentMethod: 'cod' }),
     ).rejects.toThrow(/up to ₹1,000/);
     expect(orders.createForCustomer).not.toHaveBeenCalled();
   });
@@ -265,7 +268,7 @@ describe('CheckoutService', () => {
     });
 
     await expect(
-      service.preview(USER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
+      service.preview(OWNER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
     ).rejects.toThrow(/online payment is temporarily unavailable/i);
   });
 
@@ -277,7 +280,7 @@ describe('CheckoutService', () => {
       created: true,
     });
 
-    const placed = await service.place(USER, {
+    const placed = await service.place(OWNER, {
       addressId: ADDRESS.id,
       paymentMethod: 'cod',
       customerNote: '  Leave at the gate  ',
@@ -307,12 +310,12 @@ describe('CheckoutService', () => {
       payment: null,
       created: true,
     });
-    expect(cart.clearAfterOrder).toHaveBeenCalledWith(USER.id);
+    expect(cart.clearAfterOrder).toHaveBeenCalledWith(OWNER.cartId);
     expect(payments.createPaymentOrder).not.toHaveBeenCalled();
   });
 
   it('places an online order as `card` and hands back the gateway session', async () => {
-    const placed = await service.place(USER, {
+    const placed = await service.place(OWNER, {
       addressId: ADDRESS.id,
       paymentMethod: 'online',
       idempotencyKey: 'checkout-abc',
@@ -349,7 +352,7 @@ describe('CheckoutService', () => {
       }),
     );
 
-    await service.place(USER, { addressId: ADDRESS.id, paymentMethod: 'cod' });
+    await service.place(OWNER, { addressId: ADDRESS.id, paymentMethod: 'cod' });
 
     expect(orders.createForCustomer.mock.calls[0][1]).toMatchObject({ couponCode: 'SAVE10' });
   });
@@ -357,7 +360,7 @@ describe('CheckoutService', () => {
   it('does not clear the cart when an idempotent retry returned an existing order', async () => {
     orders.createForCustomer.mockResolvedValueOnce({ order: order(), created: false });
 
-    const placed = await service.place(USER, {
+    const placed = await service.place(OWNER, {
       addressId: ADDRESS.id,
       paymentMethod: 'cod',
       idempotencyKey: 'checkout-abc',
@@ -373,7 +376,7 @@ describe('CheckoutService', () => {
     );
 
     await expect(
-      service.place(USER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
+      service.place(OWNER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(cart.clearAfterOrder).not.toHaveBeenCalled();
     expect(payments.createPaymentOrder).not.toHaveBeenCalled();
@@ -383,16 +386,16 @@ describe('CheckoutService', () => {
     payments.createPaymentOrder.mockRejectedValueOnce(new Error('gateway down'));
 
     await expect(
-      service.place(USER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
+      service.place(OWNER, { addressId: ADDRESS.id, paymentMethod: 'online' }),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
     // The order exists and is payable later; only clearing must have happened.
-    expect(cart.clearAfterOrder).toHaveBeenCalledWith(USER.id);
+    expect(cart.clearAfterOrder).toHaveBeenCalledWith(OWNER.cartId);
   });
 
   it('does not fail the order when clearing the cart fails', async () => {
     cart.clearAfterOrder.mockRejectedValueOnce(new Error('mongo hiccup'));
 
-    const placed = await service.place(USER, {
+    const placed = await service.place(OWNER, {
       addressId: ADDRESS.id,
       paymentMethod: 'cod',
     });
@@ -418,7 +421,7 @@ describe('CheckoutService', () => {
       order: { id: 'order-1', orderNumber: 'ORD-1001', status: 'confirmed', paymentStatus: 'paid' },
     } as unknown as VerifyPaymentView);
 
-    const result = await service.confirmPayment(USER, {
+    const result = await service.confirmPayment(OWNER, {
       gatewayOrderId: 'order_RZP1',
       gatewayPaymentId: 'pay_RZP1',
       signature: 'a'.repeat(64),
@@ -439,7 +442,7 @@ describe('CheckoutService', () => {
     );
 
     await expect(
-      service.confirmPayment(USER, {
+      service.confirmPayment(OWNER, {
         gatewayOrderId: 'order_RZP1',
         gatewayPaymentId: 'pay_RZP1',
         signature: 'b'.repeat(64),
@@ -451,7 +454,7 @@ describe('CheckoutService', () => {
     payments.verifyPayment.mockRejectedValueOnce(new ConflictException('Already paid'));
 
     await expect(
-      service.confirmPayment(USER, {
+      service.confirmPayment(OWNER, {
         gatewayOrderId: 'order_RZP1',
         gatewayPaymentId: 'pay_RZP1',
         signature: 'c'.repeat(64),

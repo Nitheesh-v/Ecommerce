@@ -15,6 +15,12 @@ import type { PricedLine, PricingConfig, Totals } from '../orders/pricing.js';
 import { ProductsService } from '../products/products.service.js';
 import type { AdminProductView } from '../products/products.service.js';
 import { SettingsService } from '../settings/settings.service.js';
+import {
+  guestTokenOfCart,
+  isGuestCartId,
+  userCartId,
+  userIdOfCart,
+} from '../../common/utils/cart-identity.util.js';
 import { CartsRepository } from './repositories/cart.repository.js';
 import type { CartItemRecord, CartRecord } from './repositories/cart.repository.js';
 
@@ -77,6 +83,19 @@ export interface CartView {
   updatedAt: string | null;
 }
 
+/**
+ * Who a cart operation is for.
+ *
+ * `cartId` is the document key (`cart:<userId>` or `guest:<token>`); `user` is
+ * present only when the caller is signed in. Everything that prices money works
+ * from the id, and the two places where identity actually matters — coupon limits
+ * and the order's customer — consult `user` and fall back explicitly.
+ */
+export interface CartOwner {
+  cartId: string;
+  user: AuthenticatedUser | null;
+}
+
 /** A line checkout can price — buyable at the moment it was read. */
 export interface CheckoutCartLine {
   productId: string;
@@ -130,17 +149,17 @@ export class CartService {
 
   // ------------------------------------------------------------------ reads
 
-  async getForUser(user: AuthenticatedUser): Promise<CartView> {
-    return this.buildView(user, await this.carts.findByUser(user.id));
+  async getForOwner(owner: CartOwner): Promise<CartView> {
+    return this.buildView(owner, await this.carts.findByOwner(owner.cartId));
   }
 
   // ---------------------------------------------------------------- mutations
 
   async addItem(
-    user: AuthenticatedUser,
+    owner: CartOwner,
     input: { productId: string; quantity: number },
   ): Promise<CartView> {
-    const record = await this.carts.findByUser(user.id);
+    const record = await this.carts.findByOwner(owner.cartId);
     const product = await this.requirePurchasable(input.productId);
     const existing = record?.items.find((item) => item.productId === product.id);
     const quantity = (existing?.quantity ?? 0) + input.quantity;
@@ -161,17 +180,17 @@ export class CartService {
           },
         ];
 
-    const saved = await this.carts.save(user.id, items, record?.couponCode ?? null);
+    const saved = await this.carts.save(owner.cartId, items, record?.couponCode ?? null);
 
-    return this.buildView(user, saved);
+    return this.buildView(owner, saved);
   }
 
   async updateItem(
-    user: AuthenticatedUser,
+    owner: CartOwner,
     productId: string,
     quantity: number,
   ): Promise<CartView> {
-    const record = await this.carts.findByUser(user.id);
+    const record = await this.carts.findByOwner(owner.cartId);
     const existing = record?.items.find((item) => item.productId === productId);
 
     if (!record || !existing) {
@@ -181,44 +200,44 @@ export class CartService {
     // Zero is a removal, not a validation error: the quantity stepper's "minus"
     // at one unit means exactly that.
     if (quantity === 0) {
-      return this.removeItem(user, productId);
+      return this.removeItem(owner, productId);
     }
 
     const product = await this.requirePurchasable(productId);
     this.assertQuantity(product, quantity);
 
     const saved = await this.carts.save(
-      user.id,
+      owner.cartId,
       record.items.map((item) => (item.productId === productId ? { ...item, quantity } : item)),
       record.couponCode,
     );
 
-    return this.buildView(user, saved);
+    return this.buildView(owner, saved);
   }
 
-  async removeItem(user: AuthenticatedUser, productId: string): Promise<CartView> {
-    const record = await this.carts.findByUser(user.id);
+  async removeItem(owner: CartOwner, productId: string): Promise<CartView> {
+    const record = await this.carts.findByOwner(owner.cartId);
     const items = record?.items.filter((item) => item.productId !== productId) ?? [];
 
     if (!record || items.length === record.items.length) {
       throw new NotFoundException('That product is not in your cart');
     }
 
-    const saved = await this.carts.save(user.id, items, record.couponCode);
+    const saved = await this.carts.save(owner.cartId, items, record.couponCode);
 
-    return this.buildView(user, saved);
+    return this.buildView(owner, saved);
   }
 
-  async clear(user: AuthenticatedUser): Promise<CartView> {
-    await this.carts.clear(user.id);
+  async clear(owner: CartOwner): Promise<CartView> {
+    await this.carts.clear(owner.cartId);
 
-    return this.buildView(user, null);
+    return this.buildView(owner, null);
   }
 
   // ----------------------------------------------------------------- coupons
 
-  async applyCoupon(user: AuthenticatedUser, code: string): Promise<CartView> {
-    const record = await this.carts.findByUser(user.id);
+  async applyCoupon(owner: CartOwner, code: string): Promise<CartView> {
+    const record = await this.carts.findByOwner(owner.cartId);
     const buyable = (record?.items ?? []).length > 0 ? await this.buyableLines(record) : [];
 
     if (buyable.length === 0) {
@@ -230,23 +249,26 @@ export class CartService {
     const quote = await this.coupons.quote({
       code,
       lines: buyable,
-      userId: user.id,
-      customerEmail: user.email,
+      // Per-customer limits need an identity. An anonymous shopper has none yet,
+      // so the code is checked against the cart only; the real identity check
+      // happens when the order is placed and an email exists.
+      userId: owner.user?.id ?? null,
+      customerEmail: owner.user?.email ?? '',
     });
 
     const saved = await this.carts.save(
-      user.id,
+      owner.cartId,
       record?.items ?? [],
       quote.code.toUpperCase(),
     );
 
-    return this.buildView(user, saved);
+    return this.buildView(owner, saved);
   }
 
-  async removeCoupon(user: AuthenticatedUser): Promise<CartView> {
-    await this.carts.setCoupon(user.id, null);
+  async removeCoupon(owner: CartOwner): Promise<CartView> {
+    await this.carts.setCoupon(owner.cartId, null);
 
-    return this.getForUser(user);
+    return this.getForOwner(owner);
   }
 
   // ------------------------------------------------------------- checkout side
@@ -258,8 +280,8 @@ export class CartService {
    * second ago cannot change shape at the last step, and the problems are collected
    * instead of thrown: checkout decides how to report them (409, naming the items).
    */
-  async checkoutSnapshot(user: AuthenticatedUser): Promise<CheckoutCartSnapshot> {
-    const assembled = await this.assemble(user, await this.carts.findByUser(user.id));
+  async checkoutSnapshot(owner: CartOwner): Promise<CheckoutCartSnapshot> {
+    const assembled = await this.assemble(owner, await this.carts.findByOwner(owner.cartId));
     const problems: string[] = [];
 
     for (const row of assembled.rows) {
@@ -292,8 +314,50 @@ export class CartService {
   }
 
   /** Called once an order exists — an order and a cart must never both hold stock. */
-  async clearAfterOrder(userId: string): Promise<void> {
-    await this.carts.clear(userId);
+  async clearAfterOrder(cartId: string): Promise<void> {
+    await this.carts.clear(cartId);
+  }
+
+  /**
+   * Hands a guest cart to the account that just signed in.
+   *
+   * The merged cart is the union of both baskets, quantities added together and
+   * clamped to live stock, with the account's own coupon preferred (a guest's
+   * unclaimed code would otherwise silently replace one the customer chose while
+   * signed in). The guest document is retired rather than deleted: the browser
+   * still holds that token, and a replay of it must not resurrect a stranger's
+   * basket on a shared computer.
+   *
+   * Returns the account's cart afterwards, so the caller can render it directly.
+   */
+  async mergeGuestCart(owner: CartOwner, guestCartIdValue: string): Promise<CartView> {
+    // Nothing to merge is a no-op, not an error: the caller still wants the cart
+    // the account has now.
+    if (!owner.user || !isGuestCartId(guestCartIdValue)) {
+      return this.getForOwner(owner);
+    }
+
+    const guest = await this.carts.findByOwner(guestCartIdValue);
+
+    if (!guest || guest.items.length === 0) {
+      await this.carts.retire(guestCartIdValue).catch(() => undefined);
+
+      return this.getForOwner(owner);
+    }
+
+    const account = await this.carts.findByOwner(owner.cartId);
+    const merged = mergeItems(account?.items ?? [], guest.items);
+    const capped = await this.capToStock(merged);
+
+    const saved = await this.carts.save(
+      owner.cartId,
+      capped,
+      account?.couponCode ?? guest.couponCode,
+    );
+
+    await this.carts.retire(guestCartIdValue).catch(() => undefined);
+
+    return this.buildView(owner, saved);
   }
 
   /** Coupon-shaped view of the lines that can actually be bought right now. */
@@ -328,7 +392,7 @@ export class CartService {
    * cannot disagree about a price.
    */
   private async assemble(
-    user: AuthenticatedUser,
+    owner: CartOwner,
     record: CartRecord | null,
   ): Promise<{
     rows: Array<{ record: CartItemRecord; product: AdminProductView | null; reason: string | null }>;
@@ -384,7 +448,7 @@ export class CartService {
       }
     }
 
-    const { coupon, issue } = await this.resolveCoupon(user, record, couponLines);
+    const { coupon, issue } = await this.resolveCoupon(owner, record, couponLines);
     const totals = computeTotals(pricedLines, pricing, coupon?.discount ?? 0, {
       freeShipping: coupon?.freeShipping ?? false,
     });
@@ -398,8 +462,8 @@ export class CartService {
     };
   }
 
-  private async buildView(user: AuthenticatedUser, record: CartRecord | null): Promise<CartView> {
-    const assembled = await this.assemble(user, record);
+  private async buildView(owner: CartOwner, record: CartRecord | null): Promise<CartView> {
+    const assembled = await this.assemble(owner, record);
 
     return {
       items: assembled.items,
@@ -456,7 +520,7 @@ export class CartService {
    * silently disappears at checkout.
    */
   private async resolveCoupon(
-    user: AuthenticatedUser,
+    owner: CartOwner,
     record: CartRecord | null,
     lines: CouponPricingLine[],
   ): Promise<{ coupon: CouponQuote | null; issue: string | null }> {
@@ -470,16 +534,40 @@ export class CartService {
       const coupon = await this.coupons.quote({
         code,
         lines,
-        userId: user.id,
-        customerEmail: user.email,
+        userId: owner.user?.id ?? null,
+        customerEmail: owner.user?.email ?? '',
       });
 
       return { coupon, issue: null };
     } catch (error) {
-      await this.carts.setCoupon(user.id, null).catch(() => undefined);
+      await this.carts.setCoupon(owner.cartId, null).catch(() => undefined);
 
       return { coupon: null, issue: messageOf(error) };
     }
+  }
+
+  /**
+   * Adds quantities together for the same product and drops what cannot be bought,
+   * so a merge never leaves a line the catalogue cannot honour.
+   */
+  private async capToStock(items: CartItemRecord[]): Promise<CartItemRecord[]> {
+    const capped: CartItemRecord[] = [];
+
+    for (const item of items) {
+      const product = await this.safeGetProduct(item.productId);
+
+      if (!product || unavailableReason(product, 1) !== null) {
+        continue;
+      }
+
+      const quantity = Math.min(item.quantity, product.stock, MAX_QUANTITY);
+
+      if (quantity >= 1) {
+        capped.push({ ...item, quantity });
+      }
+    }
+
+    return capped;
   }
 
 
@@ -568,4 +656,34 @@ function messageOf(error: unknown): string {
   }
 
   return 'This coupon can no longer be applied';
+}
+
+/**
+ * Union of two baskets, quantities added per product.
+ *
+ * The account's lines come first so the merged order matches what the customer saw
+ * before signing in, and `addedAt` keeps the earliest timestamp — the cart is then
+ * ordered the way it was originally filled.
+ */
+function mergeItems(account: CartItemRecord[], guest: CartItemRecord[]): CartItemRecord[] {
+  const merged = new Map<string, CartItemRecord>();
+
+  for (const item of [...account, ...guest]) {
+    const existing = merged.get(item.productId);
+
+    if (!existing) {
+      merged.set(item.productId, { ...item });
+
+      continue;
+    }
+
+    merged.set(item.productId, {
+      ...existing,
+      quantity: existing.quantity + item.quantity,
+      addedAt: existing.addedAt <= item.addedAt ? existing.addedAt : item.addedAt,
+      priceAtAdd: Math.min(existing.priceAtAdd, item.priceAtAdd),
+    });
+  }
+
+  return [...merged.values()];
 }

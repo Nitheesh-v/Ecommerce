@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -17,9 +18,11 @@ import {
   ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
-import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { AllowGuest } from '../../common/decorators/allow-guest.decorator.js';
+import { CartId } from '../../common/decorators/cart-id.decorator.js';
 import { ApiErrorResponseDto } from '../../common/dto/api-response.dto.js';
-import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface.js';
+import type { RequestWithContext } from '../../common/interfaces/request-with-context.interface.js';
+import type { CartOwner } from '../cart/cart.service.js';
 import { ActiveAccountGuard } from '../auth/guards/active-account.guard.js';
 import { VerifyPaymentDto } from '../payments/dto/payment-actions.dto.js';
 import { CheckoutService } from './checkout.service.js';
@@ -40,9 +43,15 @@ import { CheckoutPreviewDto, PlaceOrderDto } from './dto/checkout.dto.js';
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ type: ApiErrorResponseDto })
 @Controller('checkout')
+@AllowGuest()
 @UseGuards(ActiveAccountGuard)
 export class CheckoutController {
   constructor(private readonly checkout: CheckoutService) {}
+
+  /** The guard has already resolved who this is: an account, or a guest's cart. */
+  private owner(request: RequestWithContext, cartId: string): CartOwner {
+    return { cartId, user: request.user ?? null };
+  }
 
   @Post('preview')
   @HttpCode(HttpStatus.OK)
@@ -57,8 +66,12 @@ export class CheckoutController {
     type: ApiErrorResponseDto,
     description: 'Stock gone, coupon no longer valid, or that payment method is unavailable',
   })
-  preview(@Body() dto: CheckoutPreviewDto, @CurrentUser() user: AuthenticatedUser) {
-    return this.checkout.preview(user, dto);
+  preview(
+    @Body() dto: CheckoutPreviewDto,
+    @Req() request: RequestWithContext,
+    @CartId() cartId: string,
+  ) {
+    return this.checkout.preview(this.owner(request, cartId), dto);
   }
 
   @Post('place')
@@ -74,8 +87,12 @@ export class CheckoutController {
     type: ApiErrorResponseDto,
     description: 'Not enough stock, coupon expired, or the COD limit was exceeded',
   })
-  place(@Body() dto: PlaceOrderDto, @CurrentUser() user: AuthenticatedUser) {
-    return this.checkout.place(user, dto);
+  place(
+    @Body() dto: PlaceOrderDto,
+    @Req() request: RequestWithContext,
+    @CartId() cartId: string,
+  ) {
+    return this.checkout.place(this.owner(request, cartId), dto);
   }
 
   @Post('verify-payment')
@@ -91,7 +108,14 @@ export class CheckoutController {
     type: ApiErrorResponseDto,
     description: 'The payment could not be verified',
   })
-  verifyPayment(@Body() dto: VerifyPaymentDto, @CurrentUser() user: AuthenticatedUser) {
-    return this.checkout.confirmPayment(user, dto);
+  // Signed-in only: a guest's payment is confirmed from `/checkout/verify-payment`
+  // with no account, so that route reads the identity from the request rather than
+  // requiring one. See `CheckoutService.confirmPayment`.
+  verifyPayment(
+    @Body() dto: VerifyPaymentDto,
+    @Req() request: RequestWithContext,
+    @CartId() cartId: string,
+  ) {
+    return this.checkout.confirmPayment(this.owner(request, cartId), dto);
   }
 }

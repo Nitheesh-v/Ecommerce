@@ -219,6 +219,35 @@ export class OrdersService {
     });
   }
 
+  /**
+   * Guest checkout — a shopper with no account.
+   *
+   * The same writer as every other order, with `userId: null`. It exists so guest
+   * checkout does not have to masquerade as an admin action: the customer identity
+   * is the email they typed, which is what coupon per-customer limits, notifications
+   * and the customer report already key off for guests.
+   */
+  async createForGuest(
+    guest: { email: string; name: string; phone?: string },
+    dto: CreateOrderDto,
+  ): Promise<CreateOrderResult> {
+    return this.createOrder({
+      dto,
+      customer: {
+        userId: null,
+        name: guest.name.trim(),
+        email: guest.email.trim().toLowerCase(),
+        ...(guest.phone ? { phone: guest.phone } : {}),
+      },
+      /*
+       * The order is placed by the shopper, not by an operator. `Role.Customer` is
+       * recorded so an audit trail never claims a staff member did it; `id` is empty
+       * because there is no account to point at.
+       */
+      actor: { userId: '', email: guest.email.trim().toLowerCase(), role: Role.Customer },
+    });
+  }
+
   /** Admin-entered order (phone sale, manual entry, fixtures). */
   async createManual(
     actor: AuthenticatedUser,
@@ -1574,6 +1603,32 @@ export class OrdersService {
     });
 
     return createPaginatedResult(items.map((order) => this.toView(order)), query.page, query.limit, total);
+  }
+
+  /**
+   * Guest order lookup — the confirmation screen, after checkout with no account.
+   *
+   * A guest has no token to prove ownership and no login to come back with, so the
+   * **order number plus the email it was placed with** act as the bearer
+   * capability: both have to match one order. That keeps the endpoint safe to expose
+   * publicly (an id alone reveals nothing, and a wrong email is the same 404 as a
+   * wrong number — no probing which orders exist).
+   *
+   * Orders that *do* belong to an account still require that account's token here:
+   * knowing somebody's email must never be enough to read their order.
+   */
+  async getForGuest(orderNumber: string, email: string): Promise<OrderView> {
+    const order = await this.ordersRepository.findByOrderNumber(orderNumber.trim());
+
+    const emailMatches =
+      order !== null &&
+      order.customerEmail.toLowerCase() === email.trim().toLowerCase();
+
+    if (!order || !emailMatches || order.userId !== null) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return this.toView(order);
   }
 
   async getForCustomer(id: string, user: AuthenticatedUser): Promise<OrderView> {

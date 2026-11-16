@@ -212,11 +212,60 @@ id is refused), plays a CSS-only checkmark animation (respecting
 
 ## 8. Deliberately not built
 
-- **Guest cart / guest checkout.** The cart is keyed by `userId`; merging an anonymous
-  basket into an account is a real feature with real edge cases, not a shortcut to fake.
+- ~~**Guest cart / guest checkout.**~~ **Built later** — see §9. The cart is still a
+  server-side cart, but it is now keyed by an *owner* (`cart:<userId>` or
+  `guest:<token>`) rather than by a user, so an anonymous shopper can fill a basket and
+  check out, and signing in merges the two.
 - **Wishlist, save-for-later, buy-now.** No endpoints, so no buttons.
 - **Multi-currency.** Settings intentionally lock the currency once money exists.
 - **Saved payment methods / card vaulting.** Card data never touches this store — the
   gateway hosts the form.
 - **Coupon auto-suggestions at checkout.** The offers page lists them; guessing which one
   the customer wants would be a second pricing opinion.
+
+## 9. Follow-up — guest cart and guest checkout
+
+Added after this phase shipped, because the missing journey was the highest drop-off
+in the storefront: nothing could be bought without creating an account first. The
+UI/UX record of *why* is in `docs/UI-UX-AUDIT.md` (sixth pass); this section is the
+contract.
+
+### Owner-keyed carts
+
+| | |
+| --- | --- |
+| Owner key | `cart:<userId>` for an account, `guest:<token>` for a browser. Legacy documents hold the bare user id — the repository matches both, so no migration was needed. |
+| Guest token | 32 random bytes from `crypto.getRandomValues`, base64url, generated in the browser and sent as the `x-cart-id` header. Validated by shape (`^[A-Za-z0-9_-]{24,64}$`), never trusted for anything but addressing one cart. |
+| Precedence | A token always wins over a stale `x-cart-id`, so a shared computer cannot put items in the wrong cart. |
+| Lifecycle | Guest carts are retired (not deleted) on merge, so a replayed token cannot resurrect the basket; they expire 60 days after `updatedAt` via a partial TTL index on `userId: null`. |
+| Merge | `POST /api/cart/merge` (account required). Union by product, quantities summed, `addedAt` earliest, `priceAtAdd` cheapest, clamped to live stock and `MAX_QUANTITY`, account coupon preferred. Returns the account's cart whether or not there was anything to merge. |
+
+### Guest checkout
+
+- `preview`/`place` accept **exactly one** of `addressId` or `guestAddress`; mixing and
+  a guest sending `addressId` are both `400`. `place` additionally needs `guestEmail`.
+- Guest addresses are validated by `GuestAddressDto` with the address book's own rules.
+- `OrdersService.createForGuest` writes `customer.userId: null` and the typed email, so
+  the existing `order_placed` notification reaches the shopper and an operator sees the
+  order in the console like any other.
+- `PaymentsService.assertOwnership` skips the owner check when `payment.userId` is null:
+  a guest attempt is proven by the gateway order id and signature, not by an account.
+- `GET /api/orders/guest?orderNumber=&email=` (`@Public`, 10/min) reads a guest order
+  back. Both halves must match, and orders with a `userId` are refused — so a
+  confirmation page survives a reload without exposing an account's order.
+
+### Verification
+
+| Suite | Result |
+| --- | --- |
+| Backend `npm run verify` | typecheck, lint, **286 unit**, **372 e2e**, production build — green |
+| `test/guest-cart.e2e-spec.ts` | 19 — cart CRUD and pricing, two guests apart, signed-in cart unreachable, account-over-token, merge (sum / retire / clamp / unknown token / 401), checkout (place, stock, cart cleared, address rules, no leakage), guest lookup (match, case-insensitive, 404s, account order refused) |
+| Frontend `npm run verify` | typegen, `tsc`, eslint `--max-warnings=0`, production build — green |
+
+### Still not built
+
+- **Guest → account address carry-over.** The typed address is not offered back as a
+  saved address after sign-up.
+- **Coupon application for a guest in the demo server** — the real API supports it; the
+  preview fixture answers with an explicit "not available in the demo" instead of faking
+  a discount.

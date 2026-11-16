@@ -5,16 +5,14 @@
 /**
  * "Add to cart" for a product page.
  *
- * Signing in is required by the API (the cart is per account), so a signed-out
- * click takes the shopper to the sign-in screen and brings them straight back —
- * the product page is in the `next` parameter, nothing is lost.
+ * Works signed out: the cart is keyed to the guest id this browser holds, so the
+ * shopper never leaves the product page to create an account. If they sign in
+ * later, the basket merges into the account instead of being lost.
  */
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import { Loader2, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/cart.store";
-import { useCustomerAuthStore } from "@/store/customer-auth.store";
 
 export function AddToCartButton({
   productId,
@@ -27,19 +25,10 @@ export function AddToCartButton({
   stock: number;
   className?: string;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const addItem = useCartStore((state) => state.addItem);
-  const authStatus = useCustomerAuthStore((state) => state.status);
   const [adding, setAdding] = useState(false);
 
   const onClick = async () => {
-    if (authStatus === "unauthenticated") {
-      router.push(`/login?next=${encodeURIComponent(pathname || "/products")}`);
-
-      return;
-    }
-
     setAdding(true);
     await addItem(productId, 1);
     setAdding(false);

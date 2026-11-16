@@ -9,18 +9,17 @@
  * (open the detail view), so buying two things meant two round trips. This sits
  * on the card image and adds the product without leaving the grid.
  *
- * Behaviour mirrors `AddToCartButton`, deliberately: the API's cart is per
- * account, so a signed-out click sends the shopper to sign in with the current
- * page in `next` and nothing is lost. The control is a sibling of the card's
- * link, never a child, because a button inside an anchor is invalid HTML and
- * unreachable by keyboard in some browsers.
+ * Works signed out. The API addresses an anonymous basket by the cart id this
+ * browser holds (see `lib/store/guest-cart.ts`), so a shopper can fill a cart
+ * before deciding whether to make an account — signing in later merges it.
+ *
+ * The control is a sibling of the card's link, never a child, because a button
+ * inside an anchor is invalid HTML and unreachable by keyboard in some browsers.
  */
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import { Check, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/cart.store";
-import { useCustomerAuthStore } from "@/store/customer-auth.store";
 import { toast } from "@/store/toast.store";
 
 type Phase = "idle" | "adding" | "added";
@@ -36,19 +35,10 @@ export function QuickAdd({
   productName: string;
   className?: string;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const addItem = useCartStore((state) => state.addItem);
-  const authStatus = useCustomerAuthStore((state) => state.status);
   const [phase, setPhase] = useState<Phase>("idle");
 
   const onClick = async () => {
-    if (authStatus === "unauthenticated") {
-      router.push(`/login?next=${encodeURIComponent(pathname || "/products")}`);
-
-      return;
-    }
-
     setPhase("adding");
 
     const added = await addItem(productId, 1);

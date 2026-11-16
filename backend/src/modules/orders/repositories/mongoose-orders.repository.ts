@@ -46,6 +46,12 @@ export class MongooseOrdersRepository implements OrdersRepository {
     return `ORD-${day}-${sequence}`;
   }
 
+  async findByOrderNumber(orderNumber: string): Promise<OrderRecord | null> {
+    const document = await this.orderModel.findOne({ orderNumber }).lean().exec();
+
+    return document ? toRecord(document as AnyDocument) : null;
+  }
+
   async create(input: CreateOrderInput): Promise<OrderRecord | null> {
     try {
       const document = await this.orderModel.create(toDocumentInput(input));

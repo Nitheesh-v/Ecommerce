@@ -225,6 +225,9 @@ export abstract class OrdersRepository {
 
   abstract findById(id: string): Promise<OrderRecord | null>;
 
+  /** By human-facing order number (`ORD-YYYYMMDD-NNNN`) — guest status lookups. */
+  abstract findByOrderNumber(orderNumber: string): Promise<OrderRecord | null>;
+
   abstract findByIdempotencyKey(key: string): Promise<OrderRecord | null>;
 
   abstract list(filter: OrderListFilter): Promise<{ items: OrderRecord[]; total: number }>;

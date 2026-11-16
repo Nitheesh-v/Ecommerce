@@ -5,7 +5,16 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { IS_PUBLIC_KEY } from '../../../common/constants/metadata-keys.js';
+import {
+  ALLOW_GUEST_KEY,
+  IS_PUBLIC_KEY,
+} from '../../../common/constants/metadata-keys.js';
+import {
+  GUEST_CART_HEADER,
+  GUEST_CHECKOUT_HEADER,
+  resolveCartId,
+  userCartId,
+} from '../../../common/utils/cart-identity.util.js';
 import type { RequestWithContext } from '../../../common/interfaces/request-with-context.interface.js';
 import { TokenService } from '../services/token.service.js';
 
@@ -37,6 +46,19 @@ export class JwtAuthGuard implements CanActivate {
         return true;
       }
 
+      if (this.allowsGuest(context)) {
+        const cartId = resolveCartId({
+          cartHeader: request.headers[GUEST_CART_HEADER],
+          guestCheckoutHeader: request.headers[GUEST_CHECKOUT_HEADER],
+        });
+
+        if (cartId) {
+          request.cartId = cartId;
+
+          return true;
+        }
+      }
+
       throw new UnauthorizedException('Authentication required');
     }
 
@@ -48,6 +70,12 @@ export class JwtAuthGuard implements CanActivate {
         role: payload.role,
       };
 
+      // A signed-in caller always uses their own cart, whatever a stale guest id
+      // in the browser says. The account wins.
+      if (this.allowsGuest(context)) {
+        request.cartId = userCartId(payload.sub);
+      }
+
       return true;
     } catch {
       if (isPublic) {
@@ -58,6 +86,16 @@ export class JwtAuthGuard implements CanActivate {
 
       throw new UnauthorizedException('Invalid or expired access token');
     }
+  }
+
+  /** `@AllowGuest()` on the handler or the controller. */
+  private allowsGuest(context: ExecutionContext): boolean {
+    return Boolean(
+      this.reflector.getAllAndOverride<boolean>(ALLOW_GUEST_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]),
+    );
   }
 }
 

@@ -28,11 +28,29 @@ the real API (`src/types/*`), plus `/uploads/<file>` for the images in
 `next.config.ts` allow-lists for `next/image`, so the preview exercises the real
 image pipeline instead of bypassing it.
 
+## The guest journey
+
+The one write path it does implement is the **guest cart and guest checkout**, in
+memory, because that feature's whole value is a journey with no account in it — it
+cannot be reviewed against static fixtures at all. It follows the live contract
+exactly:
+
+| Route | Notes |
+| --- | --- |
+| `GET /api/cart`, `POST /api/cart/items`, `PATCH|DELETE /api/cart/items/:id`, `DELETE /api/cart` | Owner comes from `x-cart-id` (or any `Authorization` header, which maps to one demo account). No identity → `401`, like the real guard. |
+| `POST /api/checkout/preview`, `POST /api/checkout/place` | Requires `guestAddress`; `place` also needs `guestEmail`. Every amount is computed here from the catalogue and `SETTINGS`, never accepted from the client. The cart is emptied on place, as the real checkout does. |
+| `GET /api/orders/guest` | The lookup the confirmation page uses: order number **and** email must match. |
+| `POST /api/cart/merge` | Retires the guest cart; there is only one demo account, so nothing is unioned. |
+| `POST /api/cart/coupon` | Deliberately `400`: coupons need the coupon module. Better a plain refusal than a fake discount. |
+
+Carts and orders live in a `Map`, so **restarting the server empties them**. That is
+correct for a demo with no database.
+
 ## What it does not do
 
-No writes, no auth, no cart, no checkout, no admin. Those flows have their own
-tests (`cd ../backend && npm run test:e2e`) and run against the real API; a
-fixture that half-implemented them would be a second, wrong specification.
+No auth, no admin, no real coupons. Those flows have their own tests
+(`cd ../backend && npm run test:e2e`) and run against the real API; a fixture that
+half-implemented them would be a second, wrong specification.
 
 Nothing here ships: `scripts/` and `public/demo/` are preview-only and are never
 imported by application code.

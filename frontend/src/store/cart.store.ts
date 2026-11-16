@@ -5,6 +5,7 @@
 import { create } from "zustand";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/api/errors";
 import { session } from "@/lib/api/session";
+import { guestCart } from "@/lib/store/guest-cart";
 import { cartService } from "@/services/store/cart.service";
 import { toast } from "@/store/toast.store";
 import type { Cart } from "@/types/cart";
@@ -37,6 +38,8 @@ interface CartState {
   applyCoupon: (code: string) => Promise<boolean>;
   removeCoupon: () => Promise<void>;
   reset: () => void;
+  /** Hands this browser's guest cart to the account that just signed in. */
+  mergeGuestCart: () => Promise<void>;
 }
 
 /** Writes waiting out the debounce window, one per product. */
@@ -105,8 +108,11 @@ export const useCartStore = create<CartState>((set, get) => {
       try {
         apply(await cartService.getCart());
       } catch (error) {
+        // 401 here means this browser has neither a token nor a guest id — a
+        // storage-blocked browser. Show an empty cart rather than an error: the
+        // shopper can still shop, the basket simply will not persist.
         if (getApiErrorStatus(error) === 401) {
-          set({ cart: null, status: "signed-out", itemCount: 0, error: null });
+          set({ cart: null, status: "ready", itemCount: 0, error: null });
 
           return;
         }
@@ -119,6 +125,8 @@ export const useCartStore = create<CartState>((set, get) => {
       cancelPendingQuantity(productId);
 
       try {
+        // Works signed out: the request carries the guest cart id, so a shopper
+        // never has to create an account to fill a basket.
         const cart = await cartService.addToCart({ productId, quantity });
 
         apply(cart);
@@ -126,13 +134,6 @@ export const useCartStore = create<CartState>((set, get) => {
 
         return true;
       } catch (error) {
-        if (getApiErrorStatus(error) === 401) {
-          set({ status: "signed-out", cart: null, itemCount: 0 });
-          toast.error("Sign in to add items to your cart");
-
-          return false;
-        }
-
         fail(error);
 
         return false;
@@ -242,6 +243,32 @@ export const useCartStore = create<CartState>((set, get) => {
       }
     },
 
+    mergeGuestCart: async () => {
+      const guestToken = guestCart.peek();
+
+      if (!guestToken) {
+        // Nothing to merge; just show the account's cart.
+        await get().fetchCart();
+
+        return;
+      }
+
+      try {
+        apply(await cartService.mergeGuestCart(guestToken));
+      } catch (error) {
+        // The account's cart is still there; a failed merge must not look like a
+        // failed sign-in, so this is silent and the token is kept for a retry.
+        if (getApiErrorStatus(error) !== 401) {
+          toast.error(getApiErrorMessage(error));
+        }
+
+        return;
+      }
+
+      // The server retired that cart, so this token is spent.
+      guestCart.clear();
+    },
+
     reset: () => {
       cancelAllPendingQuantities();
       set({
@@ -274,7 +301,9 @@ function wireSession(): void {
 
   session.subscribe((payload) => {
     if (payload) {
-      void useCartStore.getState().fetchCart();
+      // Signing in adopts whatever this browser was shopping with, then shows the
+      // merged cart — the shopper does not lose a basket by signing in.
+      void useCartStore.getState().mergeGuestCart();
     } else {
       useCartStore.getState().reset();
     }

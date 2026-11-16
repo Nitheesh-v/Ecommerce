@@ -6,9 +6,16 @@
  * renders from, with fixtures shaped exactly like the real contracts
  * (`frontend/src/types/*`), so the UI can be reviewed end to end.
  *
- * It deliberately implements no writes: the cart, checkout and admin flows are
- * already covered by the repo's own test suite. Anything unhandled returns a 404
- * in the real API's error envelope, which is also what "not built" should look like.
+ * The **guest cart and guest checkout** routes are implemented for real (in memory,
+ * per server run), because the whole point of that feature is a journey with no
+ * account in it — it cannot be reviewed against static fixtures. They follow the
+ * live API's contract exactly (`frontend/src/types/cart.ts`): the cart is addressed
+ * by the `x-cart-id` header, and every amount is computed here, never sent by the
+ * client. Anything else that would write still returns the real API's 404 envelope,
+ * which is also what "not built" should look like.
+ *
+ * Restarting the server empties every cart. That is the correct behaviour for a
+ * demo that owns no database, and it is stated on the cart page it feeds.
  */
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -331,6 +338,176 @@ const MIME = {
   ".ico": "image/x-icon",
 };
 
+
+// ---------------------------------------------------------------- guest carts
+
+/**
+ * One cart per owner key (`guest:<token>` or `cart:<userId>`), in memory.
+ *
+ * The real API keys carts the same way; here the map is all there is, so a restart
+ * forgets everything — see the header comment.
+ */
+const GUEST_CARTS = new Map();
+const GUEST_ORDERS = new Map();
+let guestOrderSequence = 0;
+
+const MAX_QUANTITY = 10;
+
+const apiError = (statusCode, message) => ({
+  success: false,
+  statusCode,
+  error: statusCode === 400 ? "Bad Request" : statusCode === 401 ? "Unauthorized" : "Not Found",
+  message,
+});
+
+function readBody(request) {
+  return new Promise((resolve) => {
+    let raw = "";
+
+    request.on("data", (chunk) => {
+      raw += chunk;
+
+      if (raw.length > 1_000_000) {
+        request.destroy();
+      }
+    });
+    request.on("end", () => {
+      try {
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch {
+        resolve({});
+      }
+    });
+    request.on("error", () => resolve({}));
+  });
+}
+
+/** The owner key for this request: an `Authorization` header wins, else `x-cart-id`. */
+function cartOwner(request) {
+  const authorized = Boolean(request.headers.authorization);
+
+  if (authorized) {
+    return { key: "cart:demo-customer", authenticated: true };
+  }
+
+  const guestId = String(request.headers["x-cart-id"] ?? "").trim();
+
+  if (!/^[A-Za-z0-9_-]{24,64}$/.test(guestId)) {
+    return null;
+  }
+
+  return { key: `guest:${guestId}`, authenticated: false };
+}
+
+function cartFor(owner) {
+  if (!GUEST_CARTS.has(owner.key)) {
+    GUEST_CARTS.set(owner.key, { lines: [], updatedAt: new Date().toISOString() });
+  }
+
+  return GUEST_CARTS.get(owner.key);
+}
+
+/**
+ * Prices the cart the way the API does: live catalogue prices, tax and shipping from
+ * store settings, and nothing trusted from the browser.
+ */
+function renderCart(owner) {
+  const cart = cartFor(owner);
+  const items = [];
+  let goodsValue = 0;
+
+  for (const line of cart.lines) {
+    const product = PRODUCTS.find((item) => item.id === line.productId);
+
+    if (!product) {
+      continue;
+    }
+
+    const unitPrice = product.effectivePrice;
+    const available = product.inStock && product.stock > 0;
+
+    if (available) {
+      goodsValue += unitPrice * line.quantity;
+    }
+
+    items.push({
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      sku: product.sku,
+      imageUrl: product.images?.[0]?.url ?? null,
+      quantity: line.quantity,
+      unitPrice,
+      listPrice: product.price,
+      lineTotal: unitPrice * line.quantity,
+      stock: product.stock,
+      available,
+      unavailableReason: available ? null : "Out of stock",
+    });
+  }
+
+  const freeShippingThreshold = 149_900;
+  const shippingCharge = goodsValue === 0 || goodsValue >= freeShippingThreshold ? 0 : 9_900;
+  const taxRatePercent = 5;
+  const taxAmount = Math.round(goodsValue * (taxRatePercent / 100));
+
+  return {
+    items,
+    totals: {
+      itemCount: items.reduce((sum, item) => sum + (item.available ? item.quantity : 0), 0),
+      subtotal: items.reduce((sum, item) => sum + item.listPrice * item.quantity, 0),
+      goodsValue,
+      discountTotal: items.reduce(
+        (sum, item) => sum + (item.listPrice - item.unitPrice) * item.quantity,
+        0,
+      ),
+      couponDiscount: 0,
+      shippingCharge,
+      taxAmount,
+      taxRatePercent,
+      total: goodsValue + shippingCharge + taxAmount,
+      currency: "INR",
+      freeShippingThreshold,
+      freeShippingGap: Math.max(0, freeShippingThreshold - goodsValue),
+    },
+    coupon: null,
+    couponIssue: null,
+    unavailableCount: items.filter((item) => !item.available).length,
+    updatedAt: cart.lines.length ? cart.updatedAt : null,
+  };
+}
+
+function addToCart(owner, productId, quantity) {
+  const product = PRODUCTS.find((item) => item.id === productId);
+
+  if (!product) {
+    return { error: "Product not found" };
+  }
+
+  if (!product.inStock || product.stock <= 0) {
+    return { error: `${product.name} is out of stock` };
+  }
+
+  const cart = cartFor(owner);
+  const existing = cart.lines.find((line) => line.productId === productId);
+  const wanted = (existing?.quantity ?? 0) + quantity;
+  const capped = Math.min(wanted, product.stock, MAX_QUANTITY);
+
+  if (capped < 1) {
+    return { error: "That quantity is not available" };
+  }
+
+  if (existing) {
+    existing.quantity = capped;
+  } else {
+    cart.lines.push({ productId, quantity: capped });
+  }
+
+  cart.updatedAt = new Date().toISOString();
+
+  return { cart: renderCart(owner) };
+}
+
 const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
   const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -460,6 +637,283 @@ const server = createServer(async (request, response) => {
             error: "Not Found",
             message: "Category not found",
           });
+    }
+
+    // ------------------------------------------------------------ guest cart
+
+    if (api === "/cart" || api.startsWith("/cart/")) {
+      const owner = cartOwner(request);
+
+      if (!owner) {
+        // The real guard's answer: neither a token nor a well-formed guest id.
+        return send(401, apiError(401, "Sign in or send an x-cart-id header"));
+      }
+
+      if (request.method === "GET" && api === "/cart") {
+        return send(200, ok(renderCart(owner)));
+      }
+
+      if (request.method === "DELETE" && api === "/cart") {
+        cartFor(owner).lines = [];
+
+        return send(200, ok(renderCart(owner)));
+      }
+
+      if (request.method === "POST" && api === "/cart/items") {
+        const body = await readBody(request);
+        const quantity = Number(body.quantity ?? 1);
+
+        if (!Number.isInteger(quantity) || quantity < 1) {
+          return send(400, apiError(400, "quantity must be a positive integer"));
+        }
+
+        const result = addToCart(owner, body.productId, quantity);
+
+        return result.error
+          ? send(400, apiError(400, result.error))
+          : send(200, ok(result.cart));
+      }
+
+      const itemMatch = api.match(/^\/cart\/items\/([^/]+)$/);
+
+      if (itemMatch) {
+        const productId = decodeURIComponent(itemMatch[1]);
+        const cart = cartFor(owner);
+        const line = cart.lines.find((entry) => entry.productId === productId);
+
+        if (!line) {
+          return send(404, apiError(404, "That item is not in the cart"));
+        }
+
+        if (request.method === "DELETE") {
+          cart.lines = cart.lines.filter((entry) => entry.productId !== productId);
+          cart.updatedAt = new Date().toISOString();
+
+          return send(200, ok(renderCart(owner)));
+        }
+
+        if (request.method === "PATCH") {
+          const body = await readBody(request);
+          const quantity = Number(body.quantity);
+
+          if (!Number.isInteger(quantity) || quantity < 1) {
+            return send(400, apiError(400, "quantity must be a positive integer"));
+          }
+
+          const product = PRODUCTS.find((item) => item.id === productId);
+          const capped = Math.min(quantity, product?.stock ?? quantity, MAX_QUANTITY);
+
+          line.quantity = capped;
+          cart.updatedAt = new Date().toISOString();
+
+          return send(200, ok(renderCart(owner)));
+        }
+      }
+
+      if (request.method === "POST" && api === "/cart/merge") {
+        // Nothing is merged here (there is only ever one demo account), but the
+        // guest cart it points at is retired exactly like the real one.
+        const body = await readBody(request);
+        const guestId = String(body.guestCartId ?? "").trim();
+
+        GUEST_CARTS.delete(`guest:${guestId}`);
+
+        return send(200, ok(renderCart(owner)));
+      }
+
+      if (request.method === "POST" && api === "/cart/coupon") {
+        // Coupons need the coupon module; the real API validates them. Say so plainly
+        // instead of pretending the code applied.
+        return send(400, apiError(400, "Coupons are not available in the demo"));
+      }
+
+      return send(404, apiError(404, `The demo API does not implement ${request.method} ${api}`));
+    }
+
+    // -------------------------------------------------------- guest checkout
+
+    if (api === "/checkout/preview" || api === "/checkout/place") {
+      const owner = cartOwner(request);
+
+      if (!owner) {
+        return send(401, apiError(401, "Sign in or send an x-cart-id header"));
+      }
+
+      const body = await readBody(request);
+      const cart = renderCart(owner);
+
+      if (cart.items.length === 0) {
+        return send(400, apiError(400, "Your cart is empty"));
+      }
+
+      const guest = body.guestAddress;
+
+      if (!guest) {
+        return send(
+          400,
+          apiError(400, "This demo only checks out guest orders — fill in the delivery details"),
+        );
+      }
+
+      const missing = ["recipientName", "phone", "line1", "city", "state", "postalCode"].filter(
+        (field) => !String(guest[field] ?? "").trim(),
+      );
+
+      if (missing.length > 0) {
+        return send(400, apiError(400, `Address is missing: ${missing.join(", ")}`));
+      }
+
+      const paymentMethod = body.paymentMethod === "cod" ? "cod" : "online";
+      const address = {
+        id: "guest-address",
+        label: "Delivery",
+        recipientName: guest.recipientName,
+        phone: guest.phone,
+        line1: guest.line1,
+        line2: guest.line2 ?? null,
+        city: guest.city,
+        state: guest.state,
+        postalCode: guest.postalCode,
+        country: guest.country ?? "India",
+      };
+      const paymentOptions = {
+        codAvailable: Boolean(SETTINGS.codEnabled),
+        codMaxAmount: SETTINGS.codMaxAmount ?? 0,
+        onlineAvailable: false,
+        currency: SETTINGS.currency ?? "INR",
+      };
+      const estimatedDelivery = new Date(Date.now() + 4 * 86_400_000).toISOString();
+
+      if (api === "/checkout/preview") {
+        return send(
+          200,
+          ok({
+            items: cart.items.map((item) => ({
+              productId: item.productId,
+              name: item.name,
+              slug: item.slug,
+              sku: item.sku,
+              imageUrl: item.imageUrl,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              listPrice: item.listPrice,
+              lineTotal: item.lineTotal,
+            })),
+            totals: cart.totals,
+            coupon: null,
+            address,
+            paymentMethod,
+            paymentOptions,
+            shippingMethod: "standard",
+            estimatedDelivery,
+          }),
+        );
+      }
+
+      if (!String(body.guestEmail ?? "").trim()) {
+        return send(400, apiError(400, "An email is needed for the confirmation"));
+      }
+
+      guestOrderSequence += 1;
+
+      const orderId = `demo-order-${guestOrderSequence}`;
+      const orderNumber = `ORD-${new Date()
+        .toISOString()
+        .slice(0, 10)
+        .replace(/-/g, "")}-${String(guestOrderSequence).padStart(4, "0")}`;
+
+      GUEST_ORDERS.set(orderId, {
+        id: orderId,
+        orderNumber,
+        customerName: address.recipientName,
+        customerEmail: String(body.guestEmail).trim(),
+        items: cart.items.map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          slug: item.slug,
+          sku: item.sku,
+          imageUrl: item.imageUrl,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          lineTotal: item.lineTotal,
+        })),
+        subtotal: cart.totals.subtotal,
+        discountTotal: cart.totals.discountTotal,
+        couponCode: null,
+        couponDiscount: 0,
+        shippingCharge: cart.totals.shippingCharge,
+        taxAmount: cart.totals.taxAmount,
+        taxRatePercent: cart.totals.taxRatePercent,
+        total: cart.totals.total,
+        currency: cart.totals.currency,
+        shippingAddress: {
+          recipientName: address.recipientName,
+          phone: address.phone,
+          line1: address.line1,
+          line2: address.line2,
+          city: address.city,
+          state: address.state,
+          postalCode: address.postalCode,
+          country: address.country,
+        },
+        shippingMethod: "standard",
+        paymentMethod: paymentMethod === "cod" ? "cod" : "manual",
+        paymentStatus: "pending",
+        status: "pending",
+        payment: { method: paymentMethod, paidAmount: 0, refunds: [] },
+        returns: [],
+        itemCount: cart.totals.itemCount,
+        refundedAmount: 0,
+        pendingRefundAmount: 0,
+        balanceDue: cart.totals.total,
+        allowedNextStatuses: [],
+        canCancel: true,
+        canRequestReturn: false,
+        activeReturn: null,
+        history: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // The real checkout clears the cart in the same operation as the order.
+      cartFor(owner).lines = [];
+
+      return send(
+        201,
+        ok({
+          orderId,
+          orderNumber,
+          paymentMethod,
+          status: "pending",
+          paymentStatus: "pending",
+          requiresPayment: false,
+          paymentUrl: `/checkout/success?orderId=${orderId}`,
+          totals: {
+            subtotal: cart.totals.subtotal,
+            couponDiscount: 0,
+            discountTotal: cart.totals.discountTotal,
+            taxAmount: cart.totals.taxAmount,
+            shippingCharge: cart.totals.shippingCharge,
+            total: cart.totals.total,
+            currency: cart.totals.currency,
+          },
+          payment: null,
+          created: true,
+        }),
+      );
+    }
+
+    if (api === "/orders/guest") {
+      const orderNumber = url.searchParams.get("orderNumber") ?? "";
+      const email = (url.searchParams.get("email") ?? "").trim().toLowerCase();
+      const order = [...GUEST_ORDERS.values()].find(
+        (entry) =>
+          entry.orderNumber === orderNumber && entry.customerEmail.toLowerCase() === email,
+      );
+
+      return order
+        ? send(200, ok(order))
+        : send(404, apiError(404, "Order not found"));
     }
 
     if (api === "/store/settings") {

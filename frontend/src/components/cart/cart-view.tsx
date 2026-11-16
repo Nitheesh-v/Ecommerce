@@ -5,16 +5,17 @@
 /**
  * The cart page.
  *
- * Signed-out shoppers are *invited* to sign in rather than bounced to `/login`: a
- * cart is per-account on the server, but the page itself is perfectly readable and
- * a forced redirect would lose the visitor's place.
+ * Works for everyone. A signed-in shopper's cart is keyed to their account; a
+ * signed-out one is keyed to the guest id this browser holds, so the page shows a
+ * real basket either way. Signing in is offered — and rewarded, because the guest
+ * cart merges into the account — but never required to shop.
  */
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
   ArrowRight,
-  LogIn,
+  Info,
   RefreshCw,
   ShoppingBag,
   Trash2,
@@ -48,8 +49,17 @@ export function CartView() {
     void bootstrap();
   }, [bootstrap]);
 
+  /*
+   * The cart is loaded whichever way the shopper arrived. The only wait worth a
+   * skeleton is the session check: until the customer store has restored (or ruled
+   * out) a session, a fetch would ask for the wrong cart and then be replaced.
+   */
   useEffect(() => {
-    if (authStatus === "authenticated" && status === "idle") {
+    if (authStatus === "idle" || authStatus === "loading") {
+      return;
+    }
+
+    if (status === "idle") {
       void fetchCart();
     }
   }, [authStatus, fetchCart, status]);
@@ -57,44 +67,11 @@ export function CartView() {
   const loading =
     authStatus === "idle" ||
     authStatus === "loading" ||
-    (authStatus === "authenticated" && (status === "idle" || status === "loading"));
+    status === "idle" ||
+    status === "loading";
 
   if (loading) {
     return <CartSkeleton />;
-  }
-
-  if (authStatus === "unauthenticated" || status === "signed-out") {
-    return (
-      <div className="mx-auto max-w-md rounded-2xl border border-cream-300 bg-cream-50 px-6 py-12 text-center">
-        <LogIn className="mx-auto h-7 w-7 text-cream-400" aria-hidden />
-        <h1 className="mt-3 text-lg font-semibold tracking-tight text-bark-900">
-          Sign in to view your cart
-        </h1>
-        <p className="mt-1.5 text-sm text-bark-500">
-          Your cart is saved to your account, so it is the same on every device.
-        </p>
-        <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
-          <Link
-            href="/login?next=%2Fcart"
-            className="inline-flex items-center justify-center rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 transition-colors hover:bg-baby-300"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/register?next=%2Fcart"
-            className="inline-flex items-center justify-center rounded-lg border border-cream-300 px-4 py-2 text-sm font-medium text-bark-800 transition-colors hover:bg-cream-100"
-          >
-            Create an account
-          </Link>
-        </div>
-        <Link
-          href="/products"
-          className="mt-4 inline-block text-xs font-medium text-bark-500 hover:text-bark-900"
-        >
-          Keep browsing products
-        </Link>
-      </div>
-    );
   }
 
   if (status === "error") {
@@ -140,9 +117,25 @@ export function CartView() {
 
   const blocked = cart.unavailableCount > 0;
   const showIssue = cart.couponIssue !== null && dismissedIssue !== cart.couponIssue;
+  const isGuest = authStatus !== "authenticated";
 
   return (
     <div className="space-y-4">
+      {isGuest ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-baby-200 bg-baby-50 px-3 py-2.5">
+          <p className="flex items-start gap-2 text-xs text-bark-800">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-baby-700" aria-hidden />
+            This cart is saved in this browser. Sign in and it comes with you.
+          </p>
+          <Link
+            href="/login?next=%2Fcart"
+            className="shrink-0 rounded-lg border border-bark-900/15 bg-cream-50 px-2.5 py-1 text-[11px] font-semibold text-bark-900 transition-colors hover:bg-cream-100"
+          >
+            Sign in
+          </Link>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-bark-900">

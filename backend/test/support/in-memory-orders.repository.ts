@@ -117,6 +117,12 @@ export class InMemoryOrdersRepository implements OrdersRepository {
     return order ? { ...order } : null;
   }
 
+  async findByOrderNumber(orderNumber: string): Promise<OrderRecord | null> {
+    return (
+      [...this.orders.values()].find((order) => order.orderNumber === orderNumber) ?? null
+    );
+  }
+
   async findByIdempotencyKey(key: string): Promise<OrderRecord | null> {
     const order = [...this.orders.values()].find((entry) => entry.idempotencyKey === key);
 

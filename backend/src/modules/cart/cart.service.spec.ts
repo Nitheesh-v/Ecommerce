@@ -19,6 +19,10 @@ const USER: AuthenticatedUser = {
   role: Role.Customer,
 };
 
+/** A signed-in caller's cart identity — the shape the guard attaches. */
+const OWNER = { cartId: 'cart:user-1', user: USER };
+const GUEST = { cartId: 'guest:abcdefghijklmnopqrstuvwxyz012345', user: null };
+
 const PRICING: PricingConfig = {
   currency: 'INR',
   taxRatePercent: 18,
@@ -31,41 +35,53 @@ class FakeCartsRepository implements CartsRepository {
   carts = new Map<string, CartRecord>();
   private counter = 0;
 
-  async findByUser(userId: string): Promise<CartRecord | null> {
-    const cart = this.carts.get(userId);
+  async findByOwner(ownerId: string): Promise<CartRecord | null> {
+    const cart = this.carts.get(ownerId);
 
-    return cart ? { ...cart, items: cart.items.map((item) => ({ ...item })) } : null;
+    return cart && !cart.retiredAt
+      ? { ...cart, items: cart.items.map((item) => ({ ...item })) }
+      : null;
+  }
+
+  async retire(ownerId: string): Promise<void> {
+    const cart = this.carts.get(ownerId);
+
+    if (cart) {
+      this.carts.set(ownerId, { ...cart, retiredAt: new Date() });
+    }
   }
 
   async save(
-    userId: string,
+    ownerId: string,
     items: CartItemRecord[],
     couponCode: string | null,
   ): Promise<CartRecord> {
     this.counter += 1;
     const cart: CartRecord = {
       id: `cart-${this.counter}`,
-      userId,
+      ownerId,
+      userId: ownerId.startsWith('cart:') ? ownerId.slice('cart:'.length) : null,
+      retiredAt: null,
       items: items.map((item) => ({ ...item })),
       couponCode,
       updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     };
 
-    this.carts.set(userId, cart);
+    this.carts.set(ownerId, cart);
 
     return { ...cart, items: cart.items.map((item) => ({ ...item })) };
   }
 
-  async setCoupon(userId: string, couponCode: string | null): Promise<void> {
-    const cart = this.carts.get(userId);
+  async setCoupon(ownerId: string, couponCode: string | null): Promise<void> {
+    const cart = this.carts.get(ownerId);
 
     if (cart) {
-      this.carts.set(userId, { ...cart, couponCode });
+      this.carts.set(ownerId, { ...cart, couponCode });
     }
   }
 
-  async clear(userId: string): Promise<void> {
-    this.carts.delete(userId);
+  async clear(ownerId: string): Promise<void> {
+    this.carts.delete(ownerId);
   }
 }
 
@@ -150,7 +166,7 @@ describe('CartService', () => {
   // ------------------------------------------------------------------- reads
 
   it('returns an empty cart with zeroed totals when nothing has been added', async () => {
-    const cart = await service.getForUser(USER);
+    const cart = await service.getForOwner(OWNER);
 
     expect(cart.items).toEqual([]);
     expect(cart.unavailableCount).toBe(0);
@@ -169,7 +185,7 @@ describe('CartService', () => {
   // --------------------------------------------------------------- mutations
 
   it('adds a product with a snapshot price and no tax-free surprises', async () => {
-    const cart = await service.addItem(USER, { productId: 'p1', quantity: 2 });
+    const cart = await service.addItem(OWNER, { productId: 'p1', quantity: 2 });
 
     expect(cart.items).toHaveLength(1);
     expect(cart.items[0]).toMatchObject({
@@ -180,7 +196,7 @@ describe('CartService', () => {
       lineTotal: 2_40_000,
       available: true,
     });
-    expect(carts.carts.get(USER.id)?.items[0].priceAtAdd).toBe(1_20_000);
+    expect(carts.carts.get(OWNER.cartId)?.items[0].priceAtAdd).toBe(1_20_000);
     // 2 × ₹1200 = ₹2400: above the free-shipping threshold, so no charge.
     expect(cart.totals).toMatchObject({
       itemCount: 2,
@@ -192,8 +208,8 @@ describe('CartService', () => {
   });
 
   it('increments the quantity when the same product is added again', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
-    const cart = await service.addItem(USER, { productId: 'p1', quantity: 2 });
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
+    const cart = await service.addItem(OWNER, { productId: 'p1', quantity: 2 });
 
     expect(cart.items).toHaveLength(1);
     expect(cart.items[0].quantity).toBe(3);
@@ -202,13 +218,13 @@ describe('CartService', () => {
   it('refuses a product that is not published', async () => {
     products.set('p1', product({ status: 'draft' }));
 
-    await expect(service.addItem(USER, { productId: 'p1', quantity: 1 })).rejects.toBeInstanceOf(
+    await expect(service.addItem(OWNER, { productId: 'p1', quantity: 1 })).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
 
   it('refuses a quantity larger than the stock on hand', async () => {
-    await expect(service.addItem(USER, { productId: 'p2', quantity: 4 })).rejects.toBeInstanceOf(
+    await expect(service.addItem(OWNER, { productId: 'p2', quantity: 4 })).rejects.toBeInstanceOf(
       ConflictException,
     );
   });
@@ -216,49 +232,49 @@ describe('CartService', () => {
   it('refuses more than 99 units of one product', async () => {
     products.set('p1', product({ stock: 500 }));
 
-    await expect(service.addItem(USER, { productId: 'p1', quantity: 99 })).resolves.toBeDefined();
-    await expect(service.addItem(USER, { productId: 'p1', quantity: 1 })).rejects.toBeInstanceOf(
+    await expect(service.addItem(OWNER, { productId: 'p1', quantity: 99 })).resolves.toBeDefined();
+    await expect(service.addItem(OWNER, { productId: 'p1', quantity: 1 })).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
 
   it('rejects an unknown product id instead of storing it', async () => {
     await expect(
-      service.addItem(USER, { productId: 'missing', quantity: 1 }),
+      service.addItem(OWNER, { productId: 'missing', quantity: 1 }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('sets a quantity and removes the line when it is set to zero', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
 
-    const updated = await service.updateItem(USER, 'p1', 3);
+    const updated = await service.updateItem(OWNER, 'p1', 3);
 
     expect(updated.items[0].quantity).toBe(3);
 
-    const removed = await service.updateItem(USER, 'p1', 0);
+    const removed = await service.updateItem(OWNER, 'p1', 0);
 
     expect(removed.items).toEqual([]);
   });
 
   it('will not update a product that is not in the cart', async () => {
-    await expect(service.updateItem(USER, 'p1', 1)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.updateItem(OWNER, 'p1', 1)).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('removes one product and reports a missing line', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
-    await service.addItem(USER, { productId: 'p2', quantity: 1 });
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
+    await service.addItem(OWNER, { productId: 'p2', quantity: 1 });
 
-    const cart = await service.removeItem(USER, 'p1');
+    const cart = await service.removeItem(OWNER, 'p1');
 
     expect(cart.items.map((item) => item.productId)).toEqual(['p2']);
-    await expect(service.removeItem(USER, 'p1')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.removeItem(OWNER, 'p1')).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('empties the cart, coupon included', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
-    await service.applyCoupon(USER, 'SAVE10');
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
+    await service.applyCoupon(OWNER, 'SAVE10');
 
-    const cart = await service.clear(USER);
+    const cart = await service.clear(OWNER);
 
     expect(cart.items).toEqual([]);
     expect(cart.coupon).toBeNull();
@@ -268,9 +284,9 @@ describe('CartService', () => {
   // ----------------------------------------------------------------- coupons
 
   it('applies a coupon and shows the discount it produced', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
 
-    const cart = await service.applyCoupon(USER, 'save10');
+    const cart = await service.applyCoupon(OWNER, 'save10');
 
     expect(coupons.quote).toHaveBeenCalledWith(
       expect.objectContaining({ code: 'save10', userId: USER.id, customerEmail: USER.email }),
@@ -288,42 +304,42 @@ describe('CartService', () => {
   });
 
   it('rejects a code on an empty cart before asking the coupon service', async () => {
-    await expect(service.applyCoupon(USER, 'SAVE10')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.applyCoupon(OWNER, 'SAVE10')).rejects.toBeInstanceOf(BadRequestException);
     expect(coupons.quote).not.toHaveBeenCalled();
   });
 
   it('drops a stored coupon that no longer applies and says why', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
-    await service.applyCoupon(USER, 'SAVE10');
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
+    await service.applyCoupon(OWNER, 'SAVE10');
 
     coupons.quote.mockRejectedValueOnce(new BadRequestException('This coupon has expired'));
 
-    const cart = await service.getForUser(USER);
+    const cart = await service.getForOwner(OWNER);
 
     expect(cart.coupon).toBeNull();
     expect(cart.couponIssue).toBe('This coupon has expired');
-    expect(carts.carts.get(USER.id)?.couponCode).toBeNull();
+    expect(carts.carts.get(OWNER.cartId)?.couponCode).toBeNull();
     expect(cart.totals.couponDiscount).toBe(0);
   });
 
   it('removes the coupon on request', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
-    await service.applyCoupon(USER, 'SAVE10');
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
+    await service.applyCoupon(OWNER, 'SAVE10');
 
-    const cart = await service.removeCoupon(USER);
+    const cart = await service.removeCoupon(OWNER);
 
     expect(cart.coupon).toBeNull();
     expect(cart.totals.couponDiscount).toBe(0);
   });
 
   it('waives shipping when the coupon is a free-shipping offer', async () => {
-    await service.addItem(USER, { productId: 'p2', quantity: 1 });
+    await service.addItem(OWNER, { productId: 'p2', quantity: 1 });
     // Used twice: once to validate the code, once to price the cart it was applied to.
     coupons.quote.mockResolvedValue(
       quote({ code: 'SHIPFREE', type: 'free_shipping', discount: 0, freeShipping: true }),
     );
 
-    const cart = await service.applyCoupon(USER, 'SHIPFREE');
+    const cart = await service.applyCoupon(OWNER, 'SHIPFREE');
 
     expect(cart.totals.shippingCharge).toBe(0);
     expect(cart.totals.freeShippingGap).toBe(49_900);
@@ -331,7 +347,7 @@ describe('CartService', () => {
   });
 
   it('charges the flat fee below the threshold', async () => {
-    const cart = await service.addItem(USER, { productId: 'p2', quantity: 1 });
+    const cart = await service.addItem(OWNER, { productId: 'p2', quantity: 1 });
 
     // ₹500 of goods, ₹49 shipping, 18% tax on ₹500 = ₹90.
     expect(cart.totals).toMatchObject({
@@ -346,7 +362,7 @@ describe('CartService', () => {
   it('rounds tax to the nearest paisa on odd amounts', async () => {
     products.set('p1', product({ price: 99_950, effectivePrice: 99_950 }));
 
-    const cart = await service.addItem(USER, { productId: 'p1', quantity: 1 });
+    const cart = await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
 
     // 99950 × 18 / 100 = 17991 exactly; the total stays an integer.
     expect(cart.totals.taxAmount).toBe(17_991);
@@ -357,7 +373,7 @@ describe('CartService', () => {
   it('prices a sale item from the sale price but keeps the list price for the strike-through', async () => {
     products.set('p1', product({ price: 1_20_000, salePrice: 90_000, effectivePrice: 90_000 }));
 
-    const cart = await service.addItem(USER, { productId: 'p1', quantity: 1 });
+    const cart = await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
 
     expect(cart.totals).toMatchObject({
       subtotal: 1_20_000,
@@ -369,10 +385,10 @@ describe('CartService', () => {
   // -------------------------------------------------------------- availability
 
   it('keeps an out-of-stock line in the cart, flagged and unpriced', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
     products.set('p1', product({ stock: 0 }));
 
-    const cart = await service.getForUser(USER);
+    const cart = await service.getForOwner(OWNER);
 
     expect(cart.items).toHaveLength(1);
     expect(cart.items[0]).toMatchObject({
@@ -386,10 +402,10 @@ describe('CartService', () => {
 
   it('flags a line whose stock has dropped below the stored quantity', async () => {
     products.set('p2', product({ id: 'p2', stock: 5 }));
-    await service.addItem(USER, { productId: 'p2', quantity: 4 });
+    await service.addItem(OWNER, { productId: 'p2', quantity: 4 });
     products.set('p2', product({ id: 'p2', stock: 2 }));
 
-    const cart = await service.getForUser(USER);
+    const cart = await service.getForOwner(OWNER);
 
     expect(cart.items[0]).toMatchObject({
       available: false,
@@ -398,10 +414,10 @@ describe('CartService', () => {
   });
 
   it('flags a product that has left the catalogue', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
     products.delete('p1');
 
-    const cart = await service.getForUser(USER);
+    const cart = await service.getForOwner(OWNER);
 
     expect(cart.items[0]).toMatchObject({
       name: 'Unavailable product',
@@ -413,11 +429,11 @@ describe('CartService', () => {
   // ------------------------------------------------------------ checkout view
 
   it('hands checkout only the buyable lines plus any blocking problems', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
-    await service.addItem(USER, { productId: 'p2', quantity: 1 });
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
+    await service.addItem(OWNER, { productId: 'p2', quantity: 1 });
     products.set('p2', product({ id: 'p2', name: 'Copper Mug', stock: 0 }));
 
-    const snapshot = await service.checkoutSnapshot(USER);
+    const snapshot = await service.checkoutSnapshot(OWNER);
 
     expect(snapshot.items.map((item) => item.productId)).toEqual(['p1']);
     expect(snapshot.problems).toHaveLength(1);
@@ -426,11 +442,11 @@ describe('CartService', () => {
   });
 
   it('reports a coupon issue to checkout instead of pricing a dead discount', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
-    await service.applyCoupon(USER, 'SAVE10');
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
+    await service.applyCoupon(OWNER, 'SAVE10');
     coupons.quote.mockRejectedValueOnce(new BadRequestException('This coupon has expired'));
 
-    const snapshot = await service.checkoutSnapshot(USER);
+    const snapshot = await service.checkoutSnapshot(OWNER);
 
     expect(snapshot.coupon).toBeNull();
     expect(snapshot.couponIssue).toBe('This coupon has expired');
@@ -438,10 +454,10 @@ describe('CartService', () => {
   });
 
   it('reports the coupon code checkout should send to the order', async () => {
-    await service.addItem(USER, { productId: 'p1', quantity: 1 });
-    await service.applyCoupon(USER, 'SAVE10');
+    await service.addItem(OWNER, { productId: 'p1', quantity: 1 });
+    await service.applyCoupon(OWNER, 'SAVE10');
 
-    const snapshot = await service.checkoutSnapshot(USER);
+    const snapshot = await service.checkoutSnapshot(OWNER);
 
     expect(snapshot.couponCode).toBe('SAVE10');
     expect(snapshot.coupon?.discount).toBe(5_000);

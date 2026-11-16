@@ -46,6 +46,19 @@ export const myOrdersService = {
   },
 
   /**
+   * A guest's own order, read back after checkout.
+   *
+   * There is no token to prove ownership, so the number *and* the email it was
+   * placed with are the credential. The API refuses orders that belong to an
+   * account, so knowing an email is never enough to read somebody's order.
+   */
+  guestLookup(orderNumber: string, email: string, signal?: AbortSignal) {
+    return requestData<Order>(
+      apiClient.get("/orders/guest", { signal, params: { orderNumber, email } }),
+    );
+  },
+
+  /**
    * The invoice is built from the order's purchase-time snapshots, so it never
    * changes when the catalogue does.
    */

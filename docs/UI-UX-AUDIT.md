@@ -194,3 +194,68 @@ skeleton while its data loads, and the admin shell already keeps the chrome moun
 Route-level `loading.tsx` files compiled but were never emitted into the build — dead
 files. They were written, verified, and deleted rather than shipped unexercised.
 The two that do carry their weight (error and not-found) remain.
+
+## Sixth pass — shopping without an account
+
+This pass is different from the five before it: the dead end it fixes was not in a
+screen, it was in the API. Every cart route required a token, so a first-time
+visitor could browse a beautiful catalogue and then be told to create an account
+the moment they wanted to buy anything. The largest drop-off in commerce is exactly
+there — an account form in front of the till.
+
+The fix is server-side and client-side, and the audit below records both, because
+half of it would have been a cart that exists on the server and nowhere else.
+
+| Finding (rule) | State before | Action |
+| --- | --- | --- |
+| **A guest cannot fill a cart** (Conversion, Critical) | `GET/POST /api/cart` required a JWT. `QuickAdd`, `AddToCartButton` and `StickyBuyBar` each detected "signed out" and redirected to `/login?next=…` — the shopper's intent was preserved but the purchase was not. | **Fixed** — carts are keyed by an owner: `cart:<userId>` for an account, `guest:<token>` for a browser. The token is 32 random bytes generated client-side and sent as `x-cart-id`; the guard accepts it only on routes marked `@AllowGuest()`. All three buy controls now simply add, with no auth branch. |
+| **A guest cannot check out** (Conversion, Critical) | `POST /api/checkout/preview|place|verify-payment` required a token, and an order needed an `addressId` from the shopper's address book — which a guest does not have. | **Fixed** — `GuestAddressDto` (the address book's own rules: name 2–120, phone `^[\d+\-\s()]{6,20}$`, postal `^[A-Za-z0-9][A-Za-z0-9\s-]{2,15}$`) plus `guestEmail` on place. Orders are created with `customer.userId: null` and the typed email, so the existing `order_placed` notification still reaches them. |
+| **Signing in would have thrown the basket away** (Continuity, High) | The cart store reset on any session change. A shopper who filled a cart and then signed in — to use a saved address, say — lost it. | **Fixed** — `POST /api/cart/merge`. Union by product, quantities summed, `addedAt` = earliest, `priceAtAdd` = cheapest, clamped to live stock and `MAX_QUANTITY`; the account's coupon wins. The guest cart is **retired, not deleted**, so replaying the token cannot resurrect a basket on a shared computer. The client clears the token only after a successful merge. |
+| **Cart page was a sign-in wall** (Trust, High) | `/cart` rendered "Sign in to view your cart" for anyone without a session — the one page a shopper navigates to *by choice*. | **Fixed** — the page loads the guest cart like any other, with a one-line banner ("This cart is saved in this browser. Sign in and it comes with you") and a sign-in link. The empty, error and empty-after-order states are unchanged. |
+| **Checkout redirected guests to login** (Conversion, Critical) | `/checkout` did `router.replace("/login?next=/checkout")`, so guest checkout was unreachable even with the API in place. | **Fixed** — `GuestAddressForm`: one address block plus "Email for your confirmation", with the same field rules as the API and inline errors. It is inline substitution, not a second flow: the preview, the section stepper, the payment selector and the sticky payable bar all stay exactly as they were, reading one derived `hasAddress` instead of `Boolean(addressId)`. |
+| **Guest order confirmation was unreadable** (Trust, High) | `/checkout/success` read the order through the token-scoped `GET /api/orders/:id`; a guest has no token and no way to come back to the page. | **Fixed** — `GET /api/orders/guest?orderNumber=…&email=…`, a public route throttled to 10/min where the number **and** the email are the credential. It refuses orders that belong to an account (`userId !== null` → 404), so knowing an email is never enough. The email typed at checkout is remembered per order id in `localStorage`; if it is missing (another device, storage cleared) the page asks for it instead of dead-ending. |
+| **Payment retry copy pointed at a page guests cannot open** (Recovery, Medium) | "…retry the payment from *My orders*" — there is no My orders without an account. | **Fixed** — the copy is now audience-aware, and `paymentUrl` for a guest order is the confirmation screen (which can always reopen it with number + email) rather than a `/order/:id` route that does not exist. |
+| **Guest address reachable by id** (Security, High) | Had `addressId` been accepted from a guest, any valid id would have shipped a parcel to a stranger's address. | **Fixed** — exactly one of `addressId` / `guestAddress` is accepted; mixing is a 400, and a guest sending `addressId` is a 400. Guessing was rejected as to "prefer one": a wrong guess ships to the wrong door. |
+| **Demo API could not show the journey** (Reviewability, Medium) | `scripts/demo-api.mjs` served fixtures only, so the one flow that most needed a visual review could not be reviewed at all. | **Fixed** — in-memory guest carts and guest checkout in the demo server, matching the real contract exactly (owner from `x-cart-id`, every amount computed server-side, cart cleared on order). Restarting the server empties carts; that is stated in the script header. |
+
+### Decisions worth keeping
+
+- **The token is a bearer credential**, so a merged guest cart is retired rather than
+  deleted. If it were merely unlinked, the token in an old tab would rebuild the basket
+  the shopper just decided not to have.
+- **A stale guest id never wins over a token.** `resolveCartId` uses the JWT's user id
+  whenever one is present, so a shared computer's leftover `localStorage` cannot put
+  items in the wrong person's cart.
+- **`localStorage`, not a cookie or `sessionStorage`.** The API is a different origin in
+  development, and a `SameSite=None` cookie would be a third-party cookie most browsers
+  now block; `sessionStorage` would defeat the purpose by emptying on tab close.
+- **Guest carts expire after 60 days** (`partialFilterExpression: { userId: null }` on
+  `updatedAt`). Abandoned anonymous baskets are the only rows nobody will ever clean up.
+- **Same form, same rules.** `GuestAddressForm` imports `validate`/`DraftAddress` from
+  `address-selector.tsx`, so the typed-address rules cannot drift from the address book's
+  or from the DTO's.
+
+### Verified
+
+`backend`: typecheck, lint, **286 unit + 372 e2e tests**, production build — all green.
+The new `test/guest-cart.e2e-spec.ts` (19 tests) covers guest cart CRUD and pricing,
+two guests kept apart, a signed-in cart unreachable by token, account-over-token
+precedence, merge behaviour (sum, retire/replay, stock clamp, unknown token, 401 without
+an account), guest checkout (place → `userId: null` + stock decrement + cart cleared,
+missing/mixed address, phone and postal rules, no cross-cart leakage) and the guest
+order lookup (matching pair, case-insensitive email, wrong email / wrong number /
+malformed pair → 404/400, and an account's order refused).
+
+`frontend`: `npm run verify` (typegen, `tsc`, eslint `--max-warnings=0`, production
+build) green. Routes `/`, `/products`, `/cart`, `/checkout`, `/checkout/success`,
+`/login` all 200 against `next start` with the demo API, and the new guest copy is
+present in the emitted client chunks.
+
+### Still open
+
+- **Guest → account address save.** A guest who later registers has to retype the
+  address they just typed. `addressService.create` exists and the data is in hand at
+  `place()`; it needs a "save this address for next time" path after checkout.
+- **Full checkout error summary.** Unchanged from pass four: field errors are inline
+  and correct, but there is no summary at the top for a screen reader to land on after
+  a failed submit.

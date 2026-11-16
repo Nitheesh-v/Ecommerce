@@ -23,7 +23,10 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { ActiveAccountGuard } from '../auth/guards/active-account.guard.js';
 import { ApiErrorResponseDto } from '../../common/dto/api-response.dto.js';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface.js';
+import { Throttle } from '@nestjs/throttler';
+import { Public } from '../../common/decorators/public.decorator.js';
 import { CancelOrderDto, RequestReturnDto } from './dto/order-actions.dto.js';
+import { GuestOrderLookupDto } from './dto/guest-order-lookup.dto.js';
 import { OrdersQueryDto } from './dto/orders-query.dto.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { OrdersService } from './orders.service.js';
@@ -50,6 +53,24 @@ import { OrdersService } from './orders.service.js';
 @UseGuards(ActiveAccountGuard)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  /**
+   * Guest order lookup by **order number + email**.
+   *
+   * Declared before `:id` so the literal path wins over the parameterised one.
+   * No token is involved: the pair *is* the credential, and the service refuses
+   * orders that belong to an account. Throttled harder than the rest of the
+   * controller because the pair is guessable in principle and cheap to test.
+   */
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Get('guest')
+  @ApiOperation({ summary: 'Look up a guest order by order number and email' })
+  @ApiOkResponse({ description: 'The guest order, if the pair matches one' })
+  @ApiNotFoundResponse({ description: 'No guest order matches that number and email' })
+  guestLookup(@Query() query: GuestOrderLookupDto) {
+    return this.ordersService.getForGuest(query.orderNumber, query.email);
+  }
 
   @Get()
   @ApiOperation({ summary: 'My orders (paginated, filterable)' })

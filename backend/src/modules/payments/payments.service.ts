@@ -1433,8 +1433,18 @@ export class PaymentsService {
    * Ownership check: someone else's payment answers **404**, so ids cannot be
    * probed. Admins may act on any payment (refunds live on admin routes only).
    */
+  /**
+   * A payment belongs to the account that started it — or to nobody, when the
+   * shopper checked out as a guest. Guest attempts are therefore verifiable by
+   * whoever holds the gateway order id and a signature that checks out, which is
+   * the same proof the gateway itself demands; a signed-in customer's attempt is
+   * never reachable without their token.
+   */
   private assertOwnership(payment: PaymentRecord, user: AuthenticatedUser): void {
     if (user.role === Role.Admin) {
+      return;
+    }
+    if (!payment.userId) {
       return;
     }
     if (payment.userId !== user.id) {

@@ -9,10 +9,12 @@ import {
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { Role } from '../../common/enums/role.enum.js';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface.js';
 import { AddressesService } from '../addresses/addresses.service.js';
 import type { AddressRecord } from '../addresses/repositories/addresses.repository.js';
 import { CartService } from '../cart/cart.service.js';
+import type { CartOwner } from '../cart/cart.service.js';
 import type {
   AppliedCouponView,
   CartTotalsView,
@@ -154,11 +156,11 @@ export class CheckoutService {
   // ------------------------------------------------------------------ preview
 
   async preview(
-    user: AuthenticatedUser,
+    owner: CartOwner,
     dto: CheckoutPreviewDto,
   ): Promise<CheckoutPreviewView> {
-    const address = await this.addresses.requireOwned(user.id, dto.addressId);
-    const snapshot = await this.cart.checkoutSnapshot(user);
+    const address = await this.resolveAddress(owner.user, dto);
+    const snapshot = await this.cart.checkoutSnapshot(owner);
 
     this.assertBuyable(snapshot);
     await this.assertPaymentAllowed(dto.paymentMethod, snapshot.totals.total);
@@ -187,9 +189,10 @@ export class CheckoutService {
 
   // ------------------------------------------------------------------- place
 
-  async place(user: AuthenticatedUser, dto: PlaceOrderDto): Promise<PlaceOrderView> {
-    const address = await this.addresses.requireOwned(user.id, dto.addressId);
-    const snapshot = await this.cart.checkoutSnapshot(user);
+  async place(owner: CartOwner, dto: PlaceOrderDto): Promise<PlaceOrderView> {
+    const user = owner.user;
+    const address = await this.resolveAddress(user, dto);
+    const snapshot = await this.cart.checkoutSnapshot(owner);
 
     this.assertBuyable(snapshot);
     await this.assertPaymentAllowed(dto.paymentMethod, snapshot.totals.total);
@@ -197,30 +200,53 @@ export class CheckoutService {
     // The one and only write. Stock reservation, coupon redemption and the order
     // document are the orders module's transaction; if any part fails it undoes the
     // parts it already did, and we never reach the cart-clearing step below.
-    const result = await this.orders.createForCustomer(user, {
+    const orderInput = {
       items: snapshot.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
       })),
       shippingAddress: toShippingAddress(address),
       paymentMethod: toOrderPaymentMethod(dto.paymentMethod),
-      shippingMethod: 'standard',
+      shippingMethod: 'standard' as const,
       ...(snapshot.couponCode ? { couponCode: snapshot.couponCode } : {}),
       ...(dto.customerNote?.trim() ? { customerNote: dto.customerNote.trim() } : {}),
       ...(dto.idempotencyKey ? { idempotencyKey: dto.idempotencyKey } : {}),
-    });
+    };
+
+    /*
+     * Two customers, one order writer.
+     *
+     * A signed-in customer is identified by their token — never by the payload. A
+     * guest has no token, so their order is created with `userId: null` and the
+     * email they typed: the orders module has always supported that (admin phone
+     * sales use the same path), and coupon limits, notifications and reports key
+     * off the email for them.
+     */
+    const result = user
+      ? await this.orders.createForCustomer(user, orderInput)
+      : await this.orders.createForGuest(
+          {
+            email: (dto.guestEmail ?? '').trim().toLowerCase(),
+            name: address.recipientName,
+            phone: address.phone,
+          },
+          orderInput,
+        );
 
     // COD has nothing to wait for, so the order is accepted straight away. An online
     // order stays `pending` until its payment verifies (see `confirmPayment`).
     const order =
       dto.paymentMethod === 'cod'
-        ? await this.orders.confirmPlacement(result.order.id, user)
+        ? await this.orders.confirmPlacement(
+            result.order.id,
+            user ?? guestActor(dto),
+          )
         : result.order;
 
     // Clear the cart only for a genuinely new order: on an idempotent replay the
     // cart may already hold the customer's next purchase.
     if (result.created) {
-      await this.cart.clearAfterOrder(user.id).catch((error: unknown) => {
+      await this.cart.clearAfterOrder(owner.cartId).catch((error: unknown) => {
         // The order stands; a stale cart line is recoverable, a lost order is not.
         this.logger.warn(
           `Order ${result.order.orderNumber} was created but the cart could not be cleared: ${String(error)}`,
@@ -229,7 +255,9 @@ export class CheckoutService {
     }
 
     const payment =
-      dto.paymentMethod === 'online' ? await this.startPayment(user, order.id) : null;
+      dto.paymentMethod === 'online'
+        ? await this.startPayment(user ?? guestActor(dto), order.id)
+        : null;
 
     return {
       orderId: order.id,
@@ -238,7 +266,12 @@ export class CheckoutService {
       status: order.status,
       paymentStatus: order.paymentStatus,
       requiresPayment: payment !== null,
-      paymentUrl: `/account/orders/${order.id}`,
+      // A guest has no account, so the link goes to the tokenised order page.
+      // A guest has no order list to go back to, so the confirmation screen (which
+      // reads the order with its number + email) is the page that can always reopen it.
+      paymentUrl: user
+        ? `/account/orders/${order.id}`
+        : `/checkout/success?orderId=${order.id}`,
       totals: {
         subtotal: snapshot.totals.subtotal,
         couponDiscount: snapshot.totals.couponDiscount,
@@ -253,6 +286,57 @@ export class CheckoutService {
     };
   }
 
+  // ----------------------------------------------------------------- addresses
+
+  /**
+   * One address, whichever way the caller can supply it.
+   *
+   * A signed-in customer must name one of their own saved addresses (so another
+   * customer's id stays a 404). A guest types theirs in. Mixing the two is refused
+   * rather than silently preferred, because guessing here would ship a parcel to
+   * the wrong place.
+   */
+  private async resolveAddress(
+    user: AuthenticatedUser | null,
+    dto: CheckoutPreviewDto,
+  ): Promise<AddressRecord> {
+    if (user) {
+      if (!dto.addressId) {
+        throw new BadRequestException(
+          'Choose one of your saved delivery addresses (addressId)',
+        );
+      }
+
+      return this.addresses.requireOwned(user.id, dto.addressId);
+    }
+
+    if (dto.addressId) {
+      throw new BadRequestException(
+        'A saved address needs a signed-in account — send guestAddress instead',
+      );
+    }
+
+    if (!dto.guestAddress) {
+      throw new BadRequestException('A delivery address is required to check out');
+    }
+
+    // Shaped like a saved address so everything downstream is one code path.
+    return {
+      id: '',
+      label: 'Delivery',
+      isDefault: false,
+      userId: '',
+      recipientName: dto.guestAddress.recipientName.trim(),
+      phone: dto.guestAddress.phone.trim(),
+      line1: dto.guestAddress.line1.trim(),
+      line2: dto.guestAddress.line2?.trim() || null,
+      city: dto.guestAddress.city.trim(),
+      state: dto.guestAddress.state.trim(),
+      postalCode: dto.guestAddress.postalCode.trim(),
+      country: dto.guestAddress.country?.trim() || 'India',
+    } as AddressRecord;
+  }
+
   // --------------------------------------------------------- payment callback
 
   /**
@@ -265,15 +349,23 @@ export class CheckoutService {
    * said no.
    */
   async confirmPayment(
-    user: AuthenticatedUser,
+    owner: CartOwner,
     dto: VerifyPaymentDto,
   ): Promise<PaymentConfirmationView> {
+    // A guest holds no account; the payment row is keyed to "nobody", which
+    // `PaymentsService.assertOwnership` allows for exactly this case.
+    const actor: AuthenticatedUser = owner.user ?? {
+      id: '',
+      email: '',
+      role: Role.Customer,
+    };
+
     try {
-      const result = await this.payments.verifyPayment(user, dto);
+      const result = await this.payments.verifyPayment(actor, dto);
       // A paid order has nothing left to wait for; confirming it here means the
       // success page (and the order page) never show a paid order as `pending`.
       const orderStatus = await this.confirmAfterPayment(
-        user,
+        actor,
         result.payment.orderId,
         result.order?.status ?? null,
       );
@@ -450,6 +542,22 @@ function toAddressView(address: AddressRecord): CheckoutAddressView {
     state: address.state,
     postalCode: address.postalCode,
     country: address.country,
+  };
+}
+
+/**
+ * The actor recorded on a guest's order.
+ *
+ * Admin-only actions (status changes, refunds) are attributed to a person; a guest
+ * order has no person, so it is attributed to the store itself. `email` is the
+ * confirmation address the guest supplied, which is also what the notification
+ * pipeline greets them with.
+ */
+function guestActor(dto: PlaceOrderDto): AuthenticatedUser {
+  return {
+    id: '',
+    email: (dto.guestEmail ?? '').trim().toLowerCase(),
+    role: Role.Admin,
   };
 }
 

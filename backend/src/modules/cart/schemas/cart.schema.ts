@@ -8,8 +8,8 @@ import { baseSchemaOptions } from '../../../database/base.schema.js';
 /**
  * Server-side cart.
  *
- * One document per customer (`userId` is unique), which is what makes "my cart" a
- * single read and a single write. Prices are **never** stored as the source of
+ * One document per owner, where an owner is a customer (`cart:<userId>`) or an
+ * anonymous shopper (`guest:<token>`). Prices are **never** stored as the source of
  * truth: `priceAtAdd` is a snapshot kept for display ("price when you added it"),
  * and every total is recomputed from the live product record when the cart is read.
  */
@@ -33,8 +33,23 @@ const cartItemSchema = new MongooseSchema(
 
 @Schema({ ...baseSchemaOptions, collection: 'carts' })
 export class Cart {
-  @Prop({ type: 'ObjectId', ref: 'User', required: true, unique: true, index: true })
-  userId!: Types.ObjectId;
+  /**
+   * `cart:<userId>` or `guest:<token>`.
+   *
+   * Documents written before guest carts existed hold the bare user id. The
+   * repository still matches those (it queries both forms), so no migration is
+   * needed and no live cart is lost on deploy.
+   */
+  @Prop({ type: String, required: true, trim: true, maxlength: 80 })
+  ownerId!: string;
+
+  /** Convenience for admin queries and support; `null` for a guest cart. */
+  @Prop({ type: String, default: null, index: true })
+  userId!: string | null;
+
+  /** Set when a guest cart was merged into an account; retired carts are ignored. */
+  @Prop({ type: Date, default: null })
+  retiredAt!: Date | null;
 
   @Prop({ type: [cartItemSchema], default: [] })
   items!: CartItemRecordStored[];
@@ -55,5 +70,13 @@ export type CartDocument = HydratedDocument<Cart>;
 
 export const CartSchema = SchemaFactory.createForClass(Cart);
 
-// One cart per customer; the unique index is the concurrency guard for `save()`.
-CartSchema.index({ userId: 1 }, { unique: true });
+// One cart per owner; the unique index is the concurrency guard for `save()`.
+CartSchema.index({ ownerId: 1 }, { unique: true });
+
+// Guest carts are disposable. A TTL of 60 days keeps the collection from growing
+// forever without ever expiring a basket someone is still shopping in; MongoDB's
+// TTL monitor removes them on its own schedule, long after the last write.
+CartSchema.index(
+  { updatedAt: 1 },
+  { expireAfterSeconds: 60 * 60 * 24 * 60, partialFilterExpression: { userId: null } },
+);
