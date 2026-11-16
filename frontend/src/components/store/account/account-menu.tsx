@@ -58,14 +58,14 @@ export function AccountMenu() {
   const next = pathname && pathname !== "/login" ? pathname : "/account";
 
   if (status === "loading" || status === "idle") {
-    return <div className="h-9 w-24 animate-pulse rounded-full bg-cream-200" aria-hidden />;
+    return <div className="h-9 w-24 animate-pulse rounded-full bg-bark-800" aria-hidden />;
   }
 
   if (!user) {
     return (
       <Link
         href={`/login?next=${encodeURIComponent(next)}`}
-        className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-bark-700 transition-colors hover:bg-cream-200"
+        className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-cream-200 transition-colors hover:bg-cream-50/10 hover:text-cream-50"
       >
         <UserRound className="h-4 w-4" aria-hidden />
         Sign in
@@ -82,14 +82,14 @@ export function AccountMenu() {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="inline-flex items-center gap-2 rounded-full px-2 py-1.5 text-sm font-medium text-bark-700 transition-colors hover:bg-cream-200"
+        className="inline-flex items-center gap-2 rounded-full px-2 py-1.5 text-sm font-medium text-cream-100 transition-colors hover:bg-cream-50/10"
       >
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bark-900 text-[11px] font-semibold text-cream-50">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cream-50 text-[11px] font-semibold text-bark-900">
           {initials || "U"}
         </span>
         <span className="hidden sm:inline">{user.firstName}</span>
         <ChevronDown
-          className={cn("h-3.5 w-3.5 text-bark-400 transition-transform", open && "rotate-180")}
+          className={cn("h-3.5 w-3.5 text-cream-300 transition-transform", open && "rotate-180")}
           aria-hidden
         />
       </button>

@@ -214,7 +214,8 @@ accent — declared once as Tailwind v4 tokens in `frontend/src/app/globals.css`
 | Ink | `bark-950` `#1F100A` → `bark-200` `#E7DACC` (the brown is `bark-900` `#3B2418`) |
 | Accent | `baby-400` `#8EC5FF` (fills and every primary button) · `baby-700` `#1D63A5` (text) |
 
-Headlines and product names use a system serif (`--font-display`), the UI uses Geist.
+The navbar and footer are ink-brown, the page is cream, and every primary button is
+the accent. Headlines and product names use a system serif (`--font-display`), the UI uses Geist.
 Semantic colours (emerald/rose/amber) keep their meaning and are outside the palette.
 The admin console stays neutral on purpose. Details, contrast notes and the rules for
 extending it: [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md).

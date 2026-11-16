@@ -66,9 +66,12 @@ using `next/font/google`.
 ## Surfaces
 
 - **Storefront** — cream paper, brown ink, one blue accent. Sections are separated by
-  hairlines and spacing, not by boxes inside boxes. The only inverted surface on the
-  landing page is the sale band (`bark-900`), which exists to stop the page reading as
-  one flat scroll.
+  hairlines and spacing, not by boxes inside boxes. Two surfaces are inverted to ink:
+  the sticky navbar (so navigation reads as a frame, and the cream page starts
+  underneath it) and the sale band on the landing page (so the scroll has a rhythm).
+  Inside the navbar everything is cream — links at `cream-200` and hover on
+  `cream-50/10` — except the search pill, which is solid `cream-50` so the placeholder
+  stays legible, and the cart/bell counters, which are `baby-400` with `bark-950`.
 - **Admin console** — untouched neutral slate. It is a tool, not a shop window; a warm
   theme there would make data harder to scan and would fight the semantic badges.
 - **Shared primitives** — `Toaster`, `Price` and the cart/checkout components follow the

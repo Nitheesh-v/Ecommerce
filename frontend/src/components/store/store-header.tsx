@@ -16,20 +16,20 @@ import { NotificationBell } from "./notification-bell";
  */
 export function StoreHeader() {
   return (
-    <header className="sticky top-0 z-30 border-b border-cream-300 bg-cream-50/85 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-bark-800 bg-bark-900/95 text-cream-100 backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-bark-900 text-cream-50">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cream-50 text-bark-900">
             <Store className="h-4 w-4" aria-hidden />
           </span>
-          <span className="font-display hidden text-lg leading-none tracking-tight text-bark-950 sm:inline">
+          <span className="font-display hidden text-lg leading-none tracking-tight text-cream-50 sm:inline">
             Ecommerce26
           </span>
         </Link>
 
         <form action="/products" method="get" role="search" className="relative flex-1">
           <Search
-            className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-bark-400"
+            className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-bark-500"
             aria-hidden
           />
           <input
@@ -37,27 +37,27 @@ export function StoreHeader() {
             name="search"
             placeholder="Search for products, brands and more"
             aria-label="Search products"
-            className="w-full rounded-full border border-cream-300 bg-cream-100 py-2.5 pr-4 pl-10 text-sm text-bark-900 placeholder:text-bark-500 transition-colors focus:border-bark-300 focus:bg-cream-50 focus:outline-none focus:ring-2 focus:ring-baby-300"
+            className="w-full rounded-full border border-transparent bg-cream-50 py-2.5 pr-4 pl-10 text-sm text-bark-900 placeholder:text-bark-500 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-baby-300"
           />
         </form>
 
         <nav className="flex shrink-0 items-center gap-0.5 text-sm">
           <Link
             href="/products"
-            className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-bark-700 transition-colors hover:bg-cream-200 hover:text-bark-950 md:inline-flex"
+            className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-cream-200 transition-colors hover:bg-cream-50/10 hover:text-cream-50 md:inline-flex"
           >
             <LayoutGrid className="h-4 w-4" aria-hidden />
             Shop
           </Link>
           <Link
             href="/categories"
-            className="hidden rounded-full px-3.5 py-2 text-bark-700 transition-colors hover:bg-cream-200 hover:text-bark-950 lg:inline-flex"
+            className="hidden rounded-full px-3.5 py-2 text-cream-200 transition-colors hover:bg-cream-50/10 hover:text-cream-50 lg:inline-flex"
           >
             Categories
           </Link>
           <Link
             href="/offers"
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-bark-700 transition-colors hover:bg-cream-200 hover:text-bark-950"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-cream-200 transition-colors hover:bg-cream-50/10 hover:text-cream-50"
           >
             <Tag className="h-4 w-4" aria-hidden />
             <span className="hidden sm:inline">Offers</span>
@@ -66,7 +66,7 @@ export function StoreHeader() {
           {/* Reads the cart store, which only exists in the browser. */}
           <Suspense
             fallback={
-              <span className="h-9 w-9 animate-pulse rounded-full bg-cream-200" aria-hidden />
+              <span className="h-9 w-9 animate-pulse rounded-full bg-bark-800" aria-hidden />
             }
           >
             <CartBadge />
@@ -83,7 +83,7 @@ export function StoreHeader() {
           */}
           <Suspense
             fallback={
-              <div className="h-9 w-24 animate-pulse rounded-full bg-cream-200" aria-hidden />
+              <div className="h-9 w-24 animate-pulse rounded-full bg-bark-800" aria-hidden />
             }
           >
             <AccountMenu />
