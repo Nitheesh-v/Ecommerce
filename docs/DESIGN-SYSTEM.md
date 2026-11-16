@@ -79,6 +79,44 @@ one `ui-ux-pro-max` recommends for editorial e-commerce; see
 - **Shared primitives** — `Toaster`, `Price` and the cart/checkout components follow the
   storefront palette because shoppers see them.
 
+## Tokens and the live style guide
+
+Everything above is expressed as tokens in `frontend/src/app/globals.css`, and the tokens
+are rendered — not described — at **`/design`** (unlinked, `noindex`). Reviewing a change
+means looking at that page instead of arguing about a hex value.
+
+| Token | Value | Used for |
+| --- | --- | --- |
+| `--radius-control` | `0.75rem` | Buttons, inputs, chips, small toggles |
+| `--radius-surface` | `1rem` | Cards, panels, list rows |
+| `--radius-media` | `1.5rem` | Images, hero frames, the gallery stage |
+| `--shadow-soft` | warm 2-layer shadow | Resting elevation on a floating surface |
+| `--shadow-lift` | warm 2-layer shadow, wider | Hover and modals |
+| `--text-eyebrow` | `11px / 1.2 / 0.18em` | The label above a heading |
+| `--spacing-section` | `4.5rem` | Vertical rhythm between page sections |
+
+Three component classes carry the shared grammar, so a card and a badge cannot drift
+apart:
+
+- **`.surface`** — hairline border on `cream-50` at `--radius-surface`. The one definition
+  of "a card".
+- **`.surface-hover`** — 2px lift, border darkening and `--shadow-lift` over 220ms; the
+  transform is dropped under `prefers-reduced-motion`. Product and category cards use both.
+- **`.eyebrow`** — the uppercase tracking label. Replaces a dozen hand-rolled
+  `text-[10px] tracking-[0.2em] uppercase` variants.
+- **`.rule`** — the hairline between sections.
+
+The rules behind them, taken from `ui-ux-pro-max` and recorded in
+[`UI-UX-AUDIT.md`](UI-UX-AUDIT.md):
+
+1. **One accent.** `baby-400` fills, `baby-700` text, `baby-300` rings and hovers.
+   Selection states stay brown on purpose.
+2. **Elevation is a shadow plus a hairline — never a gradient.**
+3. **Radii are role-based, not taste-based.** A control never gets a 24px corner.
+4. **Status is never colour alone.** Every badge carries a word.
+5. **Motion is 200–250ms for interaction, 300–450ms for entrance,** and all of it stops
+   under `prefers-reduced-motion`.
+
 ## Motion
 
 All CSS-only, all disabled under `prefers-reduced-motion`, and none of it required to

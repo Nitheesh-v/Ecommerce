@@ -1,6 +1,6 @@
-import Image from "next/image";
 // src/components/store/category-card.tsx
 
+import Image from "next/image";
 import Link from "next/link";
 import { FolderTree } from "lucide-react";
 import { resolveImageUrl } from "@/lib/images";
@@ -13,7 +13,7 @@ export function CategoryCard({ category }: { category: CategoryNode }) {
   return (
     <Link
       href={`/categories/${category.slug}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-cream-300 bg-cream-50 transition-all duration-300 hover:-translate-y-0.5 hover:border-cream-400 hover:shadow-[0_22px_45px_-28px_rgba(58,34,22,0.5)]"
+      className="surface surface-hover group flex flex-col overflow-hidden"
     >
       <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-cream-200">
         {image ? (

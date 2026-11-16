@@ -53,6 +53,30 @@
   --color-baby-600: #2e86d8;
   --color-baby-700: #1d63a5;
 
+  /*
+   * Radii: three steps, one per role. A control (button, input, chip) is softly
+   * square, a surface (card, panel) is round, media (images, hero frames) is rounder.
+   * Nothing else, so two components never argue about a 20px vs 24px corner.
+   */
+  --radius-control: 0.75rem;
+  --radius-surface: 1rem;
+  --radius-media: 1.5rem;
+
+  /*
+   * Elevation: a warm shadow, never a gradient. `soft` is the resting state of a
+   * floating surface, `lift` is what hover and modals use.
+   */
+  --shadow-soft: 0 1px 2px rgb(59 36 24 / 0.04), 0 10px 30px -18px rgb(59 36 24 / 0.3);
+  --shadow-lift: 0 2px 6px rgb(59 36 24 / 0.06), 0 26px 50px -28px rgb(59 36 24 / 0.42);
+
+  /* The small uppercase label above a heading. One size, one tracking, everywhere. */
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--letter-spacing: 0.18em;
+
+  /* Vertical rhythm between page sections. */
+  --spacing-section: 4.5rem;
+
   /* Display face: Playfair Display for headlines and product names, with the old
      system serif stack kept as a fallback for the first paint. */
   --font-display:
@@ -94,6 +118,53 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-baby-600);
   outline-offset: 2px;
+}
+
+/*
+ * Shared surfaces.
+ *
+ * These exist so "what a card looks like" has exactly one definition. A component
+ * that needs a panel adds `surface`; something that should react to the pointer adds
+ * `surface-hover`. The transform is dropped under `prefers-reduced-motion`.
+ */
+@layer components {
+  .surface {
+    border-radius: var(--radius-surface);
+    border: 1px solid var(--color-cream-300);
+    background-color: var(--color-cream-50);
+  }
+
+  .surface-hover {
+    transition:
+      transform 220ms ease,
+      border-color 220ms ease,
+      box-shadow 220ms ease;
+  }
+
+  .surface-hover:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-cream-400);
+    box-shadow: var(--shadow-lift);
+  }
+
+  .eyebrow {
+    font-size: var(--text-eyebrow);
+    line-height: 1.2;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-bark-500);
+  }
+
+  .rule {
+    border-top: 1px solid var(--color-cream-300);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface-hover:hover {
+    transform: none;
+  }
 }
 
 /*

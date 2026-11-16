@@ -61,7 +61,7 @@ export function ProductCard({ product }: { product: PublicProduct }) {
   return (
     <Link
       href={`/products/${product.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-cream-300 bg-cream-50 transition-all duration-300 hover:-translate-y-0.5 hover:border-cream-400 hover:shadow-[0_22px_45px_-28px_rgba(58,34,22,0.55)]"
+      className="surface surface-hover group flex h-full flex-col overflow-hidden"
     >
       <div className="relative aspect-[4/5] overflow-hidden bg-cream-200">
         {image ? (
