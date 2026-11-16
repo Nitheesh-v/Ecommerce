@@ -215,7 +215,9 @@ accent — declared once as Tailwind v4 tokens in `frontend/src/app/globals.css`
 | Accent | `baby-400` `#8EC5FF` (fills and every primary button) · `baby-700` `#1D63A5` (text) |
 
 The navbar and footer are ink-brown, the page is cream, and every primary button is
-the accent. Headlines and product names use a system serif (`--font-display`), the UI uses Geist.
+the accent. The landing page is composed from real data only — hero collage, category
+wall, sale band, lookbook mosaic, stat band, product rails and an FAQ — with CSS-only
+motion that stops under `prefers-reduced-motion`. Headlines and product names use a system serif (`--font-display`), the UI uses Geist.
 Semantic colours (emerald/rose/amber) keep their meaning and are outside the palette.
 The admin console stays neutral on purpose. Details, contrast notes and the rules for
 extending it: [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md).

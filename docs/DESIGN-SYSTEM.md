@@ -79,10 +79,43 @@ using `next/font/google`.
 
 ## Motion
 
-Three animations, all CSS-only and all disabled under `prefers-reduced-motion`:
-`animate-rise` (the hero), `animate-drift` (the statement marquee) and the order
-confirmation's checkmark. Nothing animates on scroll and nothing depends on JavaScript
-to become visible.
+All CSS-only, all disabled under `prefers-reduced-motion`, and none of it required to
+read the page:
+
+| Utility | What it does | Where |
+| --- | --- | --- |
+| `animate-rise` | 620ms fade-and-lift on first paint | Hero copy and collage |
+| `animate-float` | 9s bob, staggered per card by inline `animationDelay` | Hero collage cards, rating chip |
+| `animate-hue` | 22s drift-and-scale | The gradient wash behind the hero, the glow in the sale band |
+| `animate-drift` | 38s horizontal marquee | The statement band under the hero |
+| `reveal` | `animation-timeline: view()` — fades a section up as it enters the viewport | Every major landing section |
+
+`reveal` lives behind `@supports (animation-timeline: view())`, so browsers without
+scroll-driven animations see finished, visible content rather than a blank page. There
+is no intersection observer and no animation library; the page is complete before
+JavaScript runs.
+
+## Landing page sections
+
+`src/app/(store)/page.tsx` composes them; the heavier ones live in
+`components/store/home/`:
+
+1. **Hero** — eyebrow, serif headline, search, two CTAs, three live figures (products,
+   categories, in stock) and the `HeroCollage` (three real product photographs, floating).
+2. **Marquee** — a drifting band of true statements plus the catalogue's own brands.
+3. **Promise strip** — four hairline cells (live stock, server pricing, verified
+   reviews, COD/secure checkout).
+4. **Category showcase** — four tall photographic tiles.
+5. **Sale band** — the inverted panel; the discount headline is computed from the deals.
+6. **Deals rail** → **Lookbook** (asymmetric mosaic of catalogue photography) →
+   **Top rated rail**.
+7. **Stats band** — four counts from the public facets endpoint.
+8. **New arrivals** and **Handpicked** rails.
+9. **FAQ** — native `<details>`, answers derived from how the store actually behaves.
+10. **Support band** — phone and email from the public settings document.
+
+Each section is optional: it renders only when the data behind it exists, so an empty or
+unreachable API leaves a shorter page, never a broken one.
 
 ## Adding to it
 

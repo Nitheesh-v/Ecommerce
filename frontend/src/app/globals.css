@@ -154,11 +154,82 @@ body {
   animation: drift 38s linear infinite;
 }
 
+/*
+ * Landing page motion.
+ *
+ * Everything here is CSS-only and decoration: the page is complete before a byte of
+ * JavaScript runs, and `prefers-reduced-motion` turns all of it off.
+ */
+
+/* Slow bob for the hero collage cards; each card gets its own delay inline. */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 9s ease-in-out infinite;
+}
+
+/*
+ * Scroll reveal. Browsers without scroll-driven animations simply show the content —
+ * the `@supports` guard means no one ever gets a page that starts invisible.
+ */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 28%;
+    }
+  }
+}
+
+/* A slow drift for the gradient wash behind the hero. */
+@keyframes hue-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-3%, 2%, 0) scale(1.08);
+  }
+}
+
+.animate-hue {
+  animation: hue-drift 22s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-hue {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-check-pop,
   .animate-check-draw,
   .animate-rise,
-  .animate-drift {
+  .animate-drift,
+  .animate-float,
+  .animate-hue {
     animation: none;
     stroke-dashoffset: 0;
   }
