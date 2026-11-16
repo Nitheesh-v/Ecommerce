@@ -81,6 +81,20 @@ export interface ReviewListQuery {
   sortOrder?: "asc" | "desc";
 }
 
+/**
+ * A review the signed-in customer wrote — `GET /api/reviews/mine`.
+ *
+ * Wider than `PublicReview`: it carries the product, the order it came from and the
+ * moderation status, because the customer is allowed to know whether their review is
+ * still waiting for approval. It is the same shape the admin console reads.
+ */
+export type MyReview = AdminReview;
+
+export interface MyReviewListQuery {
+  page?: number;
+  limit?: number;
+}
+
 export interface ReviewWritePayload {
   rating: number;
   title?: string;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, LogOut, Package, UserRound } from "lucide-react";
+import { ChevronDown, LogOut, MapPin, MessageSquareQuote, Package, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
@@ -123,6 +123,24 @@ export function AccountMenu() {
           >
             <Package className="h-4 w-4 text-bark-400" aria-hidden />
             My orders
+          </Link>
+          <Link
+            href="/account/addresses"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm text-bark-800 hover:bg-cream-100"
+          >
+            <MapPin className="h-4 w-4 text-bark-400" aria-hidden />
+            Address book
+          </Link>
+          <Link
+            href="/account/reviews"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm text-bark-800 hover:bg-cream-100"
+          >
+            <MessageSquareQuote className="h-4 w-4 text-bark-400" aria-hidden />
+            My reviews
           </Link>
           <button
             type="button"

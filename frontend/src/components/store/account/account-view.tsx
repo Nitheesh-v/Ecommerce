@@ -1,7 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, ChevronRight, Heart, Package, Star, UserRound } from "lucide-react";
+import {
+  Bell,
+  ChevronRight,
+  Heart,
+  MapPin,
+  MessageSquareQuote,
+  Package,
+  Star,
+  UserRound,
+} from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
 
@@ -11,6 +20,18 @@ const LINKS = [
     label: "My orders",
     description: "Track deliveries, download invoices, request returns",
     icon: Package,
+  },
+  {
+    href: "/account/addresses",
+    label: "Address book",
+    description: "Saved delivery addresses, and which one is the default",
+    icon: MapPin,
+  },
+  {
+    href: "/account/reviews",
+    label: "My reviews",
+    description: "Ratings you have written and their approval status",
+    icon: MessageSquareQuote,
   },
   {
     href: "/account/notifications",
