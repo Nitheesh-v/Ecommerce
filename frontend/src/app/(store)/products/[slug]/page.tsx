@@ -16,6 +16,8 @@ import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { ProductGallery, type GalleryImage } from "@/components/store/product-gallery";
 import { ProductRail } from "@/components/store/product-rail";
 import { ProductReviews } from "@/components/store/product-reviews";
+import { ShareProduct } from "@/components/store/share-product";
+import { StickyBuyBar } from "@/components/store/sticky-buy-bar";
 import { CouponField } from "@/components/store/coupon-field";
 import { discountPercent } from "@/components/store/product-card";
 import { resolveImageUrl } from "@/lib/images";
@@ -175,7 +177,8 @@ async function ProductContent({ params }: PageProps) {
             </p>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          {/* The sticky mobile bar watches this block to know when to appear. */}
+          <div data-buy-anchor className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="font-display text-3xl leading-none text-bark-950">
               {formatCurrency(product.effectivePrice)}
             </span>
@@ -207,13 +210,14 @@ async function ProductContent({ params }: PageProps) {
             </span>
           </p>
 
-          <div className="mt-6">
+          <div className="mt-6 flex items-stretch gap-2">
             <AddToCartButton
               productId={product.id}
               inStock={product.inStock}
               stock={product.stock}
               className="w-full sm:w-full"
             />
+            <ShareProduct name={product.name} />
           </div>
 
           <ul className="mt-6 grid gap-px overflow-hidden rounded-2xl border border-cream-300 bg-cream-300 sm:grid-cols-3">
@@ -284,6 +288,14 @@ async function ProductContent({ params }: PageProps) {
       </section>
 
       <ProductReviews productSlug={product.slug} />
+
+      <StickyBuyBar
+        productId={product.id}
+        productName={product.name}
+        price={product.effectivePrice}
+        inStock={product.inStock}
+        stock={product.stock}
+      />
 
       {product.category && relatedProducts.length > 0 ? (
         <ProductRail

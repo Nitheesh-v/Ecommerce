@@ -99,12 +99,44 @@ export function PriceBreakdown({
         </dd>
       </div>
 
-      {totals.shippingCharge > 0 && totals.freeShippingThreshold > 0 ? (
-        <p className="text-[11px] text-bark-500">
-          {totals.freeShippingGap > 0
-            ? formatFreeShippingGap(totals.freeShippingGap, totals.currency)
-            : formatFreeShippingThreshold(totals.freeShippingThreshold, totals.currency)}
-        </p>
+      {totals.freeShippingThreshold > 0 && totals.shippingCharge > 0 ? (
+        <div className="space-y-1.5 pt-0.5">
+          <div
+            className="h-1.5 w-full overflow-hidden rounded-full bg-cream-300"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(
+              Math.min(
+                100,
+                ((totals.freeShippingThreshold - totals.freeShippingGap) /
+                  totals.freeShippingThreshold) *
+                  100,
+              ),
+            )}
+            aria-label="Progress towards free shipping"
+          >
+            <div
+              className="h-full rounded-full bg-baby-500 transition-[width] duration-500 ease-out"
+              style={{
+                width: `${Math.min(
+                  100,
+                  Math.max(
+                    0,
+                    ((totals.freeShippingThreshold - totals.freeShippingGap) /
+                      totals.freeShippingThreshold) *
+                      100,
+                  ),
+                )}%`,
+              }}
+            />
+          </div>
+          <p className="text-[11px] text-bark-500">
+            {totals.freeShippingGap > 0
+              ? formatFreeShippingGap(totals.freeShippingGap, totals.currency)
+              : formatFreeShippingThreshold(totals.freeShippingThreshold, totals.currency)}
+          </p>
+        </div>
       ) : null}
 
       <div className="mt-3 flex items-baseline justify-between gap-2 border-t border-cream-300 pt-3">

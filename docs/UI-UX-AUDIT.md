@@ -148,3 +148,28 @@ the optimizer path is checked end to end rather than inferred from a green build
 The clone lives outside this repository; `/tmp` does not survive a session. To query the
 skill again, re-clone and run the commands above. If you want it available to your editor
 permanently: `npx ui-ux-pro-max-cli init --ai cursor` (or `claude`, `codex`, …).
+
+## Fourth pass — browse → buy, and the waiting states
+
+The three passes above audited screens that already existed. This pass looked for
+*journeys that stop short*, which a screen-by-screen review does not catch.
+
+| Finding (rule) | State before | Action |
+| --- | --- | --- |
+| **Shopping from a grid** (Conversion, High) | A product card had exactly one action — open the detail page. Buying three things meant three round trips, and the catalogue had no add-to-cart at all. | **Fixed** — `QuickAdd` on the card media: hover/focus-revealed for pointers, always visible on touch, with inline spinner → tick plus a toast. Signed-out clicks go to `/login?next=…`, same contract as the product page. |
+| **Button inside an anchor** (HTML validity, keyboard) | The card was one `<Link>`; adding a nested control would have been invalid HTML and swallowed clicks | **Fixed** — the card is a wrapper `<article>` with an overlay link and the quick-add as a *sibling*, above it in z-order. Text sits in a `pointer-events-none` layer so the link stays clickable. |
+| **Deciding on mobile** (Conversion, High) | On a phone the gallery filled the first screen, pushing price and the only "Add to cart" below the fold | **Fixed** — `StickyBuyBar`, `lg:hidden`, revealed only once the real buy block (`data-buy-anchor`) scrolls away, so two identical CTAs are never on screen. Honours `env(safe-area-inset-bottom)`, `motion-reduce:transition-none`, and is `tabIndex={-1}`/`aria-hidden` while off-screen. |
+| **Sharing a product** (Social proof, Low) | Shoppers copied the address bar | **Fixed** — `ShareProduct` uses `navigator.share` where available, clipboard elsewhere, with a "Copied" confirmation. No third-party SDK. |
+| **Progress through checkout** (Form completion, Medium) | Step numbers lived inside each collapsible section, so "how much is left" was only answerable after scrolling | **Fixed** — a three-beat `CheckoutProgress` at the top of the page, with a completed tick per finished step and `aria-current="step"`. |
+| **Payable total on mobile** (Conversion, High) | At checkout the total and the only forward action sat at the bottom of step three | **Fixed** — a sticky payable bar under `sm` whose button continues to the next step or places the order, disabled while stock blocks the order. |
+| **Free-shipping incentive** (Conversion, Medium) | "Spend ₹X more for free shipping" was 11px grey text | **Fixed** — a `role="progressbar"` meter beside it, width computed from the server's own `freeShippingGap`/`freeShippingThreshold`. |
+| **Meaningful loading states** (Feedback, High) | No `loading.tsx` anywhere, so every server-rendered navigation was a blank screen until the API answered | **Fixed** — `app/(store)/**/loading.tsx` built from `components/store/skeletons.tsx`: catalogue, product, category, offers and account shapes with the exact aspect ratios they replace, inside `role="status" aria-busy`. |
+| **Error and 404 pages** (Trust, High) | A thrown error rendered Next's default black-on-white screen; an unknown product slug rendered a bare 404 | **Fixed** — `(store)/error.tsx` (retry + home, shows the error digest for support, never the internal message) and `app/not-found.tsx` with a working no-JS search form. |
+
+### Preview fixtures
+
+Reviewing a storefront that needs MongoDB is friction, so `frontend/scripts/demo-api.mjs`
+answers the public endpoints with fixtures shaped like the real contracts, and six
+generated product photos live in `public/demo/`. `npm run dev` plus that script is a
+complete visual review environment; see `frontend/scripts/README.md`. No application
+code imports either, and the real API's e2e suite remains the behaviour test.

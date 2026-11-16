@@ -422,6 +422,8 @@ export function CheckoutView() {
         </Link>
       </div>
 
+      <CheckoutProgress current={section} addressChosen={Boolean(addressId)} />
+
       {blockedByStock ? (
         <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" aria-hidden />
@@ -599,7 +601,105 @@ export function CheckoutView() {
           </p>
         ) : null}
       </CheckoutSection>
+
+      {/*
+        On a phone the order total sat at the bottom of step three, so a shopper
+        had to scroll past the form just to see what they would pay. This keeps
+        the payable amount and the only way forward within thumb reach.
+      */}
+      <div
+        className="sticky bottom-0 z-20 -mx-4 border-t border-cream-300 bg-cream-50/95 px-4 py-2.5 backdrop-blur sm:hidden"
+        style={{ paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))" }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] tracking-[0.16em] text-bark-500 uppercase">
+              Payable
+            </p>
+            <p className="text-sm font-semibold text-bark-950">
+              {totals ? formatPrice(totals.total, totals.currency) : "—"}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={placing || blockedByStock}
+            onClick={() => {
+              if (section < 3) {
+                setSection((current) => (current + 1) as Section);
+
+                return;
+              }
+
+              void place();
+            }}
+            className="rounded-lg bg-baby-400 px-4 py-2 text-xs font-semibold text-bark-950 transition-colors hover:bg-baby-300 disabled:opacity-60"
+          >
+            {placing ? "Placing…" : section < 3 ? "Continue" : "Place order"}
+          </button>
+        </div>
+      </div>
     </div>
+  );
+}
+
+/**
+ * Three labelled beats. The old UI showed the step number inside each collapsible
+ * section, which only helps once you have scrolled to it; this answers "how much
+ * is left" at the top of the page, and each beat names the step rather than
+ * leaving the shopper to infer what "2" means.
+ */
+function CheckoutProgress({
+  current,
+  addressChosen,
+}: {
+  current: Section;
+  addressChosen: boolean;
+}) {
+  const steps = [
+    { index: 1 as Section, label: "Address", done: addressChosen },
+    { index: 2 as Section, label: "Payment", done: addressChosen && current > 2 },
+    { index: 3 as Section, label: "Review", done: false },
+  ];
+
+  return (
+    <ol
+      className="flex items-center gap-1.5 rounded-xl border border-cream-300 bg-cream-50 px-3 py-2.5"
+      aria-label="Checkout progress"
+    >
+      {steps.map((step, position) => {
+        const before = step.index < current;
+        const active = step.index === current;
+
+        return (
+          <li key={step.index} className="flex min-w-0 flex-1 items-center gap-1.5">
+            <span
+              className={cn(
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition-colors",
+                step.done || before
+                  ? "bg-emerald-100 text-emerald-700"
+                  : active
+                    ? "bg-bark-900 text-cream-50"
+                    : "bg-cream-300 text-bark-600",
+              )}
+              aria-current={active ? "step" : undefined}
+            >
+              {step.done || before ? "✓" : step.index}
+            </span>
+            <span
+              className={cn(
+                "truncate text-[11px] font-medium",
+                active ? "text-bark-900" : "text-bark-500",
+              )}
+            >
+              {step.label}
+            </span>
+            {position < steps.length - 1 ? (
+              <span className="h-px min-w-2 flex-1 bg-cream-300" aria-hidden />
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
