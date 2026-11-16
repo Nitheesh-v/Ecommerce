@@ -118,7 +118,7 @@ export function CouponField({
           type="button"
           onClick={() => void apply(code)}
           disabled={pending || code.trim() === ""}
-          className="h-10 shrink-0 rounded-lg bg-baby-400 px-4 text-sm font-medium text-bark-950 transition-colors hover:bg-baby-400 disabled:bg-baby-200"
+          className="h-10 shrink-0 rounded-lg bg-baby-400 px-4 text-sm font-medium text-bark-950 transition-colors hover:bg-baby-300 disabled:bg-baby-200"
         >
           {pending ? "Checking…" : "Apply"}
         </button>

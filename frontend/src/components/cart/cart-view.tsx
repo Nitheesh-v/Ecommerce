@@ -76,7 +76,7 @@ export function CartView() {
         <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
           <Link
             href="/login?next=%2Fcart"
-            className="inline-flex items-center justify-center rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 transition-colors hover:bg-baby-400"
+            className="inline-flex items-center justify-center rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 transition-colors hover:bg-baby-300"
           >
             Sign in
           </Link>
@@ -129,7 +129,7 @@ export function CartView() {
         </p>
         <Link
           href="/products"
-          className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 transition-colors hover:bg-baby-400"
+          className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 transition-colors hover:bg-baby-300"
         >
           Start shopping
           <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -233,7 +233,7 @@ export function CartView() {
             ) : (
               <Link
                 href="/checkout"
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-baby-400 px-4 py-2.5 text-sm font-semibold text-bark-950 transition-colors hover:bg-baby-400"
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-baby-400 px-4 py-2.5 text-sm font-semibold text-bark-950 transition-colors hover:bg-baby-300"
               >
                 Proceed to checkout
                 <ArrowRight className="h-4 w-4" aria-hidden />

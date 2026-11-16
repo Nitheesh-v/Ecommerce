@@ -482,7 +482,7 @@ export function CheckoutView() {
             type="button"
             disabled={!addressId || placing}
             onClick={() => setSection(2)}
-            className="rounded-lg bg-baby-400 px-3 py-2 text-xs font-semibold text-bark-950 hover:bg-baby-400 disabled:opacity-60"
+            className="rounded-lg bg-baby-400 px-3 py-2 text-xs font-semibold text-bark-950 hover:bg-baby-300 disabled:opacity-60"
           >
             Continue to payment
           </button>
@@ -528,7 +528,7 @@ export function CheckoutView() {
             type="button"
             disabled={placing || !addressId}
             onClick={() => setSection(3)}
-            className="rounded-lg bg-baby-400 px-3 py-2 text-xs font-semibold text-bark-950 hover:bg-baby-400 disabled:opacity-60"
+            className="rounded-lg bg-baby-400 px-3 py-2 text-xs font-semibold text-bark-950 hover:bg-baby-300 disabled:opacity-60"
           >
             Review order
           </button>

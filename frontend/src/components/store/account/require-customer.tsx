@@ -45,7 +45,7 @@ export function RequireCustomer({ children }: { children: ReactNode }) {
         </p>
         <Link
           href={`/login?next=${encodeURIComponent(pathname || "/account")}`}
-          className="mt-4 inline-flex rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 hover:bg-baby-400"
+          className="mt-4 inline-flex rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 hover:bg-baby-300"
         >
           Sign in
         </Link>

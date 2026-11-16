@@ -307,7 +307,7 @@ export function AddressSelector({
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-baby-400 px-3 py-2 text-xs font-semibold text-bark-950 hover:bg-baby-400 disabled:opacity-70"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-baby-400 px-3 py-2 text-xs font-semibold text-bark-950 hover:bg-baby-300 disabled:opacity-70"
             >
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
               {saving ? "Saving…" : "Save address"}
@@ -362,7 +362,7 @@ function Field({
         aria-invalid={Boolean(error)}
         aria-describedby={error ? errorId : undefined}
         className={cn(
-          "h-9 w-full rounded-lg border bg-cream-50 px-2.5 text-sm text-bark-900 placeholder:text-bark-400 focus:outline-none focus:ring-2 focus:ring-bark-900/10",
+          "h-9 w-full rounded-lg border bg-cream-50 px-2.5 text-sm text-bark-900 placeholder:text-bark-400 focus:outline-none focus:ring-2 focus:ring-baby-300",
           error ? "border-rose-300" : "border-cream-300 focus:border-bark-400",
         )}
         required={required}

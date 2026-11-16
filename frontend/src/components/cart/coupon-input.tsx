@@ -103,7 +103,7 @@ export function CouponInput({
             autoComplete="off"
             maxLength={40}
             disabled={pending}
-            className="h-9 w-full rounded-lg border border-cream-300 bg-cream-50 pr-2 pl-8 text-xs font-medium tracking-wide text-bark-900 uppercase placeholder:normal-case placeholder:tracking-normal focus:border-bark-400 focus:outline-none focus:ring-2 focus:ring-bark-900/10 disabled:bg-cream-100"
+            className="h-9 w-full rounded-lg border border-cream-300 bg-cream-50 pr-2 pl-8 text-xs font-medium tracking-wide text-bark-900 uppercase placeholder:normal-case placeholder:tracking-normal focus:border-bark-400 focus:outline-none focus:ring-2 focus:ring-baby-300 disabled:bg-cream-100"
           />
         </label>
         <button

@@ -98,7 +98,7 @@ export function OrderReview({
           rows={2}
           disabled={placing || disabled}
           placeholder="Gate code, best time to deliver…"
-          className="w-full resize-none rounded-lg border border-cream-300 bg-cream-50 px-2.5 py-2 text-sm text-bark-900 placeholder:text-bark-400 focus:border-bark-400 focus:outline-none focus:ring-2 focus:ring-bark-900/10 disabled:bg-cream-100"
+          className="w-full resize-none rounded-lg border border-cream-300 bg-cream-50 px-2.5 py-2 text-sm text-bark-900 placeholder:text-bark-400 focus:border-bark-400 focus:outline-none focus:ring-2 focus:ring-baby-300 disabled:bg-cream-100"
         />
       </label>
 

@@ -71,6 +71,34 @@ Still open: a full error *summary* at the top of the multi-step checkout that li
 each invalid field. Worth doing when the address form grows beyond five inputs; today the
 inline errors plus focus movement cover the same ground with less machinery.
 
+## Third pass — product detail page, and a consistency sweep
+
+```bash
+python3 src/ui-ux-pro-max/scripts/search.py "premium editorial beauty ecommerce" \
+  --design-system --variance 3 --motion 5 --density 5   # "clean" dial
+```
+
+Dialled to variance 3 the generator returns the same Feature-Rich Showcase skeleton but a
+quieter style, which matches what a product page needs: one decision per screen.
+
+| Finding (rule) | Action |
+| --- | --- |
+| No image **gallery** — one square photo, and a product can have several (Visual hierarchy) | **Fixed** — `ProductGallery`: fixed 4:5 frame plus a keyboard-operable thumbnail strip with `aria-pressed`, so swapping images never shifts layout |
+| Price needed the discount context (Conversion) | **Fixed** — effective price in the display face, list price struck, "You save ₹X" and a % badge derived from the server's numbers |
+| Stock was a coloured sentence | **Fixed** — status dot + "N available", and the same fact repeated in the spec card for scanability |
+| Trust information existed only on the home page (Trust) | **Fixed** — a three-cell promise strip on the page where the decision is made: live stock, COD/secure checkout from settings, returns |
+| Description interrupted the buy column | **Fixed** — moved into its own "About this product" section beside a plain spec card (SKU, brand, category, availability) |
+| Dead end after the decision | **Fixed** — "More in {category}" rail, excluding the product being viewed |
+| **Hover state identical to rest state** on 13 primary buttons (`bg-baby-400` + `hover:bg-baby-400`) | **Fixed** — hover is `baby-300` |
+| Three inputs still used the old focus ring (`ring-bark-900/10`) | **Fixed** — unified to `baby-300`, the same token as the global focus ring |
+
+### Rules now enforced by convention
+
+- **One accent, one focus colour** — `baby-400` fills, `baby-700` text, `baby-300` rings and hovers.
+- **Elevation is a border and a shadow, never a gradient** — `border-cream-300` on `cream-50` surfaces.
+- **Numbers come from the API** — the page computes only the presentation of a discount (percent, "you save"), never a total.
+- **Empty, loading and error states are components, not afterthoughts** — every new section ships with its skeleton.
+
 ## The open item: `next/image`
 
 The stack guidance is unambiguous — *use `next/image` for all images, never `<img>`* —

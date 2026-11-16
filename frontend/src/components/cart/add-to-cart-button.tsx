@@ -67,7 +67,7 @@ export function AddToCartButton({
       onClick={() => void onClick()}
       disabled={adding}
       className={cn(
-        "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-baby-400 px-4 py-2.5 text-sm font-semibold text-bark-950 transition-colors hover:bg-baby-400 disabled:opacity-80 sm:w-auto",
+        "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-baby-400 px-4 py-2.5 text-sm font-semibold text-bark-950 transition-colors hover:bg-baby-300 disabled:opacity-80 sm:w-auto",
         className,
       )}
     >
