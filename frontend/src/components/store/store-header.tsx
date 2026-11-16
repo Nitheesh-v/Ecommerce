@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { Suspense } from "react";
-import { Search, ShoppingBag, Store, Tag, LayoutGrid } from "lucide-react";
+import { Search, ShoppingBag, Store } from "lucide-react";
 import { AccountMenu } from "./account/account-menu";
 import { CartBadge } from "./cart-badge";
 import { NotificationBell } from "./notification-bell";
+import { StoreNavLinks } from "./store-nav-links";
 
 /**
  * Storefront chrome.
@@ -42,26 +43,17 @@ export function StoreHeader() {
         </form>
 
         <nav className="flex shrink-0 items-center gap-0.5 text-sm">
-          <Link
-            href="/products"
-            className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-cream-200 transition-colors hover:bg-cream-50/10 hover:text-cream-50 md:inline-flex"
+          <Suspense
+            fallback={
+              <>
+                <span className="hidden h-9 w-20 animate-pulse rounded-full bg-bark-800 md:block" />
+                <span className="hidden h-9 w-24 animate-pulse rounded-full bg-bark-800 lg:block" />
+                <span className="h-9 w-20 animate-pulse rounded-full bg-bark-800" />
+              </>
+            }
           >
-            <LayoutGrid className="h-4 w-4" aria-hidden />
-            Shop
-          </Link>
-          <Link
-            href="/categories"
-            className="hidden rounded-full px-3.5 py-2 text-cream-200 transition-colors hover:bg-cream-50/10 hover:text-cream-50 lg:inline-flex"
-          >
-            Categories
-          </Link>
-          <Link
-            href="/offers"
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-cream-200 transition-colors hover:bg-cream-50/10 hover:text-cream-50"
-          >
-            <Tag className="h-4 w-4" aria-hidden />
-            <span className="hidden sm:inline">Offers</span>
-          </Link>
+            <StoreNavLinks />
+          </Suspense>
 
           {/* Reads the cart store, which only exists in the browser. */}
           <Suspense

@@ -13,8 +13,19 @@ import { StoreFooter, StoreHeader } from "@/components/store/store-header";
 export default function StoreLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-cream-100">
+      {/* Keyboard users should reach the content without tabbing the whole header. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-cream-50 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-bark-950 focus:shadow-lg"
+      >
+        Skip to content
+      </a>
       <StoreHeader />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 focus:outline-none"
+      >
         {children}
       </main>
       <StoreFooter />

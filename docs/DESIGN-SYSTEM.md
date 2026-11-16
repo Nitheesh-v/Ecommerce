@@ -57,11 +57,13 @@ page, unread counters) stay ink-brown: they mark *what is chosen*, not *what to 
 | Role | Face |
 | --- | --- |
 | UI, body, prices | Geist Sans (`geist` package, self-hosted) |
-| Headlines, product names, numerals in the hero | `--font-display`: Iowan Old Style → Palatino → Georgia → serif |
+| Headlines, product names, numerals in the hero | Playfair Display (`@fontsource-variable/playfair-display`, self-hosted, normal + true italic); system serif stack as the first-paint fallback |
 
-The display face is a system stack on purpose: no webfont request, no layout shift, and
-`next build` needs no network — the same reason the project self-hosts Geist instead of
-using `next/font/google`.
+Both faces are self-hosted from npm, so there is no request to Google at runtime and
+`next build` needs no network — the same reason the project uses the `geist` package
+instead of `next/font/google`. The pairing (Playfair Display + a geometric sans) is the
+one `ui-ux-pro-max` recommends for editorial e-commerce; see
+[`UI-UX-AUDIT.md`](UI-UX-AUDIT.md).
 
 ## Surfaces
 
