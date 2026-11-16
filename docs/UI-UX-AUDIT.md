@@ -259,3 +259,45 @@ present in the emitted client chunks.
 - **Full checkout error summary.** Unchanged from pass four: field errors are inline
   and correct, but there is no summary at the top for a screen reader to land on after
   a failed submit.
+
+## Hydration fix — the nav's active link
+
+Reported from a real `npm run dev` session:
+
+```
+Uncaught Error: Hydration failed because the server rendered HTML didn't match the client.
+    <StoreNavLinks>  …  - <a className="relative items-center …" href="/account/orders">
+```
+
+**Cause.** `StoreNavLinks` derived each link's active state from `usePathname()` during
+render. The server knows the route, so the prerendered markup carried one link with
+`aria-current="page"` and the active classes; `PathnameContext` is created with `null`,
+so on the client's first render the hook can hand back `null` — the file already had a
+`?? "/"` guard, which is the tell — and that fallback marks *no* link active. React
+reconciled one active link against zero and reported a mismatch, then regenerated the
+subtree. The active-state markup is in the streamed HTML, so this was never a
+"nothing is highlighted" bug; it was server-HTML and client-HTML disagreeing about it.
+
+The framework documents this class of problem ([URL data in a Client Component outside
+of Suspense](https://nextjs.org/docs/messages/blocking-prerender-client-hook), and the
+`usePathname` *"Avoid hydration mismatch"* example): isolate the route-dependent part,
+and render a stable value on the server.
+
+**Fix.** The nav now renders **unmarked** during hydration and applies the route
+immediately after mount, via `useSyncExternalStore` with `getServerSnapshot → false` /
+`getSnapshot → true`. That is the sanctioned "am I hydrated?" primitive: React uses the
+server snapshot for the hydration render and re-reads the client snapshot before paint,
+so the highlight still appears on the first frame and the two sides always agree.
+`useEffect` + `setState` would do the same job but the React Compiler rejects it as a
+cascading render (`react-hooks/set-state-in-effect`) — and it would be a render later.
+
+Anything that *is* a deliberate difference is left alone: the account control and the
+cart badge change only after their stores resolve, inside their own Suspense
+boundaries, which is the pattern the docs describe for client-only state.
+
+**Verified.** Diffing the sent markup against the RSC payload per route (which is what
+hydration compares) showed the mismatch on `/offers` and `/products` before the change
+and none on `/`, `/offers`, `/products` or `/cart` after it; the active class and
+`aria-current` are still in the shipped client bundle, so the highlight is applied, not
+dropped. `npm run verify` green. The admin console is unaffected: its shell renders a
+skeleton until auth resolves, so pathname-derived markup never hydrates there.
