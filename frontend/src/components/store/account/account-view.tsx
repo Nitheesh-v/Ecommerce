@@ -43,31 +43,31 @@ export function AccountView() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+        <h1 className="text-xl font-semibold tracking-tight text-bark-900">
           Hello, {user.firstName}
         </h1>
-        <p className="mt-0.5 text-sm text-slate-500">
+        <p className="mt-0.5 text-sm text-bark-500">
           Your account, orders and reviews in one place.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 sm:col-span-1">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
+        <div className="rounded-xl border border-cream-300 bg-cream-50 p-5 sm:col-span-1">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-bark-900 text-sm font-semibold text-cream-50">
             {(user.firstName[0] ?? "") + (user.lastName?.[0] ?? "")}
           </span>
-          <p className="mt-3 text-sm font-semibold text-slate-900">
+          <p className="mt-3 text-sm font-semibold text-bark-900">
             {user.firstName} {user.lastName ?? ""}
           </p>
-          <p className="truncate text-xs text-slate-500">{user.email}</p>
+          <p className="truncate text-xs text-bark-500">{user.email}</p>
           <dl className="mt-4 space-y-1.5 text-xs">
             <div className="flex justify-between gap-2">
-              <dt className="text-slate-500">Member since</dt>
-              <dd className="font-medium text-slate-700">{formatDate(user.createdAt)}</dd>
+              <dt className="text-bark-500">Member since</dt>
+              <dd className="font-medium text-bark-800">{formatDate(user.createdAt)}</dd>
             </div>
             <div className="flex justify-between gap-2">
-              <dt className="text-slate-500">Account type</dt>
-              <dd className="font-medium text-slate-700 capitalize">{user.role}</dd>
+              <dt className="text-bark-500">Account type</dt>
+              <dd className="font-medium text-bark-800 capitalize">{user.role}</dd>
             </div>
           </dl>
         </div>
@@ -77,22 +77,22 @@ export function AccountView() {
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 hover:bg-slate-50"
+              className="flex items-center gap-3 rounded-xl border border-cream-300 bg-cream-50 p-4 transition-colors hover:border-cream-400 hover:bg-cream-100"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-cream-200 text-bark-700">
                 <Icon className="h-4 w-4" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium text-slate-900">{label}</span>
-                <span className="block text-xs text-slate-500">{description}</span>
+                <span className="block text-sm font-medium text-bark-900">{label}</span>
+                <span className="block text-xs text-bark-500">{description}</span>
               </span>
-              <ChevronRight className="h-4 w-4 text-slate-300" aria-hidden />
+              <ChevronRight className="h-4 w-4 text-cream-400" aria-hidden />
             </Link>
           ))}
         </div>
       </div>
 
-      <p className="flex items-center gap-2 text-xs text-slate-500">
+      <p className="flex items-center gap-2 text-xs text-bark-500">
         <UserRound className="h-3.5 w-3.5" aria-hidden />
         Need to change your details? Contact the store and an administrator will update
         the account — nothing here is edited in the browser.

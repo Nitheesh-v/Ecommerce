@@ -37,15 +37,15 @@ export function RequireCustomer({ children }: { children: ReactNode }) {
 
   if (status === "unauthenticated") {
     return (
-      <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white px-6 py-12 text-center">
-        <LogIn className="mx-auto h-6 w-6 text-slate-300" aria-hidden />
-        <h1 className="mt-3 text-base font-semibold text-slate-900">Sign in to continue</h1>
-        <p className="mt-1 text-sm text-slate-500">
+      <div className="mx-auto max-w-md rounded-xl border border-cream-300 bg-cream-50 px-6 py-12 text-center">
+        <LogIn className="mx-auto h-6 w-6 text-cream-400" aria-hidden />
+        <h1 className="mt-3 text-base font-semibold text-bark-900">Sign in to continue</h1>
+        <p className="mt-1 text-sm text-bark-500">
           This page shows your own orders, so it needs an account.
         </p>
         <Link
           href={`/login?next=${encodeURIComponent(pathname || "/account")}`}
-          className="mt-4 inline-flex rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          className="mt-4 inline-flex rounded-lg bg-bark-900 px-4 py-2 text-sm font-medium text-cream-50 hover:bg-bark-900"
         >
           Sign in
         </Link>
@@ -55,8 +55,8 @@ export function RequireCustomer({ children }: { children: ReactNode }) {
 
   return (
     <div className="space-y-4">
-      <div className="h-8 w-40 animate-pulse rounded-lg bg-slate-100" aria-hidden />
-      <div className="h-64 w-full animate-pulse rounded-xl bg-slate-100" aria-hidden />
+      <div className="h-8 w-40 animate-pulse rounded-lg bg-cream-200" aria-hidden />
+      <div className="h-64 w-full animate-pulse rounded-xl bg-cream-200" aria-hidden />
     </div>
   );
 }

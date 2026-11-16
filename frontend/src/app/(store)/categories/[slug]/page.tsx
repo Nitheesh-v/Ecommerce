@@ -62,7 +62,7 @@ async function CategoryContent({ params, searchParams }: PageProps) {
     <div className="space-y-8">
       <nav
         aria-label="Breadcrumb"
-        className="flex flex-wrap items-center gap-1 text-xs text-slate-500"
+        className="flex flex-wrap items-center gap-1 text-xs text-bark-500"
       >
         <Link href="/" className="hover:underline">
           Home
@@ -80,11 +80,11 @@ async function CategoryContent({ params, searchParams }: PageProps) {
           </span>
         ))}
         <ChevronRight className="h-3 w-3" aria-hidden />
-        <span className="font-medium text-slate-700">{category.name}</span>
+        <span className="font-medium text-bark-800">{category.name}</span>
       </nav>
 
       <header className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-cream-300 bg-cream-50">
           {hero ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -93,20 +93,20 @@ async function CategoryContent({ params, searchParams }: PageProps) {
               className="h-full w-full object-cover"
             />
           ) : (
-            <FolderTree className="h-8 w-8 text-slate-300" aria-hidden />
+            <FolderTree className="h-8 w-8 text-cream-400" aria-hidden />
           )}
         </div>
 
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-bark-900">
             {category.name}
           </h1>
           {category.description ? (
-            <p className="mt-1 max-w-2xl text-sm text-slate-600">
+            <p className="mt-1 max-w-2xl text-sm text-bark-700">
               {category.description}
             </p>
           ) : null}
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-bark-500">
             {category.productCount} product{category.productCount === 1 ? "" : "s"}
           </p>
         </div>
@@ -114,7 +114,7 @@ async function CategoryContent({ params, searchParams }: PageProps) {
 
       {category.children.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+          <h2 className="text-xs font-semibold tracking-wide text-bark-500 uppercase">
             Subcategories
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -122,10 +122,10 @@ async function CategoryContent({ params, searchParams }: PageProps) {
               <Link
                 key={child.id}
                 href={`/categories/${child.slug}`}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                className="rounded-full border border-cream-300 bg-cream-50 px-3 py-1.5 text-xs font-medium text-bark-800 transition-colors hover:border-cream-400 hover:bg-cream-100"
               >
                 {child.name}
-                <span className="ml-1.5 text-slate-400">{child.productCount}</span>
+                <span className="ml-1.5 text-bark-400">{child.productCount}</span>
               </Link>
             ))}
           </div>
@@ -134,7 +134,7 @@ async function CategoryContent({ params, searchParams }: PageProps) {
 
       {category.siblings.length > 0 ? (
         <section className="space-y-2">
-          <h2 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+          <h2 className="text-xs font-semibold tracking-wide text-bark-500 uppercase">
             Related categories
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -142,7 +142,7 @@ async function CategoryContent({ params, searchParams }: PageProps) {
               <Link
                 key={sibling.id}
                 href={`/categories/${sibling.slug}`}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                className="rounded-full border border-cream-300 bg-cream-50 px-3 py-1.5 text-xs text-bark-700 transition-colors hover:border-cream-400 hover:bg-cream-100"
               >
                 {sibling.name}
               </Link>
@@ -178,7 +178,7 @@ async function CategoryProducts({
   return (
     <div className="space-y-4">
       {items.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-12 text-center text-sm text-slate-500">
+        <p className="rounded-xl border border-dashed border-cream-400 bg-cream-50 px-4 py-12 text-center text-sm text-bark-500">
           No products in this category yet.
         </p>
       ) : (
@@ -190,24 +190,24 @@ async function CategoryProducts({
       )}
 
       {meta.totalPages > 1 ? (
-        <nav className="flex items-center justify-between gap-3 border-t border-slate-200 pt-4 text-sm">
+        <nav className="flex items-center justify-between gap-3 border-t border-cream-300 pt-4 text-sm">
           {meta.hasPreviousPage ? (
             <Link
               href={`/categories/${category.slug}?page=${meta.page - 1}`}
-              className="font-medium text-slate-700 hover:underline"
+              className="font-medium text-bark-800 hover:underline"
             >
               ← Previous
             </Link>
           ) : (
             <span />
           )}
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-bark-500">
             Page {meta.page} of {meta.totalPages}
           </span>
           {meta.hasNextPage ? (
             <Link
               href={`/categories/${category.slug}?page=${meta.page + 1}`}
-              className="font-medium text-slate-700 hover:underline"
+              className="font-medium text-bark-800 hover:underline"
             >
               Next →
             </Link>
@@ -223,12 +223,12 @@ async function CategoryProducts({
 function CategorySkeleton() {
   return (
     <div className="space-y-8">
-      <div className="h-3 w-64 animate-pulse rounded bg-slate-200" />
+      <div className="h-3 w-64 animate-pulse rounded bg-cream-300" />
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <div className="h-28 w-28 animate-pulse rounded-2xl bg-slate-200" />
+        <div className="h-28 w-28 animate-pulse rounded-2xl bg-cream-300" />
         <div className="space-y-2">
-          <div className="h-6 w-48 animate-pulse rounded bg-slate-200" />
-          <div className="h-3 w-72 animate-pulse rounded bg-slate-200" />
+          <div className="h-6 w-48 animate-pulse rounded bg-cream-300" />
+          <div className="h-3 w-72 animate-pulse rounded bg-cream-300" />
         </div>
       </div>
       <ProductGridSkeleton />
@@ -242,7 +242,7 @@ function ProductGridSkeleton() {
       {Array.from({ length: 8 }).map((_, index) => (
         <div
           key={index}
-          className="aspect-square animate-pulse rounded-xl border border-slate-200 bg-white"
+          className="aspect-square animate-pulse rounded-xl border border-cream-300 bg-cream-50"
         />
       ))}
     </div>

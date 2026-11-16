@@ -5,7 +5,7 @@
 Production-oriented, single-vendor e-commerce platform. Monorepo with a Next.js (App Router) storefront/admin and a NestJS REST API backed by MongoDB.
 
 > **Status: Phase 18 (notifications) complete.** Authentication with rotating refresh tokens, a guarded `/admin` console, the catalogue, categories, inventory, the full order lifecycle, customers, payments, shipping, offers, reviews, reports/settings, the shopper-facing storefront, a server-side cart with a three-step checkout, and a notification pipeline — order, payment, delivery and stock events recorded in-app and emailed over SMTP when configured — are implemented and verified. Next: caching, queues and performance.
-> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md) · [`Phase 4`](docs/PHASE-4-AUTH.md) · [`Phase 5`](docs/PHASE-5-ADMIN-DASHBOARD.md) · [`Phase 6`](docs/PHASE-6-PRODUCTS.md) · [`Phase 7`](docs/PHASE-7-CATEGORIES.md) · [`Phase 8`](docs/PHASE-8-INVENTORY.md) · [`Phase 9`](docs/PHASE-9-ORDERS.md) · [`Phase 10`](docs/PHASE-10-CUSTOMERS.md) · [`Phase 11`](docs/PHASE-11-PAYMENTS.md) · [`Phase 12`](docs/PHASE-12-SHIPPING.md) · [`Phase 13`](docs/PHASE-13-OFFERS.md) · [`Phase 14`](docs/PHASE-14-REVIEWS.md) · [`Phase 15`](docs/PHASE-15-REPORTS-SETTINGS.md) · [`Phase 16`](docs/PHASE-16-STOREFRONT-HOME-AUTH-CATALOGUE.md) · [`Phase 17`](docs/PHASE-17-CART-CHECKOUT.md) · [`Phase 18`](docs/PHASE-18-NOTIFICATIONS.md).
+> Docs: [`Architecture`](docs/ARCHITECTURE.md) · [`Phase 1`](docs/PHASE-1-INSPECTION.md) · [`Phase 2`](docs/PHASE-2-BOOTSTRAP.md) · [`Phase 3`](docs/PHASE-3-COMMON-LAYER.md) · [`Phase 4`](docs/PHASE-4-AUTH.md) · [`Phase 5`](docs/PHASE-5-ADMIN-DASHBOARD.md) · [`Phase 6`](docs/PHASE-6-PRODUCTS.md) · [`Phase 7`](docs/PHASE-7-CATEGORIES.md) · [`Phase 8`](docs/PHASE-8-INVENTORY.md) · [`Phase 9`](docs/PHASE-9-ORDERS.md) · [`Phase 10`](docs/PHASE-10-CUSTOMERS.md) · [`Phase 11`](docs/PHASE-11-PAYMENTS.md) · [`Phase 12`](docs/PHASE-12-SHIPPING.md) · [`Phase 13`](docs/PHASE-13-OFFERS.md) · [`Phase 14`](docs/PHASE-14-REVIEWS.md) · [`Phase 15`](docs/PHASE-15-REPORTS-SETTINGS.md) · [`Phase 16`](docs/PHASE-16-STOREFRONT-HOME-AUTH-CATALOGUE.md) · [`Phase 17`](docs/PHASE-17-CART-CHECKOUT.md) · [`Phase 18`](docs/PHASE-18-NOTIFICATIONS.md) · [`Design system`](docs/DESIGN-SYSTEM.md).
 
 ## Stack
 
@@ -202,6 +202,22 @@ Backend: `verify` (typecheck + lint + unit + e2e + build), `smoke` (HTTP probes 
 Frontend: `verify` (typecheck + lint + build), `dev`, `build`, `start`, `typecheck` (`next typegen && tsc`), `lint` (`eslint`, includes the React Compiler hooks rules).
 
 E2E tests do not require a database: the Mongoose connection is substituted, so `npm run test:e2e` is CI-safe. Backend also exposes `db:check` (diagnose `MONGODB_URI`) and `db:local` (start a local `mongod`).
+
+## Design
+
+The storefront runs on one palette — cream paper, espresso ink, a single baby-blue
+accent — declared once as Tailwind v4 tokens in `frontend/src/app/globals.css`:
+
+| | |
+| --- | --- |
+| Paper | `cream-50` `#FDFAF4` → `cream-400` `#D4C0A5` |
+| Ink | `bark-950` `#1F100A` → `bark-200` `#E7DACC` |
+| Accent | `baby-400` `#8CC4FE` (fills) · `baby-700` `#1D63A5` (text) |
+
+Headlines and product names use a system serif (`--font-display`), the UI uses Geist.
+Semantic colours (emerald/rose/amber) keep their meaning and are outside the palette.
+The admin console stays neutral on purpose. Details, contrast notes and the rules for
+extending it: [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md).
 
 ## Continuous integration
 

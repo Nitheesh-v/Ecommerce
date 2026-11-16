@@ -70,8 +70,8 @@ export default async function ProductsPage({ searchParams }: PageProps) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">{heading}</h1>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <h1 className="text-xl font-semibold tracking-tight text-bark-900">{heading}</h1>
+          <p className="mt-0.5 text-xs text-bark-500">
             {page.meta.total === 0
               ? "No products match these filters"
               : `Showing ${firstResult}–${lastResult} of ${page.meta.total.toLocaleString("en-IN")} products`}
@@ -90,12 +90,12 @@ export default async function ProductsPage({ searchParams }: PageProps) {
       <div className="grid gap-5 lg:grid-cols-[17rem_1fr]">
         {/* Mobile: collapsed disclosure. Desktop: sticky sidebar. */}
         <div className="lg:hidden">
-          <details className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-            <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-slate-800">
+          <details className="rounded-xl border border-cream-300 bg-cream-50 px-4 py-3">
+            <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-bark-900">
               <SlidersHorizontal className="h-4 w-4" aria-hidden />
               Filters
               {filterCount > 0 ? (
-                <span className="rounded-full bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                <span className="rounded-full bg-bark-900 px-1.5 py-0.5 text-[10px] font-semibold text-cream-50">
                   {filterCount}
                 </span>
               ) : null}
@@ -114,17 +114,17 @@ export default async function ProductsPage({ searchParams }: PageProps) {
 
         <div className="min-w-0 space-y-6">
           {page.items.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-              <SearchX className="mx-auto h-6 w-6 text-slate-300" aria-hidden />
-              <h2 className="mt-3 text-base font-semibold text-slate-900">
+            <div className="rounded-xl border border-dashed border-cream-400 bg-cream-50 px-6 py-16 text-center">
+              <SearchX className="mx-auto h-6 w-6 text-cream-400" aria-hidden />
+              <h2 className="mt-3 text-base font-semibold text-bark-900">
                 Nothing matched
               </h2>
-              <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
+              <p className="mx-auto mt-1 max-w-sm text-sm text-bark-500">
                 Try a broader price range, a different category, or remove a filter.
               </p>
               <Link
                 href="/products"
-                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-900 underline underline-offset-2"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-bark-900 underline underline-offset-2"
               >
                 Browse everything
               </Link>
@@ -140,7 +140,7 @@ export default async function ProductsPage({ searchParams }: PageProps) {
           <PaginationLinks meta={page.meta} params={params} />
 
           {page.items.length > 0 ? (
-            <p className="text-center text-xs text-slate-400">
+            <p className="text-center text-xs text-bark-400">
               <Link href={buildCatalogueHref({ ...params, page: 1 })} className="hover:underline">
                 Back to the first page
               </Link>

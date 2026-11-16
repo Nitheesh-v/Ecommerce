@@ -42,11 +42,11 @@ export function Price({
 
   return (
     <span className={cn("inline-flex flex-wrap items-baseline gap-1.5", className)}>
-      <span className={cn("font-semibold text-slate-900", SIZES[size])}>
+      <span className={cn("font-semibold text-bark-900", SIZES[size])}>
         {formatPrice(amount, currency)}
       </span>
       {showList ? (
-        <span className={cn("text-slate-400 line-through", LIST_SIZES[size])}>
+        <span className={cn("text-bark-400 line-through", LIST_SIZES[size])}>
           {formatPrice(listAmount, currency)}
         </span>
       ) : null}

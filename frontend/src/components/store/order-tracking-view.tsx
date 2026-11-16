@@ -73,7 +73,7 @@ export function OrderTrackingView({ orderId }: { orderId: string }) {
     <div className="space-y-5">
       <Link
         href="/"
-        className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900"
+        className="inline-flex items-center gap-1.5 text-sm text-bark-700 hover:text-bark-900"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
         Continue shopping
@@ -121,21 +121,21 @@ function TrackingError({
 
   return (
     <Card className="p-8 text-center">
-      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-cream-200 text-bark-400">
         {unauthenticated ? (
           <Lock className="h-5 w-5" aria-hidden />
         ) : (
           <PackageSearch className="h-5 w-5" aria-hidden />
         )}
       </span>
-      <h1 className="mt-3 text-base font-semibold text-slate-900">
+      <h1 className="mt-3 text-base font-semibold text-bark-900">
         {unauthenticated
           ? "Sign in to track this order"
           : missing
             ? "This order has no tracking yet"
             : "Tracking is unavailable right now"}
       </h1>
-      <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+      <p className="mx-auto mt-1 max-w-md text-sm text-bark-500">
         {unauthenticated
           ? "Order tracking is private to the account that placed the order. Sign in with that account and open the link again."
           : missing
@@ -161,29 +161,29 @@ function TrackingBody({ tracking }: { tracking: OrderTracking }) {
         <CardBody className="space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-slate-500">
+              <p className="text-xs font-medium text-bark-500">
                 Order {tracking.orderNumber}
               </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-bark-900">
                 {tracking.statusLabel}
               </h1>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-bark-500">
                 Shipment{" "}
-                <span className="font-mono text-xs text-slate-700">
+                <span className="font-mono text-xs text-bark-800">
                   {tracking.shipmentNumber}
                 </span>
               </p>
             </div>
 
             <div className="text-right">
-              <p className="text-xs font-medium text-slate-500">
+              <p className="text-xs font-medium text-bark-500">
                 {tracking.actualDelivery
                   ? "Delivered"
                   : tracking.estimatedDelivery
                     ? "Expected"
                     : "Delivery date"}
               </p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">
+              <p className="mt-1 text-sm font-semibold text-bark-900">
                 {tracking.actualDelivery
                   ? formatDate(tracking.actualDelivery)
                   : tracking.estimatedDelivery
@@ -200,14 +200,14 @@ function TrackingBody({ tracking }: { tracking: OrderTracking }) {
             </p>
           ) : null}
 
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-slate-100 pt-4 text-sm">
-            <span className="inline-flex items-center gap-1.5 text-slate-700">
-              <Truck className="h-4 w-4 text-slate-400" aria-hidden />
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-cream-200 pt-4 text-sm">
+            <span className="inline-flex items-center gap-1.5 text-bark-800">
+              <Truck className="h-4 w-4 text-bark-400" aria-hidden />
               {tracking.courier.name}
             </span>
 
             {tracking.courier.trackingNumber ? (
-              <span className="text-slate-700">
+              <span className="text-bark-800">
                 Tracking number{" "}
                 {tracking.courier.trackingUrl ? (
                   <a
@@ -225,7 +225,7 @@ function TrackingBody({ tracking }: { tracking: OrderTracking }) {
                 )}
               </span>
             ) : (
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-bark-400">
                 The store has not assigned a tracking number yet
               </span>
             )}
@@ -255,8 +255,8 @@ function TrackingBody({ tracking }: { tracking: OrderTracking }) {
                   className={cn(
                     "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
                     step.reached
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-100 text-slate-400",
+                      ? "bg-emerald-600 text-cream-50"
+                      : "bg-cream-200 text-bark-400",
                   )}
                 >
                   {step.reached ? (
@@ -268,7 +268,7 @@ function TrackingBody({ tracking }: { tracking: OrderTracking }) {
                 <span
                   className={cn(
                     "text-xs",
-                    step.reached ? "font-medium text-slate-800" : "text-slate-400",
+                    step.reached ? "font-medium text-bark-900" : "text-bark-400",
                   )}
                 >
                   {step.label}
@@ -283,18 +283,18 @@ function TrackingBody({ tracking }: { tracking: OrderTracking }) {
         <CardHeader title="Tracking updates" />
         <CardBody className="p-0">
           {tracking.events.length === 0 ? (
-            <p className="px-5 py-6 text-sm text-slate-500">
+            <p className="px-5 py-6 text-sm text-bark-500">
               No updates yet — they appear here as soon as the parcel moves.
             </p>
           ) : (
             <ol className="space-y-4 px-5 py-4">
               {tracking.events.map((event, index) => (
                 <li key={`${event.at}-${index}`} className="flex gap-3">
-                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-slate-300" />
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-cream-400" />
                   <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-2">
-                    <p className="text-sm text-slate-800">{event.label}</p>
+                    <p className="text-sm text-bark-900">{event.label}</p>
                     <time
-                      className="text-xs text-slate-500"
+                      className="text-xs text-bark-500"
                       dateTime={event.at}
                       title={new Date(event.at).toISOString()}
                     >

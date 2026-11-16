@@ -51,7 +51,7 @@ export function AddToCartButton({
         type="button"
         disabled
         className={cn(
-          "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-500 sm:w-auto",
+          "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-cream-300 px-4 py-2.5 text-sm font-semibold text-bark-500 sm:w-auto",
           className,
         )}
       >
@@ -67,7 +67,7 @@ export function AddToCartButton({
       onClick={() => void onClick()}
       disabled={adding}
       className={cn(
-        "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-80 sm:w-auto",
+        "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-bark-900 px-4 py-2.5 text-sm font-semibold text-cream-50 transition-colors hover:bg-bark-900 disabled:opacity-80 sm:w-auto",
         className,
       )}
     >

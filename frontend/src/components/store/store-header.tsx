@@ -1,3 +1,5 @@
+// src/components/store/store-header.tsx
+
 import Link from "next/link";
 import { Suspense } from "react";
 import { Search, ShoppingBag, Store, Tag, LayoutGrid } from "lucide-react";
@@ -14,20 +16,20 @@ import { NotificationBell } from "./notification-bell";
  */
 export function StoreHeader() {
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-cream-300 bg-cream-50/85 backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 text-white">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-bark-900 text-cream-50">
             <Store className="h-4 w-4" aria-hidden />
           </span>
-          <span className="hidden text-sm font-semibold tracking-tight text-slate-900 sm:inline">
+          <span className="font-display hidden text-lg leading-none tracking-tight text-bark-950 sm:inline">
             Ecommerce26
           </span>
         </Link>
 
         <form action="/products" method="get" role="search" className="relative flex-1">
           <Search
-            className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-bark-400"
             aria-hidden
           />
           <input
@@ -35,27 +37,27 @@ export function StoreHeader() {
             name="search"
             placeholder="Search for products, brands and more"
             aria-label="Search products"
-            className="w-full rounded-lg border border-transparent bg-slate-100 py-2 pr-3 pl-9 text-sm text-slate-900 placeholder:text-slate-500 transition-colors focus:border-slate-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+            className="w-full rounded-full border border-cream-300 bg-cream-100 py-2.5 pr-4 pl-10 text-sm text-bark-900 placeholder:text-bark-500 transition-colors focus:border-bark-300 focus:bg-cream-50 focus:outline-none focus:ring-2 focus:ring-baby-300"
           />
         </form>
 
         <nav className="flex shrink-0 items-center gap-0.5 text-sm">
           <Link
             href="/products"
-            className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-slate-700 transition-colors hover:bg-slate-100 md:inline-flex"
+            className="hidden items-center gap-1.5 rounded-full px-3.5 py-2 text-bark-700 transition-colors hover:bg-cream-200 hover:text-bark-950 md:inline-flex"
           >
             <LayoutGrid className="h-4 w-4" aria-hidden />
             Shop
           </Link>
           <Link
             href="/categories"
-            className="hidden rounded-lg px-3 py-2 text-slate-700 transition-colors hover:bg-slate-100 lg:inline-flex"
+            className="hidden rounded-full px-3.5 py-2 text-bark-700 transition-colors hover:bg-cream-200 hover:text-bark-950 lg:inline-flex"
           >
             Categories
           </Link>
           <Link
             href="/offers"
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-slate-700 transition-colors hover:bg-slate-100"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-bark-700 transition-colors hover:bg-cream-200 hover:text-bark-950"
           >
             <Tag className="h-4 w-4" aria-hidden />
             <span className="hidden sm:inline">Offers</span>
@@ -64,7 +66,7 @@ export function StoreHeader() {
           {/* Reads the cart store, which only exists in the browser. */}
           <Suspense
             fallback={
-              <span className="h-9 w-9 animate-pulse rounded-lg bg-slate-100" aria-hidden />
+              <span className="h-9 w-9 animate-pulse rounded-full bg-cream-200" aria-hidden />
             }
           >
             <CartBadge />
@@ -80,7 +82,9 @@ export function StoreHeader() {
             subtree renders at request time.
           */}
           <Suspense
-            fallback={<div className="h-9 w-24 animate-pulse rounded-lg bg-slate-100" aria-hidden />}
+            fallback={
+              <div className="h-9 w-24 animate-pulse rounded-full bg-cream-200" aria-hidden />
+            }
           >
             <AccountMenu />
           </Suspense>
@@ -92,52 +96,63 @@ export function StoreHeader() {
 
 export function StoreFooter() {
   return (
-    <footer className="mt-16 border-t border-slate-200 bg-white">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 text-sm sm:px-6 md:grid-cols-3">
-        <div>
-          <p className="flex items-center gap-2 font-semibold text-slate-900">
-            <ShoppingBag className="h-4 w-4" aria-hidden />
-            Ecommerce26
-          </p>
-          <p className="mt-2 text-xs leading-relaxed text-slate-500">
-            Products, prices and stock on this site come straight from the store API —
-            no placeholder data anywhere.
-          </p>
+    <footer className="mt-20 bg-bark-900 text-cream-100">
+      <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
+          <div>
+            <p className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cream-100 text-bark-900">
+                <ShoppingBag className="h-4 w-4" aria-hidden />
+              </span>
+              <span className="font-display text-xl leading-none">Ecommerce26</span>
+            </p>
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-cream-300/80">
+              Products, prices and stock on this site come straight from the store API —
+              no placeholder data anywhere.
+            </p>
+            <p className="mt-6 text-[11px] tracking-[0.2em] text-cream-400/70 uppercase">
+              Made in India · Prices in INR
+            </p>
+          </div>
+
+          <div className="space-y-2.5 text-sm">
+            <p className="text-[11px] font-semibold tracking-[0.2em] text-cream-400 uppercase">
+              Shop
+            </p>
+            <Link href="/products" className="block text-cream-200 transition-colors hover:text-cream-50">
+              All products
+            </Link>
+            <Link href="/categories" className="block text-cream-200 transition-colors hover:text-cream-50">
+              Categories
+            </Link>
+            <Link href="/offers" className="block text-cream-200 transition-colors hover:text-cream-50">
+              Offers &amp; coupons
+            </Link>
+          </div>
+
+          <div className="space-y-2.5 text-sm">
+            <p className="text-[11px] font-semibold tracking-[0.2em] text-cream-400 uppercase">
+              Account
+            </p>
+            <Link href="/account" className="block text-cream-200 transition-colors hover:text-cream-50">
+              My account
+            </Link>
+            <Link
+              href="/account/orders"
+              className="block text-cream-200 transition-colors hover:text-cream-50"
+            >
+              My orders
+            </Link>
+            <Link href="/login" className="block text-cream-200 transition-colors hover:text-cream-50">
+              Sign in
+            </Link>
+          </div>
         </div>
 
-        <div className="space-y-2 text-xs">
-          <p className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
-            Shop
-          </p>
-          <Link href="/products" className="block text-slate-600 hover:text-slate-900">
-            All products
-          </Link>
-          <Link href="/categories" className="block text-slate-600 hover:text-slate-900">
-            Categories
-          </Link>
-          <Link href="/offers" className="block text-slate-600 hover:text-slate-900">
-            Offers &amp; coupons
-          </Link>
+        <div className="mt-12 flex flex-col gap-2 border-t border-cream-100/15 pt-6 text-xs text-cream-400 sm:flex-row sm:items-center sm:justify-between">
+          <p>© Ecommerce26 — every price and stock count is served by the store API</p>
+          <p className="tracking-[0.16em] uppercase">Cash on delivery · Secure checkout</p>
         </div>
-
-        <div className="space-y-2 text-xs">
-          <p className="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
-            Account
-          </p>
-          <Link href="/account" className="block text-slate-600 hover:text-slate-900">
-            My account
-          </Link>
-          <Link href="/account/orders" className="block text-slate-600 hover:text-slate-900">
-            My orders
-          </Link>
-          <Link href="/login" className="block text-slate-600 hover:text-slate-900">
-            Sign in
-          </Link>
-        </div>
-      </div>
-
-      <div className="border-t border-slate-100 py-4 text-center text-xs text-slate-400">
-        © Ecommerce26 — every price and stock count is served by the store API
       </div>
     </footer>
   );

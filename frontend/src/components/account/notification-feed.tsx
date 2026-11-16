@@ -34,10 +34,10 @@ const CATEGORY_ICONS: Record<NotificationCategory, typeof Bell> = {
 const CATEGORY_TONES: Record<NotificationCategory, string> = {
   order: "bg-sky-50 text-sky-700",
   payment: "bg-emerald-50 text-emerald-700",
-  shipping: "bg-indigo-50 text-indigo-700",
+  shipping: "bg-baby-50 text-bark-950",
   inventory: "bg-amber-50 text-amber-700",
   review: "bg-amber-50 text-amber-700",
-  account: "bg-slate-100 text-slate-700",
+  account: "bg-cream-200 text-bark-800",
 };
 
 type Tab = "all" | "unread";
@@ -173,7 +173,7 @@ export function NotificationFeed() {
         <div
           role="tablist"
           aria-label="Filter notifications"
-          className="inline-flex rounded-lg border border-slate-200 bg-white p-1"
+          className="inline-flex rounded-lg border border-cream-300 bg-cream-50 p-1"
         >
           {(["all", "unread"] as const).map((value) => (
             <button
@@ -188,8 +188,8 @@ export function NotificationFeed() {
               className={cn(
                 "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 tab === value
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100",
+                  ? "bg-bark-900 text-cream-50"
+                  : "text-bark-700 hover:bg-cream-200",
               )}
             >
               {value === "all" ? "All" : `Unread${state.unread ? ` (${state.unread})` : ""}`}
@@ -239,7 +239,7 @@ export function NotificationFeed() {
           action={
             <Link
               href="/products"
-              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              className="inline-flex h-8 items-center rounded-lg border border-cream-300 bg-cream-50 px-3 text-xs font-medium text-bark-800 transition-colors hover:bg-cream-100"
             >
               Browse products
             </Link>
@@ -255,14 +255,14 @@ export function NotificationFeed() {
               <span
                 className={cn(
                   "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                  CATEGORY_TONES[item.category] ?? "bg-slate-100 text-slate-700",
+                  CATEGORY_TONES[item.category] ?? "bg-cream-200 text-bark-800",
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-start justify-between gap-3">
-                  <span className="text-sm font-semibold text-slate-900">
+                  <span className="text-sm font-semibold text-bark-900">
                     {item.title}
                   </span>
                   {!item.read ? (
@@ -272,8 +272,8 @@ export function NotificationFeed() {
                     />
                   ) : null}
                 </span>
-                <span className="mt-0.5 block text-sm text-slate-600">{item.body}</span>
-                <span className="mt-1 block text-xs text-slate-400">
+                <span className="mt-0.5 block text-sm text-bark-700">{item.body}</span>
+                <span className="mt-1 block text-xs text-bark-400">
                   {formatDateTime(item.createdAt)}
                 </span>
               </span>
@@ -288,8 +288,8 @@ export function NotificationFeed() {
                   onClick={() => void markOne(item)}
                   data-testid="notification-row"
                   className={cn(
-                    "flex gap-3 rounded-xl border bg-white p-4 transition-colors hover:border-slate-300",
-                    item.read ? "border-slate-200" : "border-sky-200 bg-sky-50/40",
+                    "flex gap-3 rounded-xl border bg-cream-50 p-4 transition-colors hover:border-cream-400",
+                    item.read ? "border-cream-300" : "border-sky-200 bg-sky-50/40",
                   )}
                 >
                   {content}
@@ -298,8 +298,8 @@ export function NotificationFeed() {
                 <div
                   data-testid="notification-row"
                   className={cn(
-                    "flex gap-3 rounded-xl border bg-white p-4",
-                    item.read ? "border-slate-200" : "border-sky-200 bg-sky-50/40",
+                    "flex gap-3 rounded-xl border bg-cream-50 p-4",
+                    item.read ? "border-cream-300" : "border-sky-200 bg-sky-50/40",
                   )}
                 >
                   {content}
@@ -311,8 +311,8 @@ export function NotificationFeed() {
       </ul>
 
       {meta && meta.totalPages > 1 ? (
-        <div className="flex items-center justify-between border-t border-slate-200 pt-4">
-          <p className="text-xs text-slate-500">
+        <div className="flex items-center justify-between border-t border-cream-300 pt-4">
+          <p className="text-xs text-bark-500">
             Page {meta.page} of {meta.totalPages} · {meta.total} notifications
           </p>
           <div className="flex gap-2">

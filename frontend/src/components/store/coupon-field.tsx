@@ -93,9 +93,9 @@ export function CouponField({
     <div className={cn("space-y-2", className)}>
       <label
         htmlFor="coupon-code"
-        className="flex items-center gap-1.5 text-xs font-medium text-slate-700"
+        className="flex items-center gap-1.5 text-xs font-medium text-bark-800"
       >
-        <Tag className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+        <Tag className="h-3.5 w-3.5 text-bark-400" aria-hidden />
         Have a coupon code?
       </label>
 
@@ -112,13 +112,13 @@ export function CouponField({
           }}
           placeholder="DIWALI20"
           autoComplete="off"
-          className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 font-mono text-sm tracking-wide text-slate-900 placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-400 focus:border-slate-400 focus:outline-none"
+          className="h-10 min-w-0 flex-1 rounded-lg border border-cream-300 px-3 font-mono text-sm tracking-wide text-bark-900 placeholder:font-sans placeholder:tracking-normal placeholder:text-bark-400 focus:border-bark-400 focus:outline-none"
         />
         <button
           type="button"
           onClick={() => void apply(code)}
           disabled={pending || code.trim() === ""}
-          className="h-10 shrink-0 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:bg-slate-300"
+          className="h-10 shrink-0 rounded-lg bg-bark-900 px-4 text-sm font-medium text-cream-50 transition-colors hover:bg-bark-900 disabled:bg-cream-400"
         >
           {pending ? "Checking…" : "Apply"}
         </button>
@@ -129,7 +129,7 @@ export function CouponField({
           {error}
         </p>
       ) : (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-bark-500">
           The discount is calculated on our servers when the code is applied.
         </p>
       )}

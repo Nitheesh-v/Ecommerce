@@ -1,3 +1,5 @@
+// src/components/store/product-card.tsx
+
 import Link from "next/link";
 import { ImageOff, Star } from "lucide-react";
 import { resolveImageUrl } from "@/lib/images";
@@ -24,17 +26,17 @@ export function RatingPill({
 }) {
   if (count === 0) {
     return (
-      <span className={`text-[11px] text-slate-400 ${className}`}>No ratings yet</span>
+      <span className={`text-[11px] text-bark-500 ${className}`}>No ratings yet</span>
     );
   }
 
   return (
     <span className={`inline-flex items-center gap-1 text-[11px] ${className}`}>
-      <span className="inline-flex items-center gap-0.5 rounded bg-emerald-600 px-1 py-0.5 font-semibold text-white">
+      <span className="inline-flex items-center gap-0.5 rounded-full bg-bark-900 px-1.5 py-0.5 font-semibold text-cream-50">
         {average.toFixed(1)}
-        <Star className="h-2.5 w-2.5 fill-white" aria-hidden />
+        <Star className="h-2.5 w-2.5 fill-cream-50" aria-hidden />
       </span>
-      <span className="text-slate-500">({count.toLocaleString("en-IN")})</span>
+      <span className="text-bark-500">({count.toLocaleString("en-IN")})</span>
     </span>
   );
 }
@@ -45,6 +47,9 @@ export function RatingPill({
  * Shows what a shopper decides with: the effective price, the list price it beat,
  * the discount percentage and the rating — all server-computed, never derived from
  * anything the browser could have edited.
+ *
+ * Styling is editorial rather than marketplace-loud: cream paper, a serif product
+ * name, one accent colour, and a shadow that appears only on hover.
  */
 export function ProductCard({ product }: { product: PublicProduct }) {
   const image = resolveImageUrl(
@@ -55,57 +60,57 @@ export function ProductCard({ product }: { product: PublicProduct }) {
   return (
     <Link
       href={`/products/${product.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-shadow hover:shadow-md"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-cream-300 bg-cream-50 transition-all duration-300 hover:-translate-y-0.5 hover:border-cream-400 hover:shadow-[0_22px_45px_-28px_rgba(58,34,22,0.55)]"
     >
-      <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-slate-50">
+      <div className="relative aspect-[4/5] overflow-hidden bg-cream-200">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={image}
             alt={product.name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
           />
         ) : (
-          <ImageOff className="h-6 w-6 text-slate-300" aria-hidden />
+          <div className="flex h-full w-full items-center justify-center">
+            <ImageOff className="h-6 w-6 text-bark-300" aria-hidden />
+          </div>
         )}
 
         {discount > 0 ? (
-          <span className="absolute top-2 left-2 rounded bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-            {discount}% OFF
+          <span className="absolute top-3 left-3 rounded-full bg-baby-400 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-bark-950 uppercase">
+            {discount}% off
           </span>
         ) : null}
 
         {!product.inStock ? (
-          <span className="absolute inset-0 flex items-center justify-center bg-white/75 text-xs font-semibold text-slate-700">
-            Out of stock
+          <span className="absolute inset-0 flex items-center justify-center bg-cream-50/80 text-[11px] font-semibold tracking-[0.18em] text-bark-800 uppercase backdrop-blur-[2px]">
+            Sold out
           </span>
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5 p-3.5">
-        {product.brand ? (
-          <span className="text-[11px] font-medium tracking-wide text-slate-500 uppercase">
-            {product.brand}
-          </span>
-        ) : null}
+      <div className="flex flex-1 flex-col gap-1 p-4">
+        <span className="text-[10px] font-medium tracking-[0.18em] text-bark-500 uppercase">
+          {product.brand ?? product.category?.name ?? "Ecommerce26"}
+        </span>
 
-        <span className="line-clamp-2 text-sm leading-snug font-medium text-slate-900">
+        <span className="font-display line-clamp-2 text-[15px] leading-snug text-bark-900">
           {product.name}
         </span>
 
         <RatingPill average={product.ratingAverage} count={product.ratingCount} />
 
-        <span className="mt-auto flex flex-wrap items-baseline gap-1.5 pt-1">
-          <span className="text-base font-semibold text-slate-900">
+        <span className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-2">
+          <span className="text-[15px] font-semibold text-bark-950">
             {formatCurrency(product.effectivePrice)}
           </span>
           {discount > 0 ? (
             <>
-              <span className="text-xs text-slate-400 line-through">
+              <span className="text-xs text-bark-500 line-through">
                 {formatCurrency(product.price)}
               </span>
-              <span className="text-xs font-medium text-emerald-600">{discount}% off</span>
+              <span className="text-xs font-medium text-baby-700">{discount}% off</span>
             </>
           ) : null}
         </span>

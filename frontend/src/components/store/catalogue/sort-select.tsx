@@ -17,7 +17,7 @@ export function SortSelect({ params }: { params: CatalogueParams }) {
   const current = `${params.sortBy ?? "createdAt"}:${params.sortOrder ?? "desc"}`;
 
   return (
-    <label className="flex items-center gap-2 text-xs text-slate-500">
+    <label className="flex items-center gap-2 text-xs text-bark-500">
       <span className="hidden sm:inline">Sort by</span>
       <select
         value={OPTIONS.some((option) => option.value === current) ? current : "createdAt:desc"}
@@ -29,7 +29,7 @@ export function SortSelect({ params }: { params: CatalogueParams }) {
 
           router.push(buildCatalogueHref({ ...params, sortBy, sortOrder, page: 1 }));
         }}
-        className="rounded-lg border border-slate-200 bg-white py-1.5 pr-7 pl-2 text-xs font-medium text-slate-800 focus:border-slate-400 focus:outline-none"
+        className="rounded-lg border border-cream-300 bg-cream-50 py-1.5 pr-7 pl-2 text-xs font-medium text-bark-900 focus:border-bark-400 focus:outline-none"
       >
         {OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>

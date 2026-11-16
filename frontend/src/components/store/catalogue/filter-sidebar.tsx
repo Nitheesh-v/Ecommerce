@@ -10,10 +10,10 @@ import type { ProductFacets } from "@/types/storefront";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <details open className="group border-b border-slate-100 py-3 last:border-b-0">
-      <summary className="flex cursor-pointer list-none items-center justify-between text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
+    <details open className="group border-b border-cream-200 py-3 last:border-b-0">
+      <summary className="flex cursor-pointer list-none items-center justify-between text-[11px] font-semibold tracking-wide text-bark-500 uppercase">
         {title}
-        <span className="text-slate-300 transition-transform group-open:rotate-180">▾</span>
+        <span className="text-cream-400 transition-transform group-open:rotate-180">▾</span>
       </summary>
       <div className="mt-3 space-y-2">{children}</div>
     </details>
@@ -39,13 +39,13 @@ function Choice({
       className={cn(
         "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
         selected
-          ? "bg-slate-900 font-medium text-white"
-          : "text-slate-700 hover:bg-slate-100",
+          ? "bg-bark-900 font-medium text-cream-50"
+          : "text-bark-800 hover:bg-cream-200",
       )}
     >
       <span className="flex min-w-0 items-center gap-1.5 truncate">{label}</span>
       {meta ? (
-        <span className={cn("shrink-0 text-[11px]", selected ? "text-slate-300" : "text-slate-400")}>
+        <span className={cn("shrink-0 text-[11px]", selected ? "text-cream-400" : "text-bark-400")}>
           {meta}
         </span>
       ) : null}
@@ -114,7 +114,7 @@ export function FilterSidebar({
 
   if (!facets) {
     return (
-      <aside className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+      <aside className="rounded-xl border border-cream-300 bg-cream-50 p-4 text-sm text-bark-500">
         Filters are unavailable right now.
       </aside>
     );
@@ -123,12 +123,12 @@ export function FilterSidebar({
   const bands = priceBands(facets.price.min, facets.price.max);
 
   return (
-    <aside className="rounded-xl border border-slate-200 bg-white px-4 py-1">
-      <div className="flex items-center justify-between border-b border-slate-100 py-3">
-        <h2 className="text-sm font-semibold text-slate-900">Filters</h2>
+    <aside className="rounded-xl border border-cream-300 bg-cream-50 px-4 py-1">
+      <div className="flex items-center justify-between border-b border-cream-200 py-3">
+        <h2 className="text-sm font-semibold text-bark-900">Filters</h2>
         <Link
           href="/products"
-          className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-900"
+          className="inline-flex items-center gap-1 text-[11px] text-bark-500 hover:text-bark-900"
         >
           <X className="h-3 w-3" aria-hidden />
           Clear all
@@ -189,9 +189,9 @@ export function FilterSidebar({
             onChange={(event) => setMin(event.target.value)}
             placeholder="Min"
             aria-label="Minimum price"
-            className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs focus:border-slate-400 focus:outline-none"
+            className="w-full rounded-md border border-cream-300 px-2 py-1.5 text-xs focus:border-bark-400 focus:outline-none"
           />
-          <span className="text-slate-300">–</span>
+          <span className="text-cream-400">–</span>
           <input
             type="number"
             min={0}
@@ -200,12 +200,12 @@ export function FilterSidebar({
             onChange={(event) => setMax(event.target.value)}
             placeholder="Max"
             aria-label="Maximum price"
-            className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs focus:border-slate-400 focus:outline-none"
+            className="w-full rounded-md border border-cream-300 px-2 py-1.5 text-xs focus:border-bark-400 focus:outline-none"
           />
           <button
             type="button"
             onClick={applyPrice}
-            className="rounded-md bg-slate-900 px-2 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+            className="rounded-md bg-bark-900 px-2 py-1.5 text-xs font-medium text-cream-50 hover:bg-bark-900"
           >
             Go
           </button>

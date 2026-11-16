@@ -78,16 +78,16 @@ export function ActiveFilters({
           onClick={() =>
             router.push(buildCatalogueHref({ ...params, ...chip.clear, page: 1 }))
           }
-          className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
+          className="inline-flex items-center gap-1 rounded-full border border-cream-300 bg-cream-50 px-2.5 py-1 text-xs text-bark-800 transition-colors hover:border-cream-400 hover:bg-cream-100"
         >
           {chip.label}
-          <X className="h-3 w-3 text-slate-400" aria-hidden />
+          <X className="h-3 w-3 text-bark-400" aria-hidden />
         </button>
       ))}
 
       <Link
         href="/products"
-        className="text-xs font-medium text-slate-500 underline underline-offset-2 hover:text-slate-900"
+        className="text-xs font-medium text-bark-500 underline underline-offset-2 hover:text-bark-900"
       >
         Clear all
       </Link>

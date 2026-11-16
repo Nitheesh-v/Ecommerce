@@ -99,13 +99,13 @@ export function ReviewForm({ productSlug }: { productSlug: string }) {
   };
 
   if (status.state === "loading") {
-    return <div className="h-10 animate-pulse rounded-lg bg-slate-100" />;
+    return <div className="h-10 animate-pulse rounded-lg bg-cream-200" />;
   }
 
   if (status.state === "anonymous") {
     return (
-      <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-        <a href="/admin/login" className="font-medium text-indigo-600 hover:underline">
+      <p className="rounded-lg border border-cream-300 bg-cream-100 px-3 py-2 text-xs text-bark-700">
+        <a href="/admin/login" className="font-medium text-bark-900 hover:underline">
           Sign in
         </a>{" "}
         to review a product you have received.
@@ -115,7 +115,7 @@ export function ReviewForm({ productSlug }: { productSlug: string }) {
 
   if (status.state === "blocked") {
     return (
-      <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+      <p className="rounded-lg border border-cream-300 bg-cream-100 px-3 py-2 text-xs text-bark-700">
         {status.reason}
       </p>
     );
@@ -136,11 +136,11 @@ export function ReviewForm({ productSlug }: { productSlug: string }) {
   return (
     <form
       onSubmit={(event) => void submit(event)}
-      className="space-y-3 rounded-xl border border-slate-200 p-4"
+      className="space-y-3 rounded-xl border border-cream-300 p-4"
     >
       <div>
-        <p className="text-sm font-semibold text-slate-900">Write a review</p>
-        <p className="text-xs text-slate-500">
+        <p className="text-sm font-semibold text-bark-900">Write a review</p>
+        <p className="text-xs text-bark-500">
           Verified purchase · order {status.orderNumber}
         </p>
       </div>
@@ -159,13 +159,13 @@ export function ReviewForm({ productSlug }: { productSlug: string }) {
             <Star
               className={cn(
                 "h-6 w-6",
-                star <= rating ? "fill-amber-400 text-amber-400" : "text-slate-300",
+                star <= rating ? "fill-amber-400 text-amber-400" : "text-cream-400",
               )}
               aria-hidden
             />
           </button>
         ))}
-        <span className="ml-1 text-xs text-slate-500">{rating} / 5</span>
+        <span className="ml-1 text-xs text-bark-500">{rating} / 5</span>
       </div>
 
       <input
@@ -173,7 +173,7 @@ export function ReviewForm({ productSlug }: { productSlug: string }) {
         onChange={(event) => setTitle(event.target.value)}
         maxLength={120}
         placeholder="Headline (optional)"
-        className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm focus:border-slate-400 focus:outline-none"
+        className="h-10 w-full rounded-lg border border-cream-300 px-3 text-sm focus:border-bark-400 focus:outline-none"
         aria-label="Review headline"
       />
 
@@ -185,7 +185,7 @@ export function ReviewForm({ productSlug }: { productSlug: string }) {
         rows={4}
         required
         placeholder="What did you like or dislike? (at least 10 characters)"
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+        className="w-full rounded-lg border border-cream-300 px-3 py-2 text-sm focus:border-bark-400 focus:outline-none"
         aria-label="Review comment"
       />
 
@@ -196,11 +196,11 @@ export function ReviewForm({ productSlug }: { productSlug: string }) {
       ) : null}
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">Published after moderation.</p>
+        <p className="text-xs text-bark-500">Published after moderation.</p>
         <button
           type="submit"
           disabled={saving || comment.trim().length < 10}
-          className="h-10 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:bg-slate-300"
+          className="h-10 rounded-lg bg-bark-900 px-4 text-sm font-medium text-cream-50 transition-colors hover:bg-bark-900 disabled:bg-cream-400"
         >
           {saving ? "Submitting…" : "Submit review"}
         </button>

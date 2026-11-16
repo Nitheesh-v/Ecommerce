@@ -35,12 +35,12 @@ export function CartItemRow({
   const name = item.slug ? (
     <Link
       href={`/products/${item.slug}`}
-      className="text-sm font-medium text-slate-900 hover:text-slate-700 hover:underline"
+      className="text-sm font-medium text-bark-900 hover:text-bark-800 hover:underline"
     >
       {item.name}
     </Link>
   ) : (
-    <span className="text-sm font-medium text-slate-900">{item.name}</span>
+    <span className="text-sm font-medium text-bark-900">{item.name}</span>
   );
 
   return (
@@ -50,12 +50,12 @@ export function CartItemRow({
         !item.available && "opacity-60",
       )}
     >
-      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-cream-300 bg-cream-100">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt={item.name} className="h-full w-full object-cover" />
         ) : (
-          <ImageOff className="h-5 w-5 text-slate-300" aria-hidden />
+          <ImageOff className="h-5 w-5 text-cream-400" aria-hidden />
         )}
       </div>
 
@@ -64,7 +64,7 @@ export function CartItemRow({
           <div className="min-w-0">
             {name}
             {item.sku ? (
-              <p className="mt-0.5 font-mono text-[11px] text-slate-400">SKU {item.sku}</p>
+              <p className="mt-0.5 font-mono text-[11px] text-bark-400">SKU {item.sku}</p>
             ) : null}
             {!item.available ? (
               <span className="mt-1.5 inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-700">
@@ -77,7 +77,7 @@ export function CartItemRow({
             type="button"
             onClick={onRemove}
             aria-label={`Remove ${item.name} from the cart`}
-            className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+            className="rounded-md p-1.5 text-bark-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
           >
             <Trash2 className="h-4 w-4" aria-hidden />
           </button>
@@ -91,7 +91,7 @@ export function CartItemRow({
               currency={currency}
               size="sm"
             />
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-bark-500">
               {formatPrice(item.unitPrice, currency)} each
             </p>
           </div>
@@ -104,7 +104,7 @@ export function CartItemRow({
               updating={updating}
               max={Math.max(1, Math.min(99, item.stock || 99))}
             />
-            <span className="min-w-16 text-right text-sm font-semibold text-slate-900">
+            <span className="min-w-16 text-right text-sm font-semibold text-bark-900">
               {item.available ? formatPrice(item.lineTotal, currency) : "—"}
             </span>
           </div>

@@ -45,7 +45,7 @@ export function QuantitySelector({
     <div className={cn("flex items-center gap-2", className)}>
       <div
         className={cn(
-          "inline-flex items-center rounded-lg border border-slate-200 bg-white",
+          "inline-flex items-center rounded-lg border border-cream-300 bg-cream-50",
           disabled && "opacity-60",
         )}
         role="group"
@@ -56,13 +56,13 @@ export function QuantitySelector({
           onClick={decrease}
           disabled={disabled || value <= 1}
           aria-label="Decrease quantity"
-          className="flex h-8 w-8 items-center justify-center rounded-l-lg text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+          className="flex h-8 w-8 items-center justify-center rounded-l-lg text-bark-700 transition-colors hover:bg-cream-100 disabled:cursor-not-allowed disabled:text-cream-400"
         >
           <Minus className="h-3.5 w-3.5" aria-hidden />
         </button>
         <span
           aria-live="polite"
-          className="min-w-8 text-center text-sm font-medium text-slate-900"
+          className="min-w-8 text-center text-sm font-medium text-bark-900"
         >
           {value}
         </span>
@@ -71,14 +71,14 @@ export function QuantitySelector({
           onClick={increase}
           disabled={disabled || value >= max}
           aria-label="Increase quantity"
-          className="flex h-8 w-8 items-center justify-center rounded-r-lg text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+          className="flex h-8 w-8 items-center justify-center rounded-r-lg text-bark-700 transition-colors hover:bg-cream-100 disabled:cursor-not-allowed disabled:text-cream-400"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden />
         </button>
       </div>
 
       {updating ? (
-        <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
+        <span className="inline-flex items-center gap-1 text-[11px] text-bark-500">
           <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
           Updating…
         </span>

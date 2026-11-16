@@ -96,11 +96,11 @@ export function RegisterForm() {
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+      <div className="rounded-2xl border border-cream-300 bg-cream-50 p-6 shadow-sm sm:p-8">
+        <h1 className="text-xl font-semibold tracking-tight text-bark-900">
           Create your account
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-bark-500">
           One account for orders, reviews and support.
         </p>
 
@@ -196,17 +196,17 @@ export function RegisterForm() {
           </Button>
         </form>
 
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-sm text-bark-700">
           Already have an account?{" "}
           <Link
             href={`/login?next=${encodeURIComponent(next)}`}
-            className="font-medium text-slate-900 underline underline-offset-2"
+            className="font-medium text-bark-900 underline underline-offset-2"
           >
             Sign in
           </Link>
         </p>
 
-        <p className="mt-4 flex items-start gap-2 text-xs text-slate-500">
+        <p className="mt-4 flex items-start gap-2 text-xs text-bark-500">
           <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           We store a bcrypt hash of your password — never the password itself.
         </p>

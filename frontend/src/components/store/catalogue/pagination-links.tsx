@@ -27,7 +27,7 @@ export function PaginationLinks({
         <Link
           href={href(meta.page - 1)}
           rel="prev"
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          className="inline-flex items-center gap-1 rounded-lg border border-cream-300 bg-cream-50 px-3 py-1.5 text-xs font-medium text-bark-800 hover:bg-cream-100"
         >
           <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
           Prev
@@ -36,7 +36,7 @@ export function PaginationLinks({
 
       {pages.map((page, index) =>
         page === null ? (
-          <span key={`gap-${index}`} className="px-1 text-xs text-slate-400">
+          <span key={`gap-${index}`} className="px-1 text-xs text-bark-400">
             …
           </span>
         ) : (
@@ -46,8 +46,8 @@ export function PaginationLinks({
             aria-current={page === meta.page ? "page" : undefined}
             className={
               page === meta.page
-                ? "inline-flex h-8 min-w-8 items-center justify-center rounded-lg bg-slate-900 px-2 text-xs font-semibold text-white"
-                : "inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                ? "inline-flex h-8 min-w-8 items-center justify-center rounded-lg bg-bark-900 px-2 text-xs font-semibold text-cream-50"
+                : "inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-cream-300 bg-cream-50 px-2 text-xs font-medium text-bark-800 hover:bg-cream-100"
             }
           >
             {page}
@@ -59,7 +59,7 @@ export function PaginationLinks({
         <Link
           href={href(meta.page + 1)}
           rel="next"
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          className="inline-flex items-center gap-1 rounded-lg border border-cream-300 bg-cream-50 px-3 py-1.5 text-xs font-medium text-bark-800 hover:bg-cream-100"
         >
           Next
           <ChevronRight className="h-3.5 w-3.5" aria-hidden />

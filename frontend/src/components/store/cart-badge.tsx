@@ -23,7 +23,7 @@ export function CartBadge({ className }: { className?: string }) {
       href="/cart"
       aria-label={label}
       className={cn(
-        "relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-700 transition-colors hover:bg-slate-100",
+        "relative inline-flex h-9 w-9 items-center justify-center rounded-full text-bark-700 transition-colors hover:bg-cream-200 hover:text-bark-950",
         className,
       )}
     >
@@ -31,7 +31,7 @@ export function CartBadge({ className }: { className?: string }) {
       {count > 0 ? (
         <span
           aria-hidden
-          className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] leading-none font-semibold text-white"
+          className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bark-900 px-1 text-[10px] leading-none font-semibold text-cream-50 ring-2 ring-cream-50"
         >
           {count > 99 ? "99+" : count}
         </span>

@@ -54,7 +54,7 @@ async function ProductContent({ params }: PageProps) {
 
   return (
     <div className="space-y-8">
-      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 text-xs text-slate-500">
+      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 text-xs text-bark-500">
         <Link href="/" className="hover:underline">
           Home
         </Link>
@@ -74,11 +74,11 @@ async function ProductContent({ params }: PageProps) {
           </>
         ) : null}
         <ChevronRight className="h-3 w-3" aria-hidden />
-        <span className="font-medium text-slate-700">{product.name}</span>
+        <span className="font-medium text-bark-800">{product.name}</span>
       </nav>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-cream-300 bg-cream-50">
           {primary ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -87,31 +87,31 @@ async function ProductContent({ params }: PageProps) {
               className="h-full w-full object-cover"
             />
           ) : (
-            <ImageOff className="h-8 w-8 text-slate-300" aria-hidden />
+            <ImageOff className="h-8 w-8 text-cream-400" aria-hidden />
           )}
         </div>
 
         <div className="space-y-4">
           {product.brand ? (
-            <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+            <p className="text-xs font-medium tracking-wide text-bark-500 uppercase">
               {product.brand}
             </p>
           ) : null}
 
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-bark-900">
             {product.name}
           </h1>
 
           {product.shortDescription ? (
-            <p className="text-sm text-slate-600">{product.shortDescription}</p>
+            <p className="text-sm text-bark-700">{product.shortDescription}</p>
           ) : null}
 
           <div className="flex items-baseline gap-3">
-            <span className="text-2xl font-semibold text-slate-900">
+            <span className="text-2xl font-semibold text-bark-900">
               {formatCurrency(product.effectivePrice)}
             </span>
             {discounted ? (
-              <span className="text-sm text-slate-400 line-through">
+              <span className="text-sm text-bark-400 line-through">
                 {formatCurrency(product.price)}
               </span>
             ) : null}
@@ -128,7 +128,7 @@ async function ProductContent({ params }: PageProps) {
               {product.inStock ? "In stock" : "Out of stock"}
             </p>
             {product.inStock ? (
-              <span className="text-[11px] text-slate-500">
+              <span className="text-[11px] text-bark-500">
                 {product.stock} available
               </span>
             ) : null}
@@ -140,7 +140,7 @@ async function ProductContent({ params }: PageProps) {
             stock={product.stock}
           />
 
-          <div className="border-t border-slate-200 pt-4">
+          <div className="border-t border-cream-300 pt-4">
             {/* Preview only: the discount is priced by the API, and checkout re-quotes. */}
             <CouponField
               lines={[{ productId: product.id, quantity: 1 }]}
@@ -148,23 +148,23 @@ async function ProductContent({ params }: PageProps) {
             />
             <Link
               href="/offers"
-              className="mb-4 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-700"
+              className="mb-4 inline-block text-xs font-medium text-bark-900 hover:text-bark-950"
             >
               See all current offers
             </Link>
-            <h2 className="text-sm font-semibold text-slate-900">Description</h2>
-            <p className="mt-1 text-sm whitespace-pre-line text-slate-600">
+            <h2 className="text-sm font-semibold text-bark-900">Description</h2>
+            <p className="mt-1 text-sm whitespace-pre-line text-bark-700">
               {product.description}
             </p>
           </div>
 
-          <dl className="grid grid-cols-2 gap-2 border-t border-slate-200 pt-4 text-xs">
-            <dt className="text-slate-500">SKU</dt>
-            <dd className="text-right font-mono text-slate-700">{product.sku}</dd>
+          <dl className="grid grid-cols-2 gap-2 border-t border-cream-300 pt-4 text-xs">
+            <dt className="text-bark-500">SKU</dt>
+            <dd className="text-right font-mono text-bark-800">{product.sku}</dd>
             {product.category ? (
               <>
-                <dt className="text-slate-500">Category</dt>
-                <dd className="text-right text-slate-700">
+                <dt className="text-bark-500">Category</dt>
+                <dd className="text-right text-bark-800">
                   <Link
                     href={`/categories/${product.category.slug}`}
                     className="hover:underline"
@@ -186,13 +186,13 @@ async function ProductContent({ params }: PageProps) {
 function ProductSkeleton() {
   return (
     <div className="space-y-8">
-      <div className="h-3 w-64 animate-pulse rounded bg-slate-200" />
+      <div className="h-3 w-64 animate-pulse rounded bg-cream-300" />
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="aspect-square animate-pulse rounded-2xl bg-slate-200" />
+        <div className="aspect-square animate-pulse rounded-2xl bg-cream-300" />
         <div className="space-y-3">
-          <div className="h-7 w-2/3 animate-pulse rounded bg-slate-200" />
-          <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
-          <div className="h-20 w-full animate-pulse rounded bg-slate-200" />
+          <div className="h-7 w-2/3 animate-pulse rounded bg-cream-300" />
+          <div className="h-4 w-24 animate-pulse rounded bg-cream-300" />
+          <div className="h-20 w-full animate-pulse rounded bg-cream-300" />
         </div>
       </div>
     </div>

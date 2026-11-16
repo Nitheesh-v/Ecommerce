@@ -43,28 +43,28 @@ export function OrderReview({
 }) {
   return (
     <div className="space-y-4">
-      <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100">
+      <ul className="divide-y divide-cream-200 rounded-xl border border-cream-200">
         {items.map((item) => {
           const image = resolveImageUrl(item.imageUrl);
 
           return (
             <li key={item.productId} className="flex items-center gap-3 p-2.5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-cream-300 bg-cream-100">
                 {image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={image} alt={item.name} className="h-full w-full object-cover" />
                 ) : (
-                  <ImageOff className="h-4 w-4 text-slate-300" aria-hidden />
+                  <ImageOff className="h-4 w-4 text-cream-400" aria-hidden />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-900">{item.name}</p>
-                <p className="text-[11px] text-slate-500">
+                <p className="truncate text-sm font-medium text-bark-900">{item.name}</p>
+                <p className="text-[11px] text-bark-500">
                   {item.quantity} × {formatPrice(item.unitPrice, totals.currency)}
                   {item.sku ? ` · ${item.sku}` : ""}
                 </p>
               </div>
-              <span className="shrink-0 text-sm font-medium text-slate-900">
+              <span className="shrink-0 text-sm font-medium text-bark-900">
                 {formatPrice(item.lineTotal, totals.currency)}
               </span>
             </li>
@@ -75,9 +75,9 @@ export function OrderReview({
       <PriceBreakdown totals={totals} coupon={coupon} />
 
       <label className="block">
-        <span className="mb-1 flex items-baseline justify-between text-[11px] font-medium text-slate-600">
+        <span className="mb-1 flex items-baseline justify-between text-[11px] font-medium text-bark-700">
           Delivery note (optional)
-          <span className="text-slate-400">
+          <span className="text-bark-400">
             {notes.length}/{NOTE_LIMIT}
           </span>
         </span>
@@ -87,7 +87,7 @@ export function OrderReview({
           rows={2}
           disabled={placing || disabled}
           placeholder="Gate code, best time to deliver…"
-          className="w-full resize-none rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 disabled:bg-slate-50"
+          className="w-full resize-none rounded-lg border border-cream-300 bg-cream-50 px-2.5 py-2 text-sm text-bark-900 placeholder:text-bark-400 focus:border-bark-400 focus:outline-none focus:ring-2 focus:ring-bark-900/10 disabled:bg-cream-100"
         />
       </label>
 
@@ -111,10 +111,10 @@ export function OrderReview({
         onClick={onPlace}
         disabled={placing || disabled}
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-70",
+          "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-cream-50 transition-colors disabled:cursor-not-allowed disabled:opacity-70",
           paymentMethod === "cod"
             ? "bg-green-600 hover:bg-green-500"
-            : "bg-blue-600 hover:bg-blue-500",
+            : "bg-bark-900 hover:bg-baby-500",
         )}
       >
         {placing ? (
@@ -129,7 +129,7 @@ export function OrderReview({
             : `Pay ${formatPrice(totals.total, totals.currency)} securely`}
       </button>
 
-      <p className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+      <p className="flex items-center justify-center gap-1.5 text-[11px] text-bark-500">
         <Lock className="h-3 w-3" aria-hidden />
         Prices include all taxes. Payment details never touch this store.
       </p>

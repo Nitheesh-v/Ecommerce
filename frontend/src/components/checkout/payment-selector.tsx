@@ -63,7 +63,7 @@ export function PaymentSelector({
       />
 
       {options.onlineAvailable ? (
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-bark-500">
           Payments are confirmed by the gateway — an order is only marked paid after the
           server verifies it.
         </p>
@@ -100,9 +100,9 @@ function PaymentCard({
       className={cn(
         "flex items-start gap-3 rounded-xl border p-3 transition-colors",
         selected && available
-          ? "border-slate-900 bg-slate-50"
-          : "border-slate-200 bg-white",
-        blocked ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-slate-300",
+          ? "border-bark-900 bg-cream-100"
+          : "border-cream-300 bg-cream-50",
+        blocked ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-cream-400",
       )}
     >
       <input
@@ -118,19 +118,19 @@ function PaymentCard({
         className={cn(
           "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
           selected && available
-            ? "border-slate-900 bg-slate-900 text-white"
-            : "border-slate-300",
+            ? "border-bark-900 bg-bark-900 text-cream-50"
+            : "border-cream-400",
         )}
         aria-hidden
       >
         {selected && available ? <Check className="h-3 w-3" /> : null}
       </span>
 
-      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-bark-400" aria-hidden />
 
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-slate-900">{title}</span>
-        <span className="mt-0.5 block text-xs text-slate-600">{description}</span>
+        <span className="block text-sm font-semibold text-bark-900">{title}</span>
+        <span className="mt-0.5 block text-xs text-bark-700">{description}</span>
         {unavailableReason ? (
           <span className="mt-1 block text-[11px] font-medium text-rose-600">
             {unavailableReason}

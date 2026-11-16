@@ -16,10 +16,10 @@ export default function NotificationsPage() {
     <RequireCustomer>
       <div className="mx-auto max-w-3xl space-y-5">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-xl font-semibold tracking-tight text-bark-900">
             Notifications
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-bark-700">
             Updates about your orders, payments and deliveries.
           </p>
         </div>

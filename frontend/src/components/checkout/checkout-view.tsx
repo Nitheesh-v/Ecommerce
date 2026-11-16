@@ -388,7 +388,7 @@ export function CheckoutView() {
         <button
           type="button"
           onClick={() => void fetchCart()}
-          className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-xs font-medium text-rose-800 hover:bg-rose-100"
+          className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-rose-300 bg-cream-50 px-3 py-1.5 text-xs font-medium text-rose-800 hover:bg-rose-100"
         >
           <RefreshCw className="h-3.5 w-3.5" aria-hidden />
           Try again
@@ -407,15 +407,15 @@ export function CheckoutView() {
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex items-baseline justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Checkout</h1>
-          <p className="mt-0.5 text-sm text-slate-500">
+          <h1 className="text-xl font-semibold tracking-tight text-bark-900">Checkout</h1>
+          <p className="mt-0.5 text-sm text-bark-500">
             {cart.totals.itemCount} {cart.totals.itemCount === 1 ? "item" : "items"} ·{" "}
             {formatPrice(cart.totals.total, cart.totals.currency)}
           </p>
         </div>
         <Link
           href="/cart"
-          className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900"
+          className="inline-flex items-center gap-1 text-xs font-medium text-bark-700 hover:text-bark-900"
         >
           <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
           Back to cart
@@ -482,7 +482,7 @@ export function CheckoutView() {
             type="button"
             disabled={!addressId || placing}
             onClick={() => setSection(2)}
-            className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-lg bg-bark-900 px-3 py-2 text-xs font-semibold text-cream-50 hover:bg-bark-900 disabled:opacity-60"
           >
             Continue to payment
           </button>
@@ -520,7 +520,7 @@ export function CheckoutView() {
             type="button"
             onClick={() => setSection(1)}
             disabled={placing}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            className="rounded-lg border border-cream-300 px-3 py-2 text-xs font-medium text-bark-800 hover:bg-cream-100 disabled:opacity-60"
           >
             Back
           </button>
@@ -528,7 +528,7 @@ export function CheckoutView() {
             type="button"
             disabled={placing || !addressId}
             onClick={() => setSection(3)}
-            className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+            className="rounded-lg bg-bark-900 px-3 py-2 text-xs font-semibold text-cream-50 hover:bg-bark-900 disabled:opacity-60"
           >
             Review order
           </button>
@@ -587,13 +587,13 @@ export function CheckoutView() {
             error={placeError}
           />
         ) : (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-bark-500">
             Choose an address and a payment method to see the final total.
           </p>
         )}
 
         {previewLoading && preview ? (
-          <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-slate-500">
+          <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-bark-500">
             <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
             Recalculating…
           </p>
@@ -623,38 +623,38 @@ function CheckoutSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-2xl border border-cream-300 bg-cream-50 shadow-sm">
       <button
         type="button"
         onClick={onOpen}
         aria-expanded={open}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-cream-100"
       >
         <span
           className={cn(
             "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
             complete
               ? "bg-emerald-100 text-emerald-700"
-              : "bg-slate-900 text-white",
+              : "bg-bark-900 text-cream-50",
           )}
         >
           {index}
         </span>
-        <Icon className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+        <Icon className="h-4 w-4 shrink-0 text-bark-400" aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-slate-900">{title}</span>
-          <span className="mt-0.5 block truncate text-[11px] text-slate-500">{summary}</span>
+          <span className="block text-sm font-semibold text-bark-900">{title}</span>
+          <span className="mt-0.5 block truncate text-[11px] text-bark-500">{summary}</span>
         </span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 shrink-0 text-slate-400 transition-transform",
+            "h-4 w-4 shrink-0 text-bark-400 transition-transform",
             open && "rotate-180",
           )}
           aria-hidden
         />
       </button>
 
-      {open ? <div className="border-t border-slate-100 p-4">{children}</div> : null}
+      {open ? <div className="border-t border-cream-200 p-4">{children}</div> : null}
     </section>
   );
 }

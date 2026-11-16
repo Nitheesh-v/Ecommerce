@@ -1,3 +1,5 @@
+// src/components/store/category-card.tsx
+
 import Link from "next/link";
 import { FolderTree } from "lucide-react";
 import { resolveImageUrl } from "@/lib/images";
@@ -10,25 +12,25 @@ export function CategoryCard({ category }: { category: CategoryNode }) {
   return (
     <Link
       href={`/categories/${category.slug}`}
-      className="group flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-shadow hover:shadow-md"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-cream-300 bg-cream-50 transition-all duration-300 hover:-translate-y-0.5 hover:border-cream-400 hover:shadow-[0_22px_45px_-28px_rgba(58,34,22,0.5)]"
     >
-      <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-slate-100">
+      <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-cream-200">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={image}
             alt={category.image?.alt ?? category.name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
           />
         ) : (
-          <FolderTree className="h-8 w-8 text-slate-300" aria-hidden />
+          <FolderTree className="h-8 w-8 text-bark-300" aria-hidden />
         )}
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-4">
-        <span className="text-sm font-semibold text-slate-900">{category.name}</span>
-        <span className="text-xs text-slate-500">
+        <span className="font-display text-base text-bark-900">{category.name}</span>
+        <span className="text-[11px] text-bark-500">
           {category.productCount} product{category.productCount === 1 ? "" : "s"}
           {category.children.length > 0
             ? ` · ${category.children.length} subcategor${category.children.length === 1 ? "y" : "ies"}`

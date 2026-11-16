@@ -108,15 +108,15 @@ export function PayOrderView({ orderId }: { orderId: string }) {
   if (error || !order) {
     return (
       <Card className="mx-auto max-w-xl p-6">
-        <p className="text-sm font-medium text-slate-900">This order cannot be opened</p>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="text-sm font-medium text-bark-900">This order cannot be opened</p>
+        <p className="mt-1 text-sm text-bark-700">
           {error ?? "The order could not be loaded."}
         </p>
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-bark-500">
           Payments are only available to the account that placed the order.{" "}
           <Link
             href="/admin/login"
-            className="font-medium text-slate-700 underline-offset-2 hover:underline"
+            className="font-medium text-bark-800 underline-offset-2 hover:underline"
           >
             Sign in
           </Link>
@@ -138,22 +138,22 @@ export function PayOrderView({ orderId }: { orderId: string }) {
         />
         <CardBody className="space-y-4">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-sm text-slate-600">Amount due</span>
-            <span className="text-2xl font-semibold text-slate-900">
+            <span className="text-sm text-bark-700">Amount due</span>
+            <span className="text-2xl font-semibold text-bark-900">
               {formatCurrency(order.total, order.currency)}
             </span>
           </div>
 
-          <ul className="divide-y divide-slate-100 rounded-lg border border-slate-100">
+          <ul className="divide-y divide-cream-200 rounded-lg border border-cream-200">
             {order.items.map((item) => (
               <li
                 key={`${item.sku}-${item.name}`}
                 className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
               >
-                <span className="min-w-0 truncate text-slate-700">
+                <span className="min-w-0 truncate text-bark-800">
                   {item.quantity} × {item.name}
                 </span>
-                <span className="shrink-0 text-slate-900">
+                <span className="shrink-0 text-bark-900">
                   {formatCurrency(item.lineTotal, order.currency)}
                 </span>
               </li>
@@ -178,7 +178,7 @@ export function PayOrderView({ orderId }: { orderId: string }) {
                 {paying ? "Opening secure checkout…" : `Pay ${formatCurrency(order.total, order.currency)}`}
               </Button>
 
-              <p className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+              <p className="flex items-center justify-center gap-1.5 text-[11px] text-bark-500">
                 <Lock className="h-3 w-3" aria-hidden />
                 Card details are entered on Razorpay&apos;s hosted checkout — this store
                 never sees or stores them.
@@ -195,7 +195,7 @@ export function PayOrderView({ orderId }: { orderId: string }) {
         </CardBody>
       </Card>
 
-      <p className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+      <p className="flex items-center justify-center gap-1.5 text-[11px] text-bark-500">
         <ShieldCheck className="h-3 w-3" aria-hidden />
         Payments are confirmed by the gateway — an order is only marked paid after
         signature verification.
@@ -207,7 +207,7 @@ export function PayOrderView({ orderId }: { orderId: string }) {
 /** Loading indicator shared with the page shell. */
 export function PayLoading() {
   return (
-    <div className="flex items-center justify-center py-10 text-sm text-slate-500">
+    <div className="flex items-center justify-center py-10 text-sm text-bark-500">
       <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
       Loading order…
     </div>

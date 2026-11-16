@@ -1,8 +1,59 @@
+/* src/app/globals.css */
+
 @import "tailwindcss";
 
+/*
+ * Design tokens.
+ *
+ * One warm, editorial palette for the storefront: cream paper, espresso ink and a
+ * single baby-blue accent. Everything below is a token, so a component asks for
+ * `bg-cream-100` or `text-bark-900` instead of inventing a hex value — changing the
+ * brand means changing this block, not thirty files.
+ *
+ * The admin console keeps its own neutral slate theme on purpose: it is a tool, not
+ * a shop window.
+ */
+@theme {
+  /* Paper */
+  --color-cream-50: #fdfaf4;
+  --color-cream-100: #f8f1e6;
+  --color-cream-200: #f1e7d7;
+  --color-cream-300: #e6d8c3;
+  --color-cream-400: #d4c0a5;
+
+  /* Ink — the brown from the reference swatch (#3A2216) and its neighbours. */
+  --color-bark-950: #1f100a;
+  --color-bark-900: #3a2216;
+  --color-bark-800: #4a2c1d;
+  --color-bark-700: #5e3a27;
+  --color-bark-600: #7a5540;
+    /* 500 carries secondary copy and placeholders, so it is set dark enough to pass
+     AA (4.5:1) on cream-200, the darkest surface it sits on. */
+  --color-bark-500: #856048;
+  --color-bark-400: #b09580;
+  --color-bark-300: #d3c0b1;
+  --color-bark-200: #e7dacc;
+
+  /* Accent — the baby blue (#8CC4FE). `600`/`700` are readable on cream. */
+  --color-baby-50: #f2f8ff;
+  --color-baby-100: #e2f0ff;
+  --color-baby-200: #c6e3ff;
+  --color-baby-300: #a6d4ff;
+  --color-baby-400: #8cc4fe;
+  --color-baby-500: #5faef6;
+  --color-baby-600: #2e86d8;
+  --color-baby-700: #1d63a5;
+
+  /* Display face: a serif for headlines and product names. Self-hosted by the OS —
+     no webfont download, no layout shift, no build-time network access. */
+  --font-display:
+    "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
+    Cambria, "Times New Roman", serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8f1e6;
+  --foreground: #3a2216;
 }
 
 @theme inline {
@@ -12,17 +63,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--color-baby-300);
+  color: var(--color-bark-950);
+}
+
+/* Focus is visible everywhere and wears the accent, not the browser default blue. */
+:focus-visible {
+  outline: 2px solid var(--color-baby-600);
+  outline-offset: 2px;
 }
 
 /*
@@ -62,9 +121,43 @@ body {
   animation: check-draw 520ms 140ms ease-out both;
 }
 
+/*
+ * Hero: the featured panel rises into place once, and the marquee band drifts.
+ * Both are decoration, so both stop under `prefers-reduced-motion`.
+ */
+@keyframes rise {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-rise {
+  animation: rise 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-drift {
+  animation: drift 38s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-check-pop,
-  .animate-check-draw {
+  .animate-check-draw,
+  .animate-rise,
+  .animate-drift {
     animation: none;
     stroke-dashoffset: 0;
   }

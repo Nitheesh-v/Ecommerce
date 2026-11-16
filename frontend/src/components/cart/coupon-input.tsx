@@ -93,7 +93,7 @@ export function CouponInput({
         <label className="relative flex-1">
           <span className="sr-only">Coupon code</span>
           <Tag
-            className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-bark-400"
             aria-hidden
           />
           <input
@@ -103,13 +103,13 @@ export function CouponInput({
             autoComplete="off"
             maxLength={40}
             disabled={pending}
-            className="h-9 w-full rounded-lg border border-slate-200 bg-white pr-2 pl-8 text-xs font-medium tracking-wide text-slate-900 uppercase placeholder:normal-case placeholder:tracking-normal focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 disabled:bg-slate-50"
+            className="h-9 w-full rounded-lg border border-cream-300 bg-cream-50 pr-2 pl-8 text-xs font-medium tracking-wide text-bark-900 uppercase placeholder:normal-case placeholder:tracking-normal focus:border-bark-400 focus:outline-none focus:ring-2 focus:ring-bark-900/10 disabled:bg-cream-100"
           />
         </label>
         <button
           type="submit"
           disabled={pending || code.trim().length < 2}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-900 bg-white px-3 text-xs font-semibold text-slate-900 transition-colors hover:bg-slate-900 hover:text-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-bark-900 bg-cream-50 px-3 text-xs font-semibold text-bark-900 transition-colors hover:bg-bark-900 hover:text-cream-50 disabled:cursor-not-allowed disabled:border-cream-300 disabled:text-bark-400"
         >
           {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
           {pending ? "Applying…" : "Apply"}
@@ -121,7 +121,7 @@ export function CouponInput({
           {error}
         </p>
       ) : (
-        <p className="mt-1.5 text-[11px] text-slate-500">
+        <p className="mt-1.5 text-[11px] text-bark-500">
           Codes are checked against your cart before they are applied.
         </p>
       )}

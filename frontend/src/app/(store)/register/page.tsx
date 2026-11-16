@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function StoreRegisterPage() {
   return (
-    <Suspense fallback={<div className="mx-auto h-96 w-full max-w-md animate-pulse rounded-2xl bg-white" />}>
+    <Suspense fallback={<div className="mx-auto h-96 w-full max-w-md animate-pulse rounded-2xl bg-cream-50" />}>
       <RegisterForm />
     </Suspense>
   );

@@ -34,20 +34,20 @@ export function PriceBreakdown({
   return (
     <dl className={cn("space-y-2 text-sm", className)}>
       <div className="flex items-baseline justify-between gap-2">
-        <dt className="text-slate-600">
+        <dt className="text-bark-700">
           Subtotal{" "}
-          <span className="text-slate-400">
+          <span className="text-bark-400">
             ({totals.itemCount} {totals.itemCount === 1 ? "item" : "items"})
           </span>
         </dt>
-        <dd className="font-medium text-slate-900">
+        <dd className="font-medium text-bark-900">
           {formatPrice(totals.subtotal, totals.currency)}
         </dd>
       </div>
 
       {savings > 0 ? (
         <div className="flex items-baseline justify-between gap-2">
-          <dt className="text-slate-600">Discount</dt>
+          <dt className="text-bark-700">Discount</dt>
           <dd className="font-medium text-emerald-600">
             −{formatPrice(savings, totals.currency)}
           </dd>
@@ -56,8 +56,8 @@ export function PriceBreakdown({
 
       {couponDiscount > 0 || coupon ? (
         <div className="flex items-baseline justify-between gap-2">
-          <dt className="text-slate-600">
-            Coupon{coupon ? <span className="text-slate-400"> ({coupon.code})</span> : null}
+          <dt className="text-bark-700">
+            Coupon{coupon ? <span className="text-bark-400"> ({coupon.code})</span> : null}
           </dt>
           <dd className="font-medium text-emerald-600">
             {couponDiscount > 0
@@ -68,13 +68,13 @@ export function PriceBreakdown({
       ) : null}
 
       <div className="flex items-baseline justify-between gap-2">
-        <dt className="text-slate-600">
+        <dt className="text-bark-700">
           Tax{" "}
-          <span className="text-slate-400">
+          <span className="text-bark-400">
             {totals.taxRatePercent > 0 ? `(GST ${totals.taxRatePercent}%)` : "(GST)"}
           </span>
         </dt>
-        <dd className="font-medium text-slate-900">
+        <dd className="font-medium text-bark-900">
           {totals.taxAmount > 0
             ? formatPrice(totals.taxAmount, totals.currency)
             : "Included"}
@@ -82,7 +82,7 @@ export function PriceBreakdown({
       </div>
 
       <div className="flex items-baseline justify-between gap-2">
-        <dt className="flex items-center gap-1.5 text-slate-600">
+        <dt className="flex items-center gap-1.5 text-bark-700">
           Shipping
           {totals.shippingCharge === 0 ? (
             <Truck className="h-3.5 w-3.5 text-emerald-600" aria-hidden />
@@ -92,7 +92,7 @@ export function PriceBreakdown({
           {totals.shippingCharge === 0 ? (
             <span className="text-emerald-600">FREE</span>
           ) : (
-            <span className="text-slate-900">
+            <span className="text-bark-900">
               {formatPrice(totals.shippingCharge, totals.currency)}
             </span>
           )}
@@ -100,16 +100,16 @@ export function PriceBreakdown({
       </div>
 
       {totals.shippingCharge > 0 && totals.freeShippingThreshold > 0 ? (
-        <p className="text-[11px] text-slate-500">
+        <p className="text-[11px] text-bark-500">
           {totals.freeShippingGap > 0
             ? formatFreeShippingGap(totals.freeShippingGap, totals.currency)
             : formatFreeShippingThreshold(totals.freeShippingThreshold, totals.currency)}
         </p>
       ) : null}
 
-      <div className="mt-3 flex items-baseline justify-between gap-2 border-t border-slate-200 pt-3">
-        <dt className="text-base font-semibold text-slate-900">Total</dt>
-        <dd className="text-base font-semibold text-slate-900">
+      <div className="mt-3 flex items-baseline justify-between gap-2 border-t border-cream-300 pt-3">
+        <dt className="text-base font-semibold text-bark-900">Total</dt>
+        <dd className="text-base font-semibold text-bark-900">
           {formatPrice(totals.total, totals.currency)}
         </dd>
       </div>
@@ -133,11 +133,11 @@ export function OrderSummary({
     <section
       aria-label="Order summary"
       className={cn(
-        "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm",
+        "rounded-2xl border border-cream-300 bg-cream-50 p-4 shadow-sm",
         className,
       )}
     >
-      <h2 className="mb-3 text-sm font-semibold tracking-tight text-slate-900">
+      <h2 className="mb-3 text-sm font-semibold tracking-tight text-bark-900">
         Order summary
       </h2>
 
@@ -145,11 +145,11 @@ export function OrderSummary({
 
       {children ? <div className="mt-4 space-y-2">{children}</div> : null}
 
-      <p className="mt-3 text-[11px] text-slate-500">
+      <p className="mt-3 text-[11px] text-bark-500">
         Prices inclusive of all taxes
       </p>
 
-      <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-100 pt-3 text-[11px] text-slate-500">
+      <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-cream-200 pt-3 text-[11px] text-bark-500">
         <li className="inline-flex items-center gap-1">
           <Lock className="h-3 w-3" aria-hidden /> Secure checkout
         </li>

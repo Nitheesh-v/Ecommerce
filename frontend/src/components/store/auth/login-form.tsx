@@ -72,9 +72,9 @@ export function LoginForm() {
 
   return (
     <div className="mx-auto w-full max-w-md">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900">Sign in</h1>
-        <p className="mt-1 text-sm text-slate-500">
+      <div className="rounded-2xl border border-cream-300 bg-cream-50 p-6 shadow-sm sm:p-8">
+        <h1 className="text-xl font-semibold tracking-tight text-bark-900">Sign in</h1>
+        <p className="mt-1 text-sm text-bark-500">
           Track your orders, keep your addresses and check out faster.
         </p>
 
@@ -114,7 +114,7 @@ export function LoginForm() {
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 hover:text-slate-600"
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-bark-400 hover:text-bark-700"
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" aria-hidden />
@@ -137,17 +137,17 @@ export function LoginForm() {
           </Button>
         </form>
 
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-sm text-bark-700">
           New here?{" "}
           <Link
             href={`/register?next=${encodeURIComponent(next)}`}
-            className="font-medium text-slate-900 underline underline-offset-2"
+            className="font-medium text-bark-900 underline underline-offset-2"
           >
             Create an account
           </Link>
         </p>
 
-        <p className="mt-4 flex items-start gap-2 text-xs text-slate-500">
+        <p className="mt-4 flex items-start gap-2 text-xs text-bark-500">
           <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           Your password is never stored in the browser; the session lives in an
           HttpOnly cookie.
