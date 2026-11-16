@@ -90,7 +90,7 @@ export function SuccessView({ orderId }: { orderId: string }) {
         <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
           <Link
             href="/account/orders"
-            className="inline-flex items-center justify-center rounded-lg bg-bark-900 px-4 py-2 text-sm font-medium text-cream-50 hover:bg-bark-900"
+            className="inline-flex items-center justify-center rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 hover:bg-baby-400"
           >
             My orders
           </Link>
@@ -165,7 +165,7 @@ export function SuccessView({ orderId }: { orderId: string }) {
         <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row">
           <Link
             href={`/account/orders/${order.id}`}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-bark-900 px-4 py-2.5 text-sm font-semibold text-cream-50 hover:bg-bark-900"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-baby-400 px-4 py-2.5 text-sm font-semibold text-bark-950 hover:bg-baby-400"
           >
             <Truck className="h-4 w-4" aria-hidden />
             Track your order

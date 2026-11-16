@@ -307,7 +307,7 @@ export function AddressSelector({
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-bark-900 px-3 py-2 text-xs font-semibold text-cream-50 hover:bg-bark-900 disabled:opacity-70"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-baby-400 px-3 py-2 text-xs font-semibold text-bark-950 hover:bg-baby-400 disabled:opacity-70"
             >
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : null}
               {saving ? "Saving…" : "Save address"}

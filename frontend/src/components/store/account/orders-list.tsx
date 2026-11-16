@@ -65,7 +65,7 @@ export function OrdersList() {
         </p>
         <Link
           href="/products"
-          className="mt-4 inline-flex rounded-lg bg-bark-900 px-4 py-2 text-sm font-medium text-cream-50 hover:bg-bark-900"
+          className="mt-4 inline-flex rounded-lg bg-baby-400 px-4 py-2 text-sm font-medium text-bark-950 hover:bg-baby-400"
         >
           Start shopping
         </Link>

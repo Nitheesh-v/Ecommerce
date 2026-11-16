@@ -205,7 +205,7 @@ export function FilterSidebar({
           <button
             type="button"
             onClick={applyPrice}
-            className="rounded-md bg-bark-900 px-2 py-1.5 text-xs font-medium text-cream-50 hover:bg-bark-900"
+            className="rounded-md bg-baby-400 px-2 py-1.5 text-xs font-medium text-bark-950 hover:bg-baby-400"
           >
             Go
           </button>

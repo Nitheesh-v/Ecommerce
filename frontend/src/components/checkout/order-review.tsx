@@ -111,10 +111,8 @@ export function OrderReview({
         onClick={onPlace}
         disabled={placing || disabled}
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-cream-50 transition-colors disabled:cursor-not-allowed disabled:opacity-70",
-          paymentMethod === "cod"
-            ? "bg-green-600 hover:bg-green-500"
-            : "bg-bark-900 hover:bg-baby-500",
+          "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-70",
+          "bg-baby-400 text-bark-950 hover:bg-baby-300",
         )}
       >
         {placing ? (

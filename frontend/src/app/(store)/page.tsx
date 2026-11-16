@@ -230,7 +230,7 @@ export default async function StoreHomePage() {
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Link
               href="/products"
-              className="group inline-flex items-center gap-2 rounded-full bg-bark-900 px-6 py-3 text-sm font-medium text-cream-50 transition-colors hover:bg-bark-950"
+              className="group inline-flex items-center gap-2 rounded-full bg-baby-400 px-6 py-3 text-sm font-semibold text-bark-950 transition-colors hover:bg-baby-300"
             >
               Shop the collection
               <ArrowRight
@@ -311,7 +311,7 @@ export default async function StoreHomePage() {
           </p>
           <Link
             href="/admin/products"
-            className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-bark-900 px-5 py-2.5 text-sm font-medium text-cream-50 hover:bg-bark-950"
+            className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-baby-400 px-5 py-2.5 text-sm font-semibold text-bark-950 transition-colors hover:bg-baby-300"
           >
             Go to products
             <ArrowRight className="h-4 w-4" aria-hidden />
@@ -475,7 +475,7 @@ export default async function StoreHomePage() {
         <div className="flex flex-wrap gap-2.5">
           <Link
             href="/account/orders"
-            className="inline-flex items-center gap-2 rounded-full bg-bark-900 px-5 py-2.5 text-sm font-medium text-cream-50 transition-colors hover:bg-bark-950"
+            className="inline-flex items-center gap-2 rounded-full bg-baby-400 px-5 py-2.5 text-sm font-semibold text-bark-950 transition-colors hover:bg-baby-300"
           >
             Track an order
           </Link>

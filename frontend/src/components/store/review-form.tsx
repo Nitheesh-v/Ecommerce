@@ -200,7 +200,7 @@ export function ReviewForm({ productSlug }: { productSlug: string }) {
         <button
           type="submit"
           disabled={saving || comment.trim().length < 10}
-          className="h-10 rounded-lg bg-bark-900 px-4 text-sm font-medium text-cream-50 transition-colors hover:bg-bark-900 disabled:bg-cream-400"
+          className="h-10 rounded-lg bg-baby-400 px-4 text-sm font-medium text-bark-950 transition-colors hover:bg-baby-400 disabled:bg-baby-200"
         >
           {saving ? "Submitting…" : "Submit review"}
         </button>

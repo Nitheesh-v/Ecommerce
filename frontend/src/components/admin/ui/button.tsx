@@ -2,12 +2,15 @@ import { Loader2 } from "lucide-react";
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "accent" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md";
 
 const VARIANTS: Record<Variant, string> = {
   primary:
     "bg-slate-900 text-white hover:bg-slate-800 focus-visible:outline-slate-900 disabled:bg-slate-400",
+  // Storefront call to action: the baby-blue accent with brown ink (10:1 contrast).
+  accent:
+    "bg-baby-400 text-bark-950 hover:bg-baby-300 focus-visible:outline-baby-700 disabled:bg-baby-200",
   secondary:
     "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus-visible:outline-slate-400",
   ghost:

@@ -174,7 +174,7 @@ export function PayOrderView({ orderId }: { orderId: string }) {
             </div>
           ) : (
             <>
-              <Button onClick={startPayment} loading={paying} className="w-full">
+              <Button variant="accent" onClick={startPayment} loading={paying} className="w-full">
                 {paying ? "Opening secure checkout…" : `Pay ${formatCurrency(order.total, order.currency)}`}
               </Button>
 

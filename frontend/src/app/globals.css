@@ -17,13 +17,13 @@
   /* Paper */
   --color-cream-50: #fdfaf4;
   --color-cream-100: #f8f1e6;
-  --color-cream-200: #f1e7d7;
-  --color-cream-300: #e6d8c3;
+  --color-cream-200: #f2e8da;
+  --color-cream-300: #e7d9c6;
   --color-cream-400: #d4c0a5;
 
-  /* Ink — the brown from the reference swatch (#3A2216) and its neighbours. */
+  /* Ink — the brown from the reference swatch (#3B2418) and its neighbours. */
   --color-bark-950: #1f100a;
-  --color-bark-900: #3a2216;
+  --color-bark-900: #3b2418;
   --color-bark-800: #4a2c1d;
   --color-bark-700: #5e3a27;
   --color-bark-600: #7a5540;
@@ -34,12 +34,13 @@
   --color-bark-300: #d3c0b1;
   --color-bark-200: #e7dacc;
 
-  /* Accent — the baby blue (#8CC4FE). `600`/`700` are readable on cream. */
+  /* Accent — the baby blue (#8EC5FF). `600`/`700` are readable on cream.
+     Filled buttons are this colour with `bark-950` text (10:1). */
   --color-baby-50: #f2f8ff;
   --color-baby-100: #e2f0ff;
   --color-baby-200: #c6e3ff;
-  --color-baby-300: #a6d4ff;
-  --color-baby-400: #8cc4fe;
+  --color-baby-300: #afd9ff;
+  --color-baby-400: #8ec5ff;
   --color-baby-500: #5faef6;
   --color-baby-600: #2e86d8;
   --color-baby-700: #1d63a5;
