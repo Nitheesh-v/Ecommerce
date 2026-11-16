@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/admin/ui/states";
 import { getApiErrorMessage, isAbortError } from "@/lib/api/errors";
 import { formatCurrency } from "@/lib/utils";
 import { openCheckout } from "@/lib/payments/razorpay-checkout";
-import { checkoutService, myOrdersService } from "@/services/store/payments.service";
+import { myOrdersService } from "@/services/store/orders.service";
+import { checkoutService } from "@/services/store/payments.service";
 import type { Order } from "@/types/order";
 import type { VerifyPaymentResult } from "@/types/payment";
 

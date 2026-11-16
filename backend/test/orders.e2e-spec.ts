@@ -640,6 +640,27 @@ describe('Orders (e2e)', () => {
       expect(mine.body.data[0].customerEmail).toBe(CUSTOMER.email);
     });
 
+    it('issues the invoice to the owner only', async () => {
+      const order = await placeOrder(1);
+
+      await request(server()).get(`/api/orders/${order.id}/invoice`).expect(401);
+
+      await request(server())
+        .get(`/api/orders/${order.id}/invoice`)
+        .set('Authorization', `Bearer ${otherToken}`)
+        .expect(404);
+
+      const invoice = await asCustomer('get', `/api/orders/${order.id}/invoice`).expect(200);
+
+      expect(invoice.body.data).toMatchObject({
+        invoiceNumber: `INV-${order.orderNumber}`,
+        orderNumber: order.orderNumber,
+      });
+      expect(invoice.body.data.totals.total).toBe(order.total);
+      expect(invoice.body.data.lines[0]).toMatchObject({ quantity: 1 });
+      expect(invoice.body.data).not.toHaveProperty('costPrice');
+    });
+
     it('lets a customer cancel their own order but not another customer’s', async () => {
       const order = await placeOrder(1);
 

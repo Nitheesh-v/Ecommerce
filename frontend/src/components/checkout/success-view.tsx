@@ -24,7 +24,7 @@ import { Skeleton } from "@/components/admin/ui/states";
 import { getApiErrorMessage, isAbortError } from "@/lib/api/errors";
 import { resolveImageUrl } from "@/lib/images";
 import { formatPrice } from "@/components/ui/format-currency";
-import { myOrdersService } from "@/services/store/payments.service";
+import { myOrdersService } from "@/services/store/orders.service";
 import { toast } from "@/store/toast.store";
 import type { Order } from "@/types/order";
 
