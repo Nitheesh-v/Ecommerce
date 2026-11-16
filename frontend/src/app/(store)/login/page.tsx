@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { AuthPageSkeleton } from "@/components/store/skeletons";
 import { LoginForm } from "@/components/store/auth/login-form";
 
 export const metadata: Metadata = {
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function StoreLoginPage() {
   return (
-    <Suspense fallback={<div className="mx-auto h-96 w-full max-w-md animate-pulse rounded-2xl bg-cream-50" />}>
+    <Suspense fallback={<AuthPageSkeleton />}>
       <LoginForm />
     </Suspense>
   );

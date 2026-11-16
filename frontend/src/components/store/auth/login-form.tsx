@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,7 @@ import { z } from "zod";
 import { Button } from "@/components/admin/ui/button";
 import { Field, Input } from "@/components/admin/ui/input";
 import { useCustomerAuthStore } from "@/store/customer-auth.store";
+import { AuthShell } from "./auth-shell";
 
 const schema = z.object({
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
@@ -83,75 +84,11 @@ export function LoginForm() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-md">
-      <div className="rounded-2xl border border-cream-300 bg-cream-50 p-6 shadow-sm sm:p-8">
-        <h1 className="text-xl font-semibold tracking-tight text-bark-900">Sign in</h1>
-        <p className="mt-1 text-sm text-bark-500">
-          Track your orders, keep your addresses and check out faster.
-        </p>
-
-        <form onSubmit={submit} className="mt-6 space-y-4">
-          {error ? (
-            <div
-              ref={errorRef}
-              role="alert"
-              tabIndex={-1}
-              className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
-            >
-              {error}
-            </div>
-          ) : null}
-
-          <Field label="Email" htmlFor="email" error={errors.email?.message}>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              invalid={Boolean(errors.email)}
-              {...register("email")}
-            />
-          </Field>
-
-          <Field label="Password" htmlFor="password" error={errors.password?.message}>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                placeholder="Your password"
-                invalid={Boolean(errors.password)}
-                className="pr-11"
-                {...register("password")}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((value) => !value)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-bark-400 hover:text-bark-700"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" aria-hidden />
-                ) : (
-                  <Eye className="h-4 w-4" aria-hidden />
-                )}
-              </button>
-            </div>
-          </Field>
-
-          <Button type="submit" variant="accent" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-                Signing in…
-              </>
-            ) : (
-              "Sign in"
-            )}
-          </Button>
-        </form>
-
-        <p className="mt-6 text-sm text-bark-700">
+    <AuthShell
+      title="Sign in"
+      subtitle="Track your orders, keep your addresses and check out faster."
+      footer={
+        <p>
           New here?{" "}
           <Link
             href={`/register?next=${encodeURIComponent(next)}`}
@@ -160,13 +97,68 @@ export function LoginForm() {
             Create an account
           </Link>
         </p>
+      }
+    >
+      <form onSubmit={submit} className="space-y-4" noValidate>
+        {error ? (
+          <div
+            ref={errorRef}
+            role="alert"
+            tabIndex={-1}
+            className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+          >
+            {error}
+          </div>
+        ) : null}
 
-        <p className="mt-4 flex items-start gap-2 text-xs text-bark-500">
-          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-          Your password is never stored in the browser; the session lives in an
-          HttpOnly cookie.
-        </p>
-      </div>
-    </div>
+        <Field label="Email" htmlFor="email" error={errors.email?.message}>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            invalid={Boolean(errors.email)}
+            {...register("email")}
+          />
+        </Field>
+
+        <Field label="Password" htmlFor="password" error={errors.password?.message}>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="Your password"
+              invalid={Boolean(errors.password)}
+              className="pr-11"
+              {...register("password")}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-bark-400 hover:text-bark-700"
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" aria-hidden />
+              ) : (
+                <Eye className="h-4 w-4" aria-hidden />
+              )}
+            </button>
+          </div>
+        </Field>
+
+        <Button type="submit" variant="accent" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+              Signing in…
+            </>
+          ) : (
+            "Sign in"
+          )}
+        </Button>
+      </form>
+    </AuthShell>
   );
 }

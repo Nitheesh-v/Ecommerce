@@ -4,13 +4,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Tag } from "lucide-react";
+import { LayoutGrid, Package, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/products", label: "Shop", Icon: LayoutGrid, className: "hidden md:inline-flex" },
   { href: "/categories", label: "Categories", Icon: null, className: "hidden lg:inline-flex" },
   { href: "/offers", label: "Offers", Icon: Tag, className: "inline-flex" },
+  /*
+   * "Orders" is the one destination a returning shopper actually wants, and until
+   * now it was reachable only through the account menu — two clicks and a known
+   * location. The API already serves /account/orders; this exposes it.
+   */
+  { href: "/account/orders", label: "Orders", Icon: Package, className: "hidden sm:inline-flex" },
 ] as const;
 
 /**

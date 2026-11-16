@@ -173,3 +173,24 @@ answers the public endpoints with fixtures shaped like the real contracts, and s
 generated product photos live in `public/demo/`. `npm run dev` plus that script is a
 complete visual review environment; see `frontend/scripts/README.md`. No application
 code imports either, and the real API's e2e suite remains the behaviour test.
+
+## Fifth pass — sign in, sign up, and the console's failure modes
+
+| Finding (rule) | State before | Action |
+| --- | --- | --- |
+| **Sign-in has no context or exit** (Trust, Medium) | A lone card in a `max-w-md` column: no reason an account is worth having, and no way back to the shop short of the logo | **Fixed** — `AuthShell`: the same card plus a "why an account" rail from `lg` (orders, offers, saved addresses), a "keep browsing" link above the form, and the security promise moved out of the card so the form stays focused. |
+| **Password rules stated, not shown** (Form feedback, Medium) | Sign-up described its rules in a hint ("8+ characters, a letter and a number") and only complained after a submit | **Fixed** — `PasswordStrength`: four ticking rules mirroring the zod schema exactly, a tone-graded meter and an `aria-live` label. The schema remains the authority; this is feedback. |
+| **No password reveal on sign-up** (Usability, Medium) | Sign-in could reveal the password; sign-up could not, and typing a long password blind on a phone is where mismatches come from | **Fixed** — one reveal toggle drives both password fields. |
+| **Loading skeleton did not match the page** (Perceived performance, Low) | The auth pages' `Suspense` fallback was one flat block; the card (and, from `lg`, the rail) then jumped into place | **Fixed** — `AuthPageSkeleton` mirrors the real two-column shell. |
+| **Order history unreachable from the nav** (Navigation, High) | `/account/orders` — the one page a returning shopper wants — existed but was reachable only through the account dropdown | **Fixed** — "Orders" added to the primary nav (`sm` and up), with the same active-state treatment as the other links. |
+| **Console had no error boundary** (Recovery, High) | A thrown error left the console blank; there was no way back except editing the URL | **Fixed** — `admin/(console)/error.tsx`, rendered *inside* the shell so the sidebar and header stay, showing the message, the digest the server logged, and a retry. |
+| **Stale console link** (Recovery, Low) | The default 404 | **Fixed** — `admin/(console)/not-found.tsx`, kept small on purpose: no client screen calls `notFound()` today, so this is a safety net rather than a designed screen. |
+
+### Considered and rejected
+
+`loading.tsx` for the console routes. Every console screen is a client component that
+opts out of instant navigation (`export const instant = false`) and renders its own
+skeleton while its data loads, and the admin shell already keeps the chrome mounted.
+Route-level `loading.tsx` files compiled but were never emitted into the build — dead
+files. They were written, verified, and deleted rather than shipped unexercised.
+The two that do carry their weight (error and not-found) remain.

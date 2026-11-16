@@ -177,3 +177,45 @@ export function AccountPageSkeleton() {
     </Shell>
   );
 }
+
+/**
+ * Auth shape: form card + the "why an account" rail, matching `AuthShell`.
+ *
+ * The previous page-level fallback was a single flat block, so the real card —
+ * and the rail beside it from `lg` — arrived as a visible jump.
+ */
+export function AuthPageSkeleton() {
+  return (
+    <Shell>
+      <div className="mx-auto grid w-full max-w-5xl items-start gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-14">
+        <div className="rounded-2xl border border-cream-300 bg-cream-50 p-6 shadow-soft sm:p-8">
+          <Bar className="h-7 w-40" />
+          <Bar className="mt-3 h-3 w-64" />
+          <div className="mt-6 space-y-4">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="space-y-1.5">
+                <Bar className="h-3 w-20" />
+                <Bar className="h-10 w-full rounded-lg" />
+              </div>
+            ))}
+            <Bar className="h-10 w-full rounded-lg bg-cream-400" />
+          </div>
+        </div>
+        <div className="hidden rounded-2xl border border-cream-300 bg-cream-200/60 p-8 lg:block">
+          <Bar className="h-3 w-32" />
+          <div className="mt-6 space-y-6">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex gap-3">
+                <Bar className="h-9 w-9 rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <Bar className="h-3 w-40" />
+                  <Bar className="h-3 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Shell>
+  );
+}
