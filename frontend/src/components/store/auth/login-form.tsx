@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -43,6 +43,18 @@ export function LoginForm() {
   const status = useCustomerAuthStore((state) => state.status);
   const user = useCustomerAuthStore((state) => state.user);
   const error = useCustomerAuthStore((state) => state.error);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * Move focus to the reason a submit failed. `role="alert"` announces it; focusing
+   * makes it findable when the keyboard focus was on the submit button below it.
+   */
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.focus();
+    }
+  }, [error]);
+
   const login = useCustomerAuthStore((state) => state.login);
   const clearError = useCustomerAuthStore((state) => state.clearError);
 
@@ -81,8 +93,10 @@ export function LoginForm() {
         <form onSubmit={submit} className="mt-6 space-y-4">
           {error ? (
             <div
+              ref={errorRef}
               role="alert"
-              className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+              tabIndex={-1}
+              className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
             >
               {error}
             </div>

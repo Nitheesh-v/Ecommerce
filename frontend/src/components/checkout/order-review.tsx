@@ -10,6 +10,7 @@
  */
 import Link from "next/link";
 import { ImageOff, Loader2, Lock, ShoppingBag } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { resolveImageUrl } from "@/lib/images";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/components/ui/format-currency";
@@ -41,6 +42,16 @@ export function OrderReview({
   disabled?: boolean;
   error: string | null;
 }) {
+  // A failed placement is the one error a customer must not miss: move focus to it so
+  // keyboard and screen-reader users land on the explanation, not on a silent page.
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.focus();
+    }
+  }, [error]);
+
   return (
     <div className="space-y-4">
       <ul className="divide-y divide-cream-200 rounded-xl border border-cream-200">
@@ -93,8 +104,10 @@ export function OrderReview({
 
       {error ? (
         <div
+          ref={errorRef}
           role="alert"
-          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800"
+          tabIndex={-1}
+          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
         >
           {error}
           <Link

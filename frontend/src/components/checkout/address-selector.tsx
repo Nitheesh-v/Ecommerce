@@ -9,7 +9,7 @@
  * again when the order is placed, so selecting an id here grants nothing. The
  * "Add new address" form posts to `/api/addresses` and selects what comes back.
  */
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { Check, Loader2, MapPin, Plus, X } from "lucide-react";
 import { Skeleton } from "@/components/admin/ui/states";
 import { getApiErrorMessage } from "@/lib/api/errors";
@@ -348,6 +348,9 @@ function Field({
   className?: string;
   required?: boolean;
 }) {
+  // A field error is both announced and described, so it is not a red border alone.
+  const errorId = useId();
+
   return (
     <label className={cn("block", className)}>
       <span className="mb-1 block text-[11px] font-medium text-bark-700">{label}</span>
@@ -357,13 +360,18 @@ function Field({
         placeholder={placeholder}
         autoComplete={autoComplete}
         aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : undefined}
         className={cn(
           "h-9 w-full rounded-lg border bg-cream-50 px-2.5 text-sm text-bark-900 placeholder:text-bark-400 focus:outline-none focus:ring-2 focus:ring-bark-900/10",
           error ? "border-rose-300" : "border-cream-300 focus:border-bark-400",
         )}
         required={required}
       />
-      {error ? <span className="mt-1 block text-[11px] text-rose-600">{error}</span> : null}
+      {error ? (
+        <span id={errorId} role="alert" className="mt-1 block text-[11px] text-rose-600">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }

@@ -48,6 +48,29 @@ answering from nothing), which is why the landing-pattern query was re-run as
 | **Responsive `srcset`** (Performance, High) | `sizes` set on the hero collage only; no `srcset` | **Open** — follows from the same fix |
 | **Reduced motion** | Every keyframe utility is disabled under `prefers-reduced-motion` | Already compliant |
 
+## Second pass — cart and checkout
+
+Same procedure, different screens:
+
+```bash
+python3 src/ui-ux-pro-max/scripts/search.py "form validation error messages checkout" --domain ux
+python3 src/ui-ux-pro-max/scripts/search.py "cart empty state feedback" --domain ux
+python3 src/ui-ux-pro-max/scripts/search.py "loading disabled submit button" --domain ux
+```
+
+| Rule (severity) | State | Action |
+| --- | --- | --- |
+| **Error messages must be announced** (High) | Nearly every surface already used `role="alert"`; the address form's per-field errors were visual only | **Fixed** — each field error is now `role="alert"` and wired to its input with `aria-describedby` + `aria-invalid` |
+| **Focusable error summary** (High) | Checkout, sign-in and sign-up announced their errors but never focused them; on mobile the message sits above the button, off-screen after a failed submit | **Fixed** — a failed place-order and a failed sign-in move focus to the message (`tabIndex={-1}`), keeping `role="alert"` for the announcement |
+| Disabled states (Medium) | `Button` already had `disabled:opacity-70 disabled:cursor-not-allowed` | Compliant |
+| Empty states (Medium) | Cart, orders, notifications, offers and the catalogue each show a message plus an action | Compliant |
+| Submit feedback (Medium) | Every submit swaps its label for a spinner and disables itself | Compliant |
+| Back button behaviour (High, mobile) | Cart and checkout use real links and URL state, not `location.replace` | Compliant |
+
+Still open: a full error *summary* at the top of the multi-step checkout that links to
+each invalid field. Worth doing when the address form grows beyond five inputs; today the
+inline errors plus focus movement cover the same ground with less machinery.
+
 ## The open item: `next/image`
 
 The stack guidance is unambiguous — *use `next/image` for all images, never `<img>`* —
