@@ -28,10 +28,14 @@ export function Lookbook({ products }: { products: PublicProduct[] }) {
     .map((product) => ({
       product,
       image: resolveImageUrl(
-        product.images.find((item) => item.isPrimary)?.url ?? product.images[0]?.url,
+        product.images.find((item) => item.isPrimary)?.url ??
+          product.images[0]?.url,
       ),
     }))
-    .filter((item): item is { product: PublicProduct; image: string } => item.image !== null)
+    .filter(
+      (item): item is { product: PublicProduct; image: string } =>
+        item.image !== null,
+    )
     .slice(0, 6);
 
   if (items.length < 4) {

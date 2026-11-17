@@ -73,10 +73,15 @@ export function Faq({
         {items.map(({ question, answer }) => (
           <details key={question} className="group px-1 py-4">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
-              <span className="text-sm font-medium text-bark-950">{question}</span>
+              <span className="text-sm font-medium text-bark-950">
+                {question}
+              </span>
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-cream-400 text-bark-600 transition-colors group-open:border-bark-900 group-open:bg-bark-900 group-open:text-cream-50">
                 <Plus className="h-3.5 w-3.5 group-open:hidden" aria-hidden />
-                <Minus className="hidden h-3.5 w-3.5 group-open:block" aria-hidden />
+                <Minus
+                  className="hidden h-3.5 w-3.5 group-open:block"
+                  aria-hidden
+                />
               </span>
             </summary>
             <p className="mt-2.5 max-w-prose pr-10 text-[13px] leading-relaxed text-bark-600">

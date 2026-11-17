@@ -15,13 +15,21 @@ export function StatsBand({ facets }: { facets: ProductFacets | null }) {
   }
 
   const stats = [
-    { value: facets.total, label: "Products published", hint: "Live in the catalogue" },
+    {
+      value: facets.total,
+      label: "Products published",
+      hint: "Live in the catalogue",
+    },
     {
       value: facets.categories.length,
       label: "Categories",
       hint: "Every one browsable",
     },
-    { value: facets.inStock, label: "In stock now", hint: "Counted from the ledger" },
+    {
+      value: facets.inStock,
+      label: "In stock now",
+      hint: "Counted from the ledger",
+    },
     { value: facets.onSale, label: "On sale", hint: "List price beaten" },
   ];
 
@@ -33,7 +41,10 @@ export function StatsBand({ facets }: { facets: ProductFacets | null }) {
     <section className="reveal overflow-hidden rounded-[28px] border border-cream-300 bg-cream-200/70">
       <div className="grid grid-cols-2 gap-px bg-cream-300 sm:grid-cols-4">
         {stats.map(({ value, label, hint }) => (
-          <div key={label} className="bg-cream-50 px-5 py-7 text-center sm:px-4">
+          <div
+            key={label}
+            className="bg-cream-50 px-5 py-7 text-center sm:px-4"
+          >
             <p className="font-display text-4xl leading-none text-bark-950 tabular-nums sm:text-5xl">
               {value.toLocaleString("en-IN")}
             </p>

@@ -135,6 +135,38 @@ scroll-driven animations see finished, visible content rather than a blank page.
 is no intersection observer and no animation library; the page is complete before
 JavaScript runs.
 
+### 3D, and why it is split in two
+
+The landing page also has depth, on a different footing from the motion above: real
+`perspective`, not a bigger `translateY`. It is deliberately built from **two**
+mechanisms, because they answer different questions and have different costs.
+
+| | Mechanism | Needs JS? | Where |
+| --- | --- | --- | --- |
+| **Depth** | `.scene` sets `perspective`; cards sit at different `translateZ`, base `rotateY` and bob speeds via `--depth` / `--bob-ry` / `--bob-lift`, animated by `.animate-depth` | No | Hero collage (three cards + a chip at 120px), the sale band's three tiles |
+| **Parallax** | `.tilt` + `.glare` read `--tilt-x` / `--tilt-y` / `--tilt-intensity`, which `usePointerTilt` writes from the pointer position | Yes, and only on a fine pointer | Category tiles, sale tiles, hero cards, the promise strip |
+
+The split is the point. The composition that reads as 3D is pure CSS and is already
+correct in the server HTML, so a slow connection, a disabled `script` tag or a crawler
+still gets the arranged page. The pointer parallax is an enhancement on top: absent its
+custom properties, `.tilt` resolves to the identity transform (`--tilt-scale` defaults
+to `0`), so there is no half-applied state to fall back *from*.
+
+Three rules keep it from turning into a gimmick:
+
+1. **One transform, composed once.** `.tilt` is the only place a card's `transform` is
+   composed — fan geometry (`--fan-ry`, `--fan-z`) first, then the pointer angles. A
+   caller must never pass a `transform` utility: two declarations on one element are
+   not additive, and which wins depends on cascade-layer order. That produces a fan
+   that silently disappears rather than an error.
+2. **Perspective per surface, never nested.** Each `TiltSurface` owns its perspective.
+   Stacking a second one on an ancestor flattens the inner rotation into a mere skew.
+3. **Still is a real state.** `prefers-reduced-motion` removes the animation, the
+   transform and the glare; a coarse pointer gets no tilt at all. The `.glare` is
+   `aria-hidden`, `pointer-events-none`, and repeats the card's radius rather than
+   inheriting it, because it is a *sibling* of the card and `border-radius: inherit`
+   would resolve against the frame's zero radius.
+
 ## Landing page sections
 
 `src/app/(store)/page.tsx` composes them; the heavier ones live in

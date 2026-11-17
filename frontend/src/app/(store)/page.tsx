@@ -20,6 +20,7 @@ import { HeroCollage } from "@/components/store/home/hero-collage";
 import { Lookbook } from "@/components/store/home/lookbook";
 import { StatsBand } from "@/components/store/home/stats-band";
 import { ProductRail } from "@/components/store/product-rail";
+import { TiltSurface } from "@/components/store/home/tilt-surface";
 import { discountPercent } from "@/components/store/product-card";
 import { resolveImageUrl } from "@/lib/images";
 import { formatCurrency } from "@/lib/utils";
@@ -56,7 +57,10 @@ function MarqueeBand({ items }: { items: string[] }) {
   const line = [...items, ...items, ...items, ...items];
 
   return (
-    <div className="overflow-hidden border-y border-cream-300 bg-cream-200 py-2.5" aria-hidden>
+    <div
+      className="overflow-hidden border-y border-cream-300 bg-cream-200 py-2.5"
+      aria-hidden
+    >
       <div className="animate-drift flex w-max items-center gap-8 whitespace-nowrap">
         {line.map((item, index) => (
           <span
@@ -93,7 +97,11 @@ export default async function StoreHomePage() {
   );
 
   const brands = [
-    ...new Set(everything.map((product) => product.brand).filter((brand): brand is string => Boolean(brand))),
+    ...new Set(
+      everything
+        .map((product) => product.brand)
+        .filter((brand): brand is string => Boolean(brand)),
+    ),
   ];
 
   const marquee = [
@@ -146,11 +154,17 @@ export default async function StoreHomePage() {
           </h1>
 
           <p className="mt-5 max-w-md text-[15px] leading-relaxed text-bark-600">
-            A small, carefully chosen catalogue. Every price, rating and stock count on
-            this page is read live from the store — nothing here is decorative.
+            A small, carefully chosen catalogue. Every price, rating and stock
+            count on this page is read live from the store — nothing here is
+            decorative.
           </p>
 
-          <form action="/products" method="get" role="search" className="relative mt-7 max-w-md">
+          <form
+            action="/products"
+            method="get"
+            role="search"
+            className="relative mt-7 max-w-md"
+          >
             <Search
               className="pointer-events-none absolute top-1/2 left-5 h-4 w-4 -translate-y-1/2 text-bark-500"
               aria-hidden
@@ -201,8 +215,10 @@ export default async function StoreHomePage() {
               ))
             ) : (
               <p className="text-[10px] tracking-[0.18em] text-bark-500 uppercase">
-                {profile?.codEnabled ? "Cash on delivery" : "Secure online checkout"} ·{" "}
-                {profile?.supportEmail ?? "Support from your account"}
+                {profile?.codEnabled
+                  ? "Cash on delivery"
+                  : "Secure online checkout"}{" "}
+                · {profile?.supportEmail ?? "Support from your account"}
               </p>
             )}
           </div>
@@ -213,17 +229,25 @@ export default async function StoreHomePage() {
 
       <MarqueeBand items={marquee} />
 
-      {/* Four promises, as a hairline-divided strip */}
-      <section className="reveal grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-cream-300 bg-cream-300 sm:grid-cols-4">
-        {assurances.map(({ icon: Icon, label, copy }) => (
-          <div key={label} className="bg-cream-50 p-4 sm:p-5">
-            <Icon className="h-4 w-4 text-bark-500" aria-hidden />
-            <p className="mt-3 text-[11px] font-semibold tracking-[0.16em] text-bark-900 uppercase">
-              {label}
-            </p>
-            <p className="mt-1 text-[11px] leading-relaxed text-bark-500">{copy}</p>
-          </div>
-        ))}
+      {/*
+        The strip sits in a shallow perspective of its own, so the whole row tilts as
+        one plane when the pointer crosses it — a cell that leaned on its own would
+        read as a broken grid rather than depth.
+      */}
+      <section className="reveal scene">
+        <div className="tilt grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-cream-300 bg-cream-300 [transform-style:preserve-3d] sm:grid-cols-4">
+          {assurances.map(({ icon: Icon, label, copy }) => (
+            <div key={label} className="bg-cream-50 p-4 sm:p-5">
+              <Icon className="h-4 w-4 text-bark-500" aria-hidden />
+              <p className="mt-3 text-[11px] font-semibold tracking-[0.16em] text-bark-900 uppercase">
+                {label}
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-bark-500">
+                {copy}
+              </p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <CategoryShowcase categories={categories} total={categories.length} />
@@ -231,10 +255,12 @@ export default async function StoreHomePage() {
       {!hasCatalogue ? (
         <section className="rounded-[28px] border border-dashed border-cream-400 bg-cream-50 px-6 py-20 text-center">
           <Headphones className="mx-auto h-6 w-6 text-bark-400" aria-hidden />
-          <h2 className="font-display mt-4 text-xl text-bark-900">Nothing is published yet</h2>
+          <h2 className="font-display mt-4 text-xl text-bark-900">
+            Nothing is published yet
+          </h2>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-bark-500">
-            Publish a product in the admin console and it appears here immediately —
-            there is no placeholder catalogue.
+            Publish a product in the admin console and it appears here
+            immediately — there is no placeholder catalogue.
           </p>
           <Link
             href="/admin/products"
@@ -265,8 +291,8 @@ export default async function StoreHomePage() {
                       : "Sale prices, straight from the store."}
                   </h2>
                   <p className="mt-3 max-w-md text-sm leading-relaxed text-cream-300/85">
-                    Sale prices are applied by the API, so the number you see here is the
-                    number checkout will charge.
+                    Sale prices are applied by the API, so the number you see
+                    here is the number checkout will charge.
                   </p>
                   <Link
                     href="/products?onSale=true&sortBy=price&sortOrder=asc"
@@ -280,37 +306,56 @@ export default async function StoreHomePage() {
                   </Link>
                 </div>
 
+                {/*
+                  A shallow fan: each tile sits a little further back than the one
+                  before it and leans outward, so the row reads as objects on a shelf
+                  rather than three thumbnails. Each tile carries its own perspective,
+                  which is what keeps the outer two from looking merely skewed.
+                */}
                 <div className="grid grid-cols-3 gap-3">
-                  {deals.slice(0, 3).map((product) => {
+                  {deals.slice(0, 3).map((product, index) => {
                     const image = resolveImageUrl(
                       product.images.find((item) => item.isPrimary)?.url ??
                         product.images[0]?.url,
                     );
 
+                    // Fan geometry per position: outer tiles turn away and sit back,
+                    // the middle one leans slightly forward.
+                    const fan = [
+                      { "--fan-ry": "9deg", "--fan-z": "-26px" },
+                      { "--fan-ry": "0deg", "--fan-z": "10px" },
+                      { "--fan-ry": "-9deg", "--fan-z": "-26px" },
+                    ][index] as React.CSSProperties;
+
                     return (
-                      <Link
+                      <TiltSurface
                         key={product.id}
-                        href={`/products/${product.slug}`}
-                        className="group overflow-hidden rounded-2xl bg-cream-50 p-2 text-bark-900 transition-transform hover:-translate-y-0.5"
+                        style={fan}
+                        glare={false}
                       >
-                        <span className="relative block aspect-square overflow-hidden rounded-xl bg-cream-200">
-                          {image ? (
-                            <Image
-                              src={image}
-                              alt=""
-                              fill
-                              sizes="96px"
-                              className="object-cover transition-transform duration-500 group-hover:scale-105"
-                            />
-                          ) : null}
-                        </span>
-                        <span className="mt-2 block truncate text-[11px] font-medium">
-                          {product.name}
-                        </span>
-                        <span className="block text-[11px] text-bark-600">
-                          {formatCurrency(product.effectivePrice)}
-                        </span>
-                      </Link>
+                        <Link
+                          href={`/products/${product.slug}`}
+                          className="group block overflow-hidden rounded-2xl bg-cream-50 p-2 text-bark-900 shadow-[0_14px_30px_-22px_rgb(0_0_0/0.7)] transition-transform hover:-translate-y-0.5"
+                        >
+                          <span className="relative block aspect-square overflow-hidden rounded-xl bg-cream-200">
+                            {image ? (
+                              <Image
+                                src={image}
+                                alt=""
+                                fill
+                                sizes="96px"
+                                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                              />
+                            ) : null}
+                          </span>
+                          <span className="mt-2 block truncate text-[11px] font-medium">
+                            {product.name}
+                          </span>
+                          <span className="block text-[11px] text-bark-600">
+                            {formatCurrency(product.effectivePrice)}
+                          </span>
+                        </Link>
+                      </TiltSurface>
                     );
                   })}
                 </div>
@@ -354,7 +399,10 @@ export default async function StoreHomePage() {
         </>
       )}
 
-      <Faq codEnabled={profile?.codEnabled ?? false} supportEmail={profile?.supportEmail} />
+      <Faq
+        codEnabled={profile?.codEnabled ?? false}
+        supportEmail={profile?.supportEmail}
+      />
 
       {/* Support, from the real settings document */}
       <section className="reveal flex flex-col gap-5 rounded-[28px] border border-cream-300 bg-cream-200/70 px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-10">
@@ -366,7 +414,8 @@ export default async function StoreHomePage() {
             {profile?.supportPhone ?? "We answer from your account"}
           </h2>
           <p className="mt-1.5 text-sm text-bark-600">
-            {profile?.supportEmail ?? "Order updates, returns and invoices live in your account."}
+            {profile?.supportEmail ??
+              "Order updates, returns and invoices live in your account."}
           </p>
         </div>
 

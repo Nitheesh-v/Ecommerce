@@ -301,3 +301,64 @@ and none on `/`, `/offers`, `/products` or `/cart` after it; the active class an
 `aria-current` are still in the shipped client bundle, so the highlight is applied, not
 dropped. `npm run verify` green. The admin console is unaffected: its shell renders a
 skeleton until auth resolves, so pathname-derived markup never hydrates there.
+
+## Seventh pass — depth on the landing page
+
+The home page already moved (rise, float, drift, scroll reveal) but all of it was flat:
+`translateY` and opacity. Asked for 3D, the useful distinction is between *moving a
+picture around* and *putting objects in space*, so this pass adds real `perspective` —
+and splits it into a part that needs no JavaScript at all and a part that is purely a
+pointer affordance.
+
+| Where | What it is | Cost |
+| --- | --- | --- |
+| **Hero collage** | A `.scene` with three product cards at 54px / 18px / 92px of depth, each with its own base `rotateY` (5° / −6° / 7°), a different bob height and a negative animation delay so they never sync. The rating chip floats at 120px, nearest the viewer. | CSS only |
+| **Hero cards** | Lean toward the pointer, up to ±7°, and lift 14px, with a specular band that follows the cursor. | Pointer only |
+| **Sale band** | The three deal tiles sit in a shallow fan — outer two turned 9° away and 26px back, the middle one 10px forward. | CSS only |
+| **Category wall** | Tiles tilt toward the pointer; the photograph inside is nudged 2% larger so the tile reads as a frame holding a picture. | Pointer only |
+| **Promise strip** | The whole four-cell strip tilts as one plane. A cell leaning on its own would read as a broken grid, so it is one `.tilt` on the container. | Pointer only |
+
+### What was deliberately not done
+
+- **No 3D library.** `three`/`react-three-fiber` would add ~600 KB *and* an empty box
+  until it hydrates, to render photographs that are already flat images. CSS
+  `perspective` on real product photography looks like a shop window; a WebGL scene
+  looks like a demo.
+- **No mouse-position-in-a-zustand-store.** The tilt writes CSS variables directly on
+  one element. Nothing else needs to know where the pointer is, and a store update per
+  mouse move would re-render the page.
+- **No tilt on touch.** A card that lurches while you are scrolling past it is worse
+  than a still one; `(hover: hover) and (pointer: fine)` gates it, and `--tilt-scale: 0`
+  is the CSS-side backstop so the markup is inert even if the hook never runs.
+- **No animation on the reviews, cart or checkout pages.** Depth is a home-page
+  grammar; product decisions get a still page.
+
+### The two bugs this pass introduced and then fixed
+
+Both were caught by inspecting the emitted CSS rather than by eye, and both are the
+kind that fail *silently*:
+
+1. **The fan was being thrown away.** The sale tiles passed
+   `[transform:rotateY(var(--fan-ry))_translateZ(var(--fan-z))]` as a utility while
+   `.tilt` also set `transform`. Two declarations are not additive — one wins, and
+   which one depends on cascade-layer order. `.tilt` is now the single composer,
+   taking the fan variables first and the pointer angles inside them.
+2. **Nested perspective flattened the inner rotation.** A `.scene` on the sale band's
+   container *and* `[perspective:900px]` on each tile's frame meant the fan mounted
+   almost nothing visually. Container perspective removed; every `TiltSurface` owns
+   exactly one.
+
+### Verified
+
+`npm run verify` green (typegen, `tsc`, eslint `--max-warnings=0`, production build).
+Checked against `next start` rather than the dev server: `class="scene"`, `.tilt`, the
+`animate-depth` cards, the glare spans and the per-tile `--depth` / `--fan-ry` values
+are all in the served HTML, and the 3D is absent from `/products`, `/cart` and
+`/offers`. The emitted `.tilt` rule was evaluated for the four states that matter —
+server render, reduced motion, touch, and pointer at a corner — and resolves to the
+identity transform in the first three (see `usePointerTilt` tests below).
+
+One thing this pass could not do: there is no browser in this sandbox and no network to
+fetch one, so the effect was verified as geometry and emitted CSS, not as pixels. The
+first thing to check in a real browser is that the hero's three cards do not clip at
+`lg`, where the nearest card sits 120px forward.

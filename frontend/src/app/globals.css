@@ -341,3 +341,118 @@ body {
     padding: 0 !important;
   }
 }
+
+/* ==========================================================================
+   3D on the landing page
+   ==========================================================================
+
+   Real perspective, not a bigger translateY. Two separate mechanisms, because
+   they answer two different questions:
+
+   1. **Depth (CSS only).** `.scene` establishes perspective; `.layer` children
+      sit at different `translateZ`/rotation and bob on independent clocks. This
+      is the thing that reads as 3D, and it needs no JavaScript at all — the
+      cards are already placed before hydration, and a browser with JavaScript
+      disabled still gets the whole effect.
+
+   2. **Parallax on the pointer (JS).** `.tilt` reads `--tilt-x`/`--tilt-y`,
+      which a small client hook sets from the pointer position within the
+      element. Absent those variables the card sits flat, so a server render and
+      a touch-only reader see a still card rather than a broken one.
+
+   Everything collapses under `prefers-reduced-motion`, and the tilt never
+   applies on touch, where there is no pointer to track.
+   ========================================================================== */
+
+/* The stage. Perspective lives on the parent, so every layer shares one vanishing
+   point — three different perspectives would read as three flat planes. */
+.scene {
+  perspective: 1200px;
+  perspective-origin: 50% 42%;
+}
+
+/*
+ * The clock. Each floating layer drops itself at a different angle and depth, so a
+ * slow bob makes the stack read as separate objects in space rather than one
+ * picture moving sideways. Negative delays start the cards mid-cycle, which is why
+ * they never move in lockstep on first paint.
+ */
+@keyframes depth-bob {
+  0%,
+  100% {
+    transform: rotateX(var(--bob-rx, 2deg)) rotateY(var(--bob-ry, -3deg))
+      translate3d(0, 0, var(--depth, 0px));
+  }
+  50% {
+    transform: rotateX(calc(var(--bob-rx, 2deg) * -0.6))
+      rotateY(calc(var(--bob-ry, -3deg) * -0.6))
+      translate3d(0, var(--bob-lift, -12px), var(--depth, 0px));
+  }
+}
+
+.animate-depth {
+  animation: depth-bob 13s ease-in-out infinite;
+}
+
+/*
+ * Pointer parallax — and **the only place a transform is composed** for a 3D card.
+ *
+ * `--fan-ry` / `--fan-z` come first so a caller can seat a card at an angle in a
+ * layered arrangement (the sale band's three tiles); they default to nothing, so
+ * every other card is unaffected. The tilt then applies inside that frame.
+ *
+ * The hook writes two angles in the range -1..1 and this maps them to degrees.
+ * `--tilt-scale` is 0 unless a fine pointer is present (see below), so the same
+ * markup is inert on touch without a media query in JavaScript.
+ *
+ * Composing here rather than letting callers pass a `transform` utility is
+ * deliberate: two `transform` declarations on one element are not additive, the
+ * later one wins, and which is "later" depends on whether the rule landed inside a
+ * cascade layer. That is a silent, invisible way to lose the fan entirely.
+ */
+.tilt {
+  transform: rotateY(var(--fan-ry, 0deg)) translateZ(var(--fan-z, 0px))
+    rotateX(calc(var(--tilt-y, 0) * var(--tilt-scale, 0) * -7deg))
+    rotateY(calc(var(--tilt-x, 0) * var(--tilt-scale, 0) * 7deg))
+    translateZ(var(--tilt-lift, 0px));
+  transform-style: preserve-3d;
+  transition: transform 180ms ease-out;
+}
+
+/* While the pointer is moving, a shorter transition keeps the card under it. */
+.tilt[data-tilting="true"] {
+  transition-duration: 90ms;
+}
+
+/* The specular band that sells the tilt: it slides with the pointer, and its
+   opacity is driven by the same variables so a still card shows nothing. */
+.glare {
+  background: radial-gradient(
+    60% 60% at calc(50% + var(--tilt-x, 0) * 42%) calc(50% + var(--tilt-y, 0) * 42%),
+    rgb(255 255 255 / 0.42),
+    transparent 62%
+  );
+  opacity: calc(0.55 * var(--tilt-intensity, 0));
+  transition: opacity 180ms ease-out;
+}
+
+/* Parallax is a pointer affordance: no fine pointer, no tilt. */
+@media (hover: none), (pointer: coarse) {
+  .tilt {
+    --tilt-scale: 0;
+    --tilt-intensity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-depth,
+  .tilt {
+    animation: none;
+    transform: none;
+    transition: none;
+  }
+
+  .glare {
+    opacity: 0;
+  }
+}
